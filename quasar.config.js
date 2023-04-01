@@ -23,8 +23,8 @@ module.exports = configure(function (/* ctx */) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli/boot-files
     boot: [
-      
       'axios',
+      'jardines',
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
@@ -80,17 +80,8 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
-      // https: true
-      proxy: {
-        '/api': {
-          target: 'https://jardines-backend.test/',
-          changeOrigin: true,
-          pathRewrite: {
-            '^/api': '/api'
-          }
-        }
-      },
-      open: true // opens browser window automatically
+      // https: true,
+      open: true,
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework

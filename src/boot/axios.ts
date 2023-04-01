@@ -8,7 +8,8 @@ import { AxiosError } from 'axios';
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const api = axios.create({ baseURL: 'http://jardines-backend.test/api' })
+// const api = axios.create({ baseURL: 'https://jardines-backend.test/api' })
+const api = axios.create({ baseURL: 'http://192.168.0.108/jardines-backend/public/api' })
 
 if (localStorage.getItem('token')) {
   api.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;

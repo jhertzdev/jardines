@@ -6,19 +6,23 @@
   "author": "Juan Hernández <jhertzdev@gmail.com>",
   "private": true,
   "scripts": {
-    "test": "echo \"No test specified\" && exit 0"
+    "test": "echo \"No test specified\" && exit 0",
+    "electron_build": "electron-packager . jardines-electron --platform=win32 --arch=x64"
   },
   "dependencies": {
+    "@quasar/extras": "^1.0.0",
     "axios": "^0.21.1",
     "pinia": "^2.0.11",
-    "@quasar/extras": "^1.0.0",
     "quasar": "^2.6.0",
     "vue": "^3.0.0",
-    "vue-router": "^4.0.0"
+    "vue-router": "^4.0.0",
+    "vue3-drr-grid-layout": "^1.9.7"
   },
   "devDependencies": {
     "@quasar/app-vite": "^1.0.0",
     "autoprefixer": "^10.4.2",
+    "electron": "^23.1.4",
+    "electron-packager": "^15.5.2",
     "postcss": "^8.4.14"
   },
   "engines": {

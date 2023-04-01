@@ -34,10 +34,20 @@ const routes = [
         meta: { viewName: 'Parcelas', viewIcon: 'yard' }
       },
       {
+        path: 'contratos',
+        component: () => import('src/pages/Contratos/ContratosPage.vue'),
+        meta: { viewName: 'Contratos', viewIcon: 'description' }
+      },
+      {
         path: 'parcelas/:id',
         component: () => import('src/pages/Parcelas/ParcelaIndividualPage.vue'),
         meta: { viewName: 'Parcelas', viewIcon: 'yard' }
       },
+      {
+        path: 'parcelas/:codigo/mapa',
+        component: () => import('src/pages/Parcelas/ParcelasMapaPage.vue'),
+        meta: { viewName: 'Mapa', viewIcon: 'yard' }
+      }
     ]
   },
   {

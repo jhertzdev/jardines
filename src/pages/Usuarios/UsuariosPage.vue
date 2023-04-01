@@ -80,7 +80,7 @@ const $q = useQuasar()
 function qNotifyError(error) {
   let message = !!error?.response?.data?.messages ?
     Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error'
+    'Ha ocurrido un error.'
   $q.notify({ message, color: 'negative' })
 }
 

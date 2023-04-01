@@ -1,7 +1,7 @@
 <template>
   <div class="row full-width">
-    <div class="col-lg-4 col-12">
-      <q-card class="q-pa-md" :class="$q.screen.lt.lg ? 'q-mb-sm' : 'q-mr-sm'">
+    <div class="col-md-4 col-12">
+      <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
             <th>Propietarios de parcelas</th>
@@ -30,11 +30,11 @@
         </table>
       </q-card>
     </div>
-    <div class="col-lg-8 col-12">
-      <div :class="$q.screen.lt.lg ? 'q-mt-sm q-py-md' : 'q-ml-sm q-px-md'">
+    <div class="col-md-8 col-12">
+      <div :class="$q.screen.lt.md ? 'q-mt-sm q-py-md' : 'q-ml-sm q-px-md'">
 
         <div class="q-gutter-md">
-          <q-btn label="Agregar" icon="add" color="primary" @click="openDialogAgregarCliente" />
+          <q-btn label="Agregar" icon="add" color="primary" @click="agregarClienteDialog.openDialog()" />
         </div>
         <q-separator class="q-my-lg" />
 
@@ -42,12 +42,14 @@
           <q-spinner size="xl" color="primary" />
         </div>
 
-        <q-table :rows="clientes" :columns="clientesColumnas" row-key="name" :class="!$q.screen.lt.lg && 'text-wrap'"
+        <q-table :rows="clientes" :columns="clientesColumnas" row-key="name" :class="!$q.screen.lt.md && 'text-wrap'"
           v-else>
           <template v-slot:body-cell-actions="props">
-            <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
-              <q-btn outline icon="visibility" size="sm" color="blue" dense
-                @click="router.push('/clientes/' + props.row.id)" />
+            <q-td :props="props" style="width: 120px;" class="q-gutter-xs">
+              <!--<q-btn outline icon="visibility" size="sm" color="blue" dense
+                @click="router.push('/clientes/' + props.row.id)" />-->
+              <q-btn outline icon="edit" size="sm" color="primary" dense
+                @click="agregarClienteDialog.openDialog(props.row.id)" />
               <q-btn outline icon="delete" size="sm" color="negative" dense
                 @click="openDialogEliminarCliente(props.row.id)" />
             </q-td>
@@ -59,58 +61,8 @@
           </template>
         </q-table>
 
-        <!-- Crear cliente -->
-        <q-dialog v-model="dialogAgregarCliente" class="j-dialog">
-          <q-card class="q-pa-md">
-            <q-form @submit="handleAgregarCliente" class="no-bottoms">
-              <q-card-section>
-                <div class="text-h6">Agregar cliente</div>
-              </q-card-section>
-
-              <q-card-section>
-
-                <div class="row q-col-gutter-sm">
-                  <div class="col-sm-6 col-12">
-                    <q-input outlined v-model="agregarClienteData.nombre" label="Nombre *" lazy-rules
-                      :rules="[val => val && val.length > 0 || '']" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input outlined v-model="agregarClienteData.apellido" label="Apellido *" lazy-rules
-                      :rules="[val => val && val.length > 0 || '']" />
-                  </div>
-                  <div class="col-sm-5 col-4">
-                    <q-select outlined v-model="agregarClienteData.doc_identidad" :options="tiposDocIdentidad"
-                      label="Documento" clearable @clear="agregarClienteData.doc_numero = null" />
-                  </div>
-                  <div class="col-sm-7 col-8">
-                    <q-input outlined v-model="agregarClienteData.doc_numero" label="Núm. identidad" lazy-rules
-                      :rules="[val => val && val.length > 0 || '']" :disable="!agregarClienteData.doc_identidad"
-                      :class="!agregarClienteData.doc_identidad && 'bg-grey-3'" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input outlined v-model="agregarClienteData.telefono_principal" label="Teléfono principal" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input outlined v-model="agregarClienteData.telefono_secundario" label="Teléfono secundario" />
-                  </div>
-                  <div class="col-sm-7 col-12">
-                    <q-input outlined v-model="agregarClienteData.email" label="Email" />
-                  </div>
-                  <div class="col-sm-5 col-12">
-                    <q-select outlined v-model="agregarClienteData.tipo_cliente" :options="tiposCliente"
-                      label="Tipo de cliente" clearable lazy-rules :rules="[val => val && val.length > 0 || '']" />
-                  </div>
-                </div>
-
-              </q-card-section>
-
-              <q-card-actions class="justify-end">
-                <q-btn flat label="Cancelar" v-close-popup />
-                <q-btn type="submit" label="Agregar" color="primary" :loading="isLoadingAgregarCliente" />
-              </q-card-actions>
-            </q-form>
-          </q-card>
-        </q-dialog>
+        <!-- AGREGAR CLIENTE -->
+        <DialogAgregarCliente ref="agregarClienteDialog" @created="handleClienteAgregado" @updated="handleClienteEditado"/>
 
         <!-- Eliminar cliente -->
         <q-dialog v-model="dialogEliminarCliente" class="j-dialog">
@@ -122,7 +74,7 @@
               <q-avatar round size="100px" font-size="80px" color="negative" text-color="white" icon="close" />
             </q-card-section>
             <q-card-section>
-              ¿Estás seguro de que quieres eliminar a "<span class="text-weight-bold">{{ selectedCliente.nombre
+              ¿Estás seguro de que quieres eliminar a "<span class="text-weight-bold">{{ selectedCliente.nombre_completo
               }}</span>"? Esta acción no se puede deshacer.
             </q-card-section>
             <q-card-actions class="justify-end">
@@ -158,23 +110,15 @@ import { ref, reactive, onMounted } from "vue";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 
 const router = useRouter()
 const $q = useQuasar()
-const tiposDocIdentidad = ['V', 'E', 'P', 'J', 'G']
-const tiposCliente = [
-  'Propietario',
-  'Prospecto',
-  'Contacto',
-  'Ocupante',
-  'Organización',
-  'Otro',
-]
 
 function qNotifyError(error) {
   let message = !!error?.response?.data?.messages ?
     Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error'
+    'Ha ocurrido un error.'
   $q.notify({ message, color: 'negative' })
 }
 
@@ -193,63 +137,16 @@ const clientesColumnas = [
 ]
 
 const clientes = ref([])
+const agregarClienteDialog = ref(null)
+const handleClienteAgregado = (data) => {
+  clientes.value.push(data)
+}
 
-// Agregar o editar cliente
-const dialogAgregarCliente = ref(false)
-const isLoadingAgregarCliente = ref(false);
-
-const agregarClienteData = reactive({
-  id: null,
-  nombre: null,
-  apellido: null,
-  doc_identidad: null,
-  doc_numero: null,
-  telefono_principal: null,
-  telefono_secundario: null,
-  email: null,
-  tipo_cliente: null,
-})
-
-const handleAgregarCliente = () => {
-  isLoadingAgregarCliente.value = true
-  let postData = { ...agregarClienteData }
-
-  console.log(postData);
-
-  if (postData.id) {
-
-    $q.notify({ message: 'Editado!! exitosamente.', color: 'positive' })
-
-  } else {
-
-    api.post('clientes', postData)
-      .then(response => {
-        if (response.data) {
-          Object.keys(agregarClienteData).forEach((i) => agregarClienteData[i] = null)
-          dialogAgregarCliente.value = false
-          $q.notify({ message: 'Agregado exitosamente.', color: 'positive' })
-          clientes.value.push(response.data)
-        }
-      })
-      .catch(error => qNotifyError(error))
-      .finally(() => isLoadingAgregarCliente.value = false)
-
+const handleClienteEditado = (data) => {
+  const index = clientes.value.findIndex(cliente => cliente.id == data.id)
+  if (index > -1) {
+    clientes.value[index] = data;
   }
-
-}
-
-const openDialogAgregarCliente = (id) => {
-  Object.keys(agregarClienteData).forEach((i) => agregarClienteData[i] = null)
-  dialogAgregarCliente.value = true
-}
-
-const openDialogEditarCliente = (id) => {
-  let clienteData = clientes.value.find(row => row.id == id)
-  clienteData.id = id
-  Object.keys(clienteData).forEach((i) => {
-    if (agregarClienteData.hasOwnProperty(i)) agregarClienteData[i] = clienteData[i]
-  })
-  dialogAgregarCliente.value = true
 }
 
 // Eliminar cliente
@@ -275,7 +172,6 @@ const handleEliminarCliente = (id) => {
     .catch(error => qNotifyError(error))
     .finally(() => isLoadingEliminarCliente.value = false)
 }
-
 
 onMounted(() => {
   api.get('clientes')
