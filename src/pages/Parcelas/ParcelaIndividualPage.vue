@@ -277,6 +277,7 @@ import { ref, onMounted } from 'vue';
 import { api } from 'src/boot/axios';
 import { useQuasar } from 'quasar';
 import { useRoute } from 'vue-router';
+import { qNotify } from 'src/boot/jardines';
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogGenerarContratosIndividual from "src/components/popups/DialogGenerarContratosIndividual.vue";
 
@@ -289,14 +290,6 @@ const route = useRoute()
 const $q = useQuasar()
 const splitterModel = ref(20)
 const tab = ref('detalles')
-
-function qNotifyError(error) {
-  console.log(error);
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 /**
  * DETALLES
@@ -346,7 +339,7 @@ const handleSubmitDetalles = () => {
         $q.notify({ message: 'Guardado exitosamente.', color: 'positive' })
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', {callback: handleSubmitDetalles}))
     .finally(() => isLoadingDetalles.value = false)
 
 }
@@ -367,7 +360,7 @@ const handleSubmitPuestos = () => {
         $q.notify({ message: 'Guardado exitosamente.', color: 'positive' })
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', {callback: handleSubmitPuestos}))
     .finally(() => isLoadingPuestos.value = false)
 
 }
@@ -405,6 +398,10 @@ const handleDownloadPdf = (contratoId) => {
     .then((response) => {
       console.log(response);
       window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async error => {
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, 'error', { callback: () => handleDownloadPdf(contratoId) });      
     })
 }
 

@@ -73,16 +73,10 @@
 
 import { ref, reactive, onMounted } from 'vue'
 import { api } from "src/boot/axios";
+import { qNotify } from 'src/boot/jardines';
 import { useQuasar } from "quasar";
 
 const $q = useQuasar()
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 // Agregar o editar usuario
 const dialogAgregarEditarUsuario = ref(false)
@@ -128,7 +122,7 @@ const handleEliminarUsuario = (id) => {
       usuarios.value = usuarios.value.filter(usuario => usuario.id !== id)
     }
   })
-  .catch(error => qNotifyError(error))
+  .catch(error => qNotify(error, 'error', { callback: () => handleEliminarUsuario(id) }))
   .finally(() => isLoadingEliminarUsuario.value = false)
 }
 
@@ -170,7 +164,7 @@ const handleAgregarEditarUsuario = () => {
           usuarios.value.push(response.data)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', { callback: handleAgregarEditarUsuario }))
       .finally(() => isLoadingAgregarEditarUsuario.value = false)
 
   }

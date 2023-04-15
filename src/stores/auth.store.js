@@ -36,8 +36,8 @@ export const useAuthStore = defineStore({
         } else {
 
           appStore.modalMessage = {
-              title: 'Error',
-              message: 'Las credenciales no son válidas.'
+            title: 'Error',
+            message: 'Ha ocurrido un error. Vuelve a intentarlo.'
           }
 
         }
@@ -45,11 +45,13 @@ export const useAuthStore = defineStore({
 
       } catch (error) {
 
-        console.log('TODO: +++ ', error.response);
+        let message = !!error?.response?.data?.messages ?
+          Object.values(error.response.data.messages).join(' ') :
+          'Ha ocurrido un error.'
 
         appStore.modalMessage = {
             title: 'Error',
-            message: 'Las credenciales no son válidas.'
+            message
         }
       }
 
@@ -86,6 +88,26 @@ export const useAuthStore = defineStore({
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       this.router.push('/auth/login')
+    },
+    can(permiso) {
+
+      let matriz = this.user?.role_perms || []
+      
+      for (let i = 0; i < matriz.length; i++) {
+        const valor = matriz[i];
+    
+        // Si "permiso" no contiene punto, cualquiera de su tipo en la matriz lo validará como verdadero
+        if (!permiso.includes('.') && valor.includes(permiso + '.') || valor === permiso) {
+          return true;
+        } else if (valor.includes('*')) {
+          // Reemplazamos wildcard con .* para hacer coincidir con cualquier subpermiso de ese permiso.
+          const patron = new RegExp('^' + valor.replace('*', '.*') + '$');
+          if (patron.test(permiso)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
   }
 });

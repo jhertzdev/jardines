@@ -369,10 +369,10 @@ onMounted(() => {
     calculateLayout();
   });
 
-  api.get('parcelas?f[codigo_seccion]=' + route.params.codigo + '&with[]=data')
+  api.get('parcelas?f[codigo_seccion]=' + route.params.codigo + '&with[]=data&rowsPerPage=-1')
     .then(response => {
       if (response.data) {
-        response.data.forEach( (parcela, index) => {
+        response.data.data.forEach( (parcela, index) => {
 
           console.log(parcela);
 

@@ -250,18 +250,12 @@ table.info-table {
 
 import { ref, reactive, onMounted } from "vue";
 import { api } from "src/boot/axios";
+import { qNotify } from 'src/boot/jardines';
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 
 const router = useRouter()
 const $q = useQuasar()
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 const parcelasColumnas = [
   { name: 'codigo_parcela', label: 'Núm. parcela', align: 'left', field: 'codigo_parcela', sortable: true },
@@ -354,7 +348,7 @@ const handleAgregarParcelas = () => {
         $q.notify({ message: 'Agregado exitosamente.', color: 'positive' })
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', { callback: handleAgregarParcelas }))
     .finally(() => isLoadingAgregarParcelas.value = false)
 }
 
@@ -424,7 +418,7 @@ const handleEliminarParcela = (id) => {
         parcelas.value = parcelas.value.filter(parcela => parcela.id !== id)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', { callback: () => handleEliminarParcela(id) }))
     .finally(() => isLoadingEliminarParcela.value = false)
 }
 
@@ -473,7 +467,7 @@ const parcelasTableRequest = (props) => {
   api.get(endpoint)
     .then(response => {
       if (response.data) {
-        parcelas.value = response.data.data,
+        parcelas.value = response.data.data
         parcelasTablePagination.value.page = response.data.pager.currentPage
         parcelasTablePagination.value.rowsPerPage = response.data.pager.perPage
         parcelasTablePagination.value.rowsNumber = response.data.pager.total

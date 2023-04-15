@@ -25,12 +25,44 @@
           <div class="text-h6">{{ agregarEditarData.id ? 'Editar' : 'Agregar' }} contrato</div>
         </q-card-section>
 
-        <q-card-section class="q-gutter-md">
-          <q-input outlined v-model="agregarEditarData.codigo_contrato" label="Código de contrato *" lazy-rules
-            :rules="[val => val && val.length > 0 || 'Escribe el código de contrato.']" />
-          <q-input outlined v-model="agregarEditarData.nombre" label="Nombre del contrato *" lazy-rules
-            :rules="[val => val && val.length > 0 || 'Escribe el nombre del contrato.']" />
-          <q-input outlined v-model="agregarEditarData.descripcion" label="Descripción" />
+        <q-card-section>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-5">
+              <q-input outlined v-model="agregarEditarData.codigo_contrato" label="Código *" lazy-rules
+                :rules="[val => val && val.length > 0 || 'Escribe el código de contrato.']" />
+            </div>
+            <div class="col-12 col-md-7">
+              <q-input outlined v-model="agregarEditarData.nombre" label="Nombre del contrato *" lazy-rules
+                :rules="[val => val && val.length > 0 || 'Escribe el nombre del contrato.']" />
+            </div>
+            <div class="col-12">
+              <q-input outlined v-model="agregarEditarData.descripcion" label="Descripción" />
+            </div>
+            <div class="col-12">
+              <q-select outlined v-model="agregarEditarData.tipo_actividad" :options="tiposEmpresa"
+                label="Tipo de empresa" emit-value map-options clearable hint="El tipo de empresa que puede registrar este contrato."/>
+            </div>
+            <div class="col-12">
+              <q-select :options="['Parcela', 'Columbario', 'Nicho']" outlined v-model="agregarEditarData.tipo_parcela" 
+                label="Tipo de producto" clearable hint="El tipo de producto que puede asociarse a este contrato." />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input type="number" outlined v-model="agregarEditarData.valor_venta"
+                label="Valor de venta" step="0.01" />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input type="number" outlined v-model="agregarEditarData.numero_cuotas"
+                label="Núm. cuotas" step="1" />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input type="number" outlined v-model="agregarEditarData.valor_cuota_inicial"
+                label="Cuota inicial" step="0.01" />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input type="number" outlined v-model="agregarEditarData.valor_cuota_mensual"
+                label="Cuota mensual" step="0.01" />
+            </div>
+          </div>
         </q-card-section>
 
         <q-card-actions class="justify-end">
@@ -85,11 +117,28 @@ const columnas = [
   { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 
+const tiposEmpresa = [
+  {
+    label: "Venta de parcelas",
+    value: "venta_parcelas"
+  },
+  {
+    label: "Matenimiento",
+    value: "mantenimiento_parcelas"
+  },
+];
+
 const agregarEditarData = reactive({
   id: null,
   codigo_contrato: null,
   nombre: null,
   descripcion: null,
+  tipo_actividad: null,
+  tipo_parcela: null,
+  valor_venta: 0,
+  numero_cuotas: 0,
+  valor_cuota_inicial: 0,
+  valor_cuota_mensual: 0,
 })
 
 const openDialogAgregar = () => {

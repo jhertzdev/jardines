@@ -42,6 +42,7 @@ import { api } from 'src/boot/axios';
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
+import { qNotify } from 'src/boot/jardines';
 // Components
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue'
 import QSelectEmpresa from 'src/components/selects/QSelectEmpresa.vue'
@@ -64,13 +65,6 @@ const props = defineProps({
   }
 })
 
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
-
 const handleSubmit = () => {
   isLoadingSubmit.value = true
   let postData = {
@@ -87,7 +81,7 @@ const handleSubmit = () => {
         emit('created', response.data)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', {callback: handleSubmit}))
     .finally(() => isLoadingSubmit.value = false)
 
 }

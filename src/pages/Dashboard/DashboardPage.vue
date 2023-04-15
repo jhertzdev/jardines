@@ -109,16 +109,10 @@ import { ref, onMounted, watch } from "vue";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import { qNotify } from 'src/boot/jardines';
 import BtnLink from "components/BtnLink.vue"
 
 const $q = useQuasar()
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 const isLoading = ref(true)
 
@@ -185,10 +179,7 @@ onMounted(() => {
         });
       }
     })
-    .catch(error => {
-      console.log(error);
-      qNotifyError(error)
-    })
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoading.value = false)
 })
 

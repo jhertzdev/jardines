@@ -45,6 +45,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filters: {
+    type: Object,
+    default: {}
+  },
   modelValue: {
     type: String
   }
@@ -61,10 +65,22 @@ const options = ref([]);
 async function getOptions(params = null) {
 
   let endpoint = 'clientes';
+  const searchParams = new URLSearchParams();
+
   if (params) {
-    const searchParams = new URLSearchParams(params);
-    endpoint += '?' + searchParams.toString();
+    Object.keys(params).forEach(key => {
+      searchParams.append(key, params[key])
+    });
   }
+
+  if (props.filters && Object.keys(props.filters).length) {
+    Object.keys(props.filters).forEach(key => {
+      searchParams.append(`f[${key}]`, props.filters[key])
+    });
+  }
+
+  endpoint += '?' + searchParams.toString();
+  console.log(endpoint);
 
   try {
     const response = await api.get(endpoint)

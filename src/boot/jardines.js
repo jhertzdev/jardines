@@ -1,7 +1,8 @@
 import { boot } from 'quasar/wrappers'
+import { api } from 'boot/axios'
 import GridLayout from 'vue3-drr-grid-layout'
 import 'vue3-drr-grid-layout/dist/style.css'
-import { Notify } from 'quasar';
+import { Notify, Dialog } from 'quasar';
 
 const slugify = str =>
   str
@@ -11,14 +12,50 @@ const slugify = str =>
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-const qNotify = (content, type = 'positive') => {
+const qNotify = (content, type = 'positive', params = {}) => {
 
   if (type == 'error') {
-    console.log('error', content);
+    console.log('error', content?.response);
     let message = !!content?.response?.data?.messages ?
       Object.values(content.response.data.messages).join(' ') :
       'Ha ocurrido un error.'
-    Notify.create({ message, color: 'negative' })
+    let error = content?.response?.data?.error;
+
+    if (error === 'OTP_TOKEN_REQUIRED') {
+
+      Dialog.create({
+        title: 'Contraseña requerida',
+        message,
+        prompt: {
+          model: '',
+          type: 'password'
+        },
+        cancel: true,
+        persistent: true
+      })
+      .onOk(password => {
+
+        api.post('auth/token/generate', {password})
+          .then(response => {
+            if (params?.callback) params.callback()
+          })
+          .catch(error => {
+            Notify.create(
+              {
+                message: error?.response?.data?.messages?.error || 'Ha ocurrido un error',
+                color: 'negative'
+              }
+            )
+          })
+
+      })
+
+    } else {
+
+      Notify.create({ message, color: 'negative' })
+      
+    }
+
   }
 
   if (type == 'positive') {
@@ -103,6 +140,11 @@ const $toFixed = (num) => {
   return parseFloat(num).toFixed(2)
 }
 
+const obtenerValoresFaltantes = (arr1, arr2) => {
+  const valuesArr2 = arr2.map(obj => obj.value);
+  return arr1.filter(val => !valuesArr2.includes(val));
+}
+
 // "async" is optional;
 // more info on params: https://v2.quasar.dev/quasar-cli/boot-files
 export default boot(({ app, router }) => {
@@ -116,4 +158,4 @@ export default boot(({ app, router }) => {
 
 })
 
-export { slugify, qNotify, $usd, $bs, $toFixed }
+export { slugify, qNotify, $usd, $bs, $toFixed, obtenerValoresFaltantes }

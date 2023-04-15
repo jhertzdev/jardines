@@ -8,6 +8,7 @@
         <q-tab name="secciones" icon="grass" label="Secciones" />
         <q-tab name="contratos" icon="document_scanner" label="Contratos" />
         <q-tab name="productos" icon="yard" label="Productos" />
+        <q-tab name="configuracion" icon="settings" label="Configuración" />
       </q-tabs>
     </template>
 
@@ -87,6 +88,10 @@
 
         <q-tab-panel name="productos">
           <QTabPanelProductosContent />
+        </q-tab-panel>
+
+        <q-tab-panel name="configuracion">
+          <QTabPanelConfiguracionContent />
         </q-tab-panel>
 
       </q-tab-panels>
@@ -305,23 +310,18 @@
 import { ref, reactive, watch, onMounted } from "vue";
 import { api } from "src/boot/axios";
 import { useQuasar } from "quasar";
+import { qNotify } from 'src/boot/jardines';
 
 // Components
 import QTabPanelContratosContent from 'src/components/configuracion/QTabPanelContratosContent.vue';
 import QTabPanelProductosContent from 'src/components/configuracion/QTabPanelProductosContent.vue';
+import QTabPanelConfiguracionContent from 'src/components/configuracion/QTabPanelConfiguracionContent.vue';
 
 const $q = useQuasar()
 
-const tab = ref('empresas')
+const tab = ref('areas')
 const splitterModel = ref(20)
 const selectedEmpresa = ref(null)
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 /**
  * EMPRESAS
@@ -359,7 +359,7 @@ const handleAgregarEmpresa = () => {
         empresas.value.push(response.data)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoadingAgregarEmpresa.value = false)
 }
 
@@ -394,7 +394,7 @@ const handleEditarEmpresa = () => {
         empresas.value.push(response.data)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoadingEditarEmpresa.value = false)
 }
 
@@ -416,7 +416,7 @@ const handleEliminarEmpresa = (id) => {
         empresas.value = empresas.value.filter(empresa => empresa.id !== id)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoadingEliminarEmpresa.value = false)
 }
 
@@ -475,7 +475,7 @@ const handleAgregarEditarArea = () => {
           areas.value.push(response.data)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', { callback: handleAgregarEditarArea } ))
       .finally(() => isLoadingAgregarEditarArea.value = false)
 
   }
@@ -516,7 +516,7 @@ const handleEliminarArea = (id) => {
         areas.value = areas.value.filter(seccion => seccion.id !== id)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoadingEliminarArea.value = false)
 }
 
@@ -567,7 +567,7 @@ const handleAgregarEditarSeccion = () => {
           secciones.value.push(response.data)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error'))
       .finally(() => isLoadingAgregarEditarSeccion.value = false)
 
   }
@@ -608,7 +608,7 @@ const handleEliminarSeccion = (id) => {
         secciones.value = secciones.value.filter(seccion => seccion.id !== id)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error'))
     .finally(() => isLoadingEliminarSeccion.value = false)
 }
 

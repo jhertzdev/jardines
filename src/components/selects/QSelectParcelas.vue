@@ -7,6 +7,7 @@
 <script setup>
 
 import { api } from 'src/boot/axios';
+import { obtenerValoresFaltantes } from 'src/boot/jardines'
 import { ref, onMounted } from 'vue'
 
 const filterFn = (val, update) => {
@@ -55,6 +56,8 @@ const props = defineProps({
   }
 })
 
+console.log('parcelprops', props.modelValue);
+
 const emit = defineEmits(['update:modelValue'])
 
 const updateValue = (value) => {
@@ -66,8 +69,6 @@ const options = ref([]);
 async function getOptions(params = null) {
 
   let endpoint = 'parcelas';
-
-  console.log(props.filters);
   const searchParams = new URLSearchParams();
 
   if (params) {
@@ -76,7 +77,7 @@ async function getOptions(params = null) {
     });
   }
 
-  if (Object.keys(props.filters).length) {
+  if (props.filters && Object.keys(props.filters).length) {
     Object.keys(props.filters).forEach(key => {
       searchParams.append(`f[${key}]`, props.filters[key])
     });
@@ -95,6 +96,23 @@ async function getOptions(params = null) {
           value: row.id,
         })
       })
+
+      // Obtener valores seleccionados previamente
+
+      const valoresFaltantes = obtenerValoresFaltantes(props.modelValue, options.value);
+      if (valoresFaltantes.length) {
+        const response2 = await api.get('parcelas?id=' + valoresFaltantes.join(',') + '&rowsPerPage=-1')
+        if (response2.data) {
+          console.log('response2', response2.data);
+          response2.data.data.forEach(row => {
+            options.value.push({
+              label: `${row.codigo_seccion}-${row.num_parcela} (${row.estatus})`,
+              value: row.id,
+            })
+          })
+        }
+      }
+
       return true
     }    
   } catch (error) {

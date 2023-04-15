@@ -110,17 +110,11 @@ import { ref, reactive, onMounted } from "vue";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import { qNotify } from 'src/boot/jardines';
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 
 const router = useRouter()
 const $q = useQuasar()
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
 
 /**
  * CLIENTES
@@ -169,7 +163,7 @@ const handleEliminarCliente = (id) => {
         clientes.value = clientes.value.filter(cliente => cliente.id !== id)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch(error => qNotify(error, 'error', { callback: () => handleEliminarCliente(id) }))
     .finally(() => isLoadingEliminarCliente.value = false)
 }
 

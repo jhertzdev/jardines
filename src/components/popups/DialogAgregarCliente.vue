@@ -20,17 +20,26 @@
               </div>
               <div class="col-sm-5 col-4">
                 <q-select outlined v-model="data.doc_identidad" :options="tiposDocIdentidad" label="Documento" clearable
-                  @clear="data.doc_numero = null" />
+                  @clear="data.doc_numero = null" :rules="[val => val && val.length > 0 || '']" />
               </div>
               <div class="col-sm-7 col-8">
                 <q-input outlined v-model="data.doc_numero" label="Núm. identidad" lazy-rules
                   :rules="[val => val && val.length > 0 || '']" :disable="!data.doc_identidad"
                   :class="!data.doc_identidad && 'bg-grey-3'" />
               </div>
-              <div class="col-12">
+              <div class="col-12 col-sm-7">
                 <q-select outlined v-model="data.tipo_cliente" :options="tiposCliente" label="Tipo de cliente *" clearable
                   lazy-rules :rules="[val => val && val.length > 0 || '']" />
               </div>
+              <div class="col-12 col-sm-5">
+                <q-checkbox v-model="data.estado_gerencia" true-value="1" false-value="0" label="Estado de gerencia" :disable="!authStore.can('clientes.gerencia')" class="q-mt-sm">
+                  <q-tooltip max-width="200px" class="text-center bg-black">
+                    Al marcar esta opción, solo un usuario con permisos para editar clientes bloqueados podrá editarlo.
+                  </q-tooltip>
+                </q-checkbox>
+              </div>
+     
+              
             </div>
           </q-step>
           <q-step name="2" title="Información de contacto" icon="contact_phone" done-icon="contact_phone"
@@ -78,23 +87,36 @@
           <q-step name="4" title="Información adicional" icon="person_add" done-icon="person_add" active-icon="person_add"
             :done="step > 4">
             <div class="row q-col-gutter-sm">
-              <div class="col-sm-6 col-12">
+              <div class="col-12">
                 <q-input type="datetime-local" stack-label outlined v-model="data.fecha_nacimiento"
-                  label="Fecha de nacimiento" />
+                  label="Fecha de nacimiento" clearable/>
               </div>
               <div class="col-sm-6 col-12">
-                <q-input type="datetime-local" stack-label outlined v-model="data.fecha_muerte" label="Fecha de muerte" />
-              </div>
-              <div class="col-md-4 col-12">
                 <q-select :options="['Soltero/a ', 'Casado/a', 'Divorciado/a', 'Viudo/a']" outlined
                   v-model="data.estado_civil" label="Estado civil" clearable />
               </div>
-              <div class="col-md-4 col-12">
-                <q-input outlined v-model="data.religion" label="Religión" />
-              </div>
-              <div class="col-md-4 col-12">
+              <div class="col-sm-6 col-12">
                 <q-select :options="['Masculino', 'Femenino']" outlined v-model="data.genero" label="Género" clearable />
               </div>
+              <div class="col-12 text-right">
+                <q-checkbox v-model="data.difunto" true-value="1" false-value="0" label="¿Fallecido?" :disable="!!(data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)" >
+                  <q-tooltip max-width="200px" class="text-center bg-black" v-if="!!(data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
+                    Para desmarcar esta opción, debes eliminar la información de fecha y causa de muerte, y número de certificado.
+                  </q-tooltip>
+                </q-checkbox>
+              </div>
+              <template v-if="parseInt(data.difunto)">
+                <div class="col-sm-6 col-12">
+                  <q-input type="datetime-local" stack-label outlined v-model="data.fecha_muerte"
+                    label="Fecha de muerte" clearable/>
+                </div>
+                <div class="col-sm-6 col-12">
+                  <q-input outlined v-model="data.certificado_defuncion" label="Número de certificado" />
+                </div>
+                <div class="col-12">
+                  <q-input outlined v-model="data.causa_muerte" label="Causa de muerte" />
+                </div>
+              </template>
             </div>
           </q-step>
           <q-step name="5" title="Relaciones y parentesco" icon="family_restroom" done-icon="family_restroom"
@@ -223,12 +245,15 @@
 import { api } from 'src/boot/axios';
 import { ref, reactive } from 'vue';
 import { useQuasar } from 'quasar';
+import { qNotify } from 'src/boot/jardines';
+import { useAuthStore } from 'src/stores/auth.store';
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue';
 
 const $q = useQuasar()
 const dialog = ref(false)
 const dialogAgregarRelacion = ref(false)
 const step = ref(1)
+const authStore = useAuthStore()
 
 let stringOpcionesParentesco = [
   {
@@ -335,13 +360,6 @@ const filterFn = (val, update) => {
   })
 }
 
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
-}
-
 const handleSubmit = () => {
   isLoadingSubmit.value = true
   let postData = { ...data }
@@ -355,6 +373,8 @@ const handleSubmit = () => {
 
   if (data.id) {
 
+    console.log('data', postData);
+
     api.put('clientes/' + data.id, postData)
       .then(response => {
         if (response.data) {
@@ -364,10 +384,12 @@ const handleSubmit = () => {
           emit('updated', response.data)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', {callback: handleSubmit}))
       .finally(() => isLoadingSubmit.value = false)
 
   } else {
+
+    console.log(postData);
 
     api.post('clientes', postData)
       .then(response => {
@@ -378,7 +400,7 @@ const handleSubmit = () => {
           emit('created', response.data)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', {callback: handleSubmit}))
       .finally(() => isLoadingSubmit.value = false)
 
   }
@@ -400,7 +422,7 @@ const handleAgregarRelacion = () => {
           $q.notify({ message: 'Relación agregada.', color: 'positive' })
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', {callback: handleAgregarRelacion}))
       .finally(() => isLoadingSubmitRelacion.value = false)
 
   } else {
@@ -421,7 +443,7 @@ const handleAgregarRelacion = () => {
 
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', {callback: handleAgregarRelacion}))
       .finally(() => isLoadingSubmitRelacion.value = false)    
 
   }
@@ -441,11 +463,12 @@ const handleEliminarRelacion = (index) => {
         relacion_id: contacto.relacion.id, cliente_id: contacto.cliente.id
       })
       .then(response => {
+        console.log('Bieeen, borrando', response);
         if (response.status === 200) {
           data.relaciones.splice(index, 1)
         }
       })
-      .catch(error => qNotifyError(error))
+      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarRelacion(index) }))
       .finally(() => isLoadingEliminarRelacion.value = false) 
 
 
@@ -464,6 +487,7 @@ const data = reactive({
   doc_identidad: null,
   doc_numero: null,
   tipo_cliente: null,
+  estado_gerencia: null,
   // Contacto
   pais: null,
   estado: null,
@@ -479,9 +503,11 @@ const data = reactive({
   direccion_trabajo: null,
   // Adicional
   fecha_nacimiento: null,
+  difunto: 0,
   fecha_muerte: null,
+  causa_muerte: null,
+  certificado_defuncion: null,
   estado_civil: null,
-  religion: null,
   genero: null,
   // Relaciones y parentesco
   relaciones: []
@@ -509,7 +535,10 @@ const isLoadingEliminarRelacion = ref(false)
 const openDialog = (id) => {
 
   Object.keys(data).forEach((i) => {
-    data[i] = (i === 'relaciones') ? [] : null
+    data[i] = (i === 'relaciones') ? [] : 
+      (i === 'difunto' ? '0' : 
+        (i === 'estado_gerencia' ? '0' : null)
+      )
   })
 
   if (id) {
@@ -517,11 +546,13 @@ const openDialog = (id) => {
     api.get('clientes/' + id)
       .then(response => {
         if (response.data) {
+
           Object.keys(response.data).forEach((i) => {
             if (data.hasOwnProperty(i)) {
               data[i] = response.data[i]
             }
           })
+   
         }
       })
       .finally(() => isLoadingSubmit.value = false)

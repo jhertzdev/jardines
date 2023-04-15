@@ -57,62 +57,73 @@
                       label="Cliente relacionado" required
                       @update:model-value="val => handleRellenarCamposDeCliente(val, codigo)" />
                   </div>
+                  <div class="col-sm-5 col-4">
+                    <q-select dense outlined v-model="contratosData[codigo].cliente.doc_identidad" :options="['V', 'E', 'P', 'J', 'G']" label="Documento" clearable
+                      @clear="contratosData[codigo].cliente.doc_numero = null" hide-bottom-space/>
+                  </div>
+                  <div class="col-sm-7 col-8">
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.doc_numero" label="Núm. identidad" lazy-rules
+                      :rules="[val => val && val.length > 0 || '']" :disable="!contratosData[codigo].cliente.doc_identidad"
+                      :class="!contratosData[codigo].cliente.doc_identidad && 'bg-grey-3'" hide-bottom-space/>
+                  </div>
                   <div class="col-12 text-right text-caption text-grey-6">
                     <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
                       color="primary" @click="agregarClienteDialog.openDialog()" />
                   </div>
                   <div class="col-12 col-md-6">
-                    <q-input dense v-model="contratosData[codigo].nombre" outlined label="Nombre" lazy-rules
+                    <q-input dense v-model="contratosData[codigo].cliente.nombre" outlined label="Nombre" lazy-rules
                       :rules="[val => val && val.length > 0]" hide-bottom-space />
                   </div>
                   <div class="col-12 col-md-6">
-                    <q-input dense v-model="contratosData[codigo].apellido" outlined label="Apellido" lazy-rules
+                    <q-input dense v-model="contratosData[codigo].cliente.apellido" outlined label="Apellido" lazy-rules
                       :rules="[val => val && val.length > 0]" hide-bottom-space />
                   </div>
                   <div class="col-12 col-md-4">
                     <q-input dense type="datetime-local" stack-label outlined
-                      v-model="contratosData[codigo].fecha_nacimiento" label="Fecha de nacimiento" />
+                      v-model="contratosData[codigo].cliente.fecha_nacimiento" label="Fecha de nacimiento" />
                   </div>
                   <div class="col-12 col-md-4">
                     <q-select dense :options="['Soltero/a ', 'Casado/a', 'Divorciado/a', 'Viudo/a']" outlined
-                      v-model="contratosData[codigo].estado_civil" label="Estado civil" clearable />
+                      v-model="contratosData[codigo].cliente.estado_civil" label="Estado civil" clearable />
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-select dense :options="['Masculino', 'Femenino']" outlined v-model="contratosData[codigo].genero"
+                    <q-select dense :options="['Masculino', 'Femenino']" outlined v-model="contratosData[codigo].cliente.genero"
                       label="Género" clearable />
                   </div>
                   <div class="col-12">
-                    <q-input dense outlined v-model="contratosData[codigo].direccion_habitacion"
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.direccion_habitacion"
                       label="Dirección de habitación" />
                   </div>
                   <div class="col-12">
-                    <q-input dense outlined v-model="contratosData[codigo].direccion_trabajo"
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.direccion_trabajo"
                       label="Dirección de trabajo" />
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input dense outlined v-model="contratosData[codigo].email" label="Email" />
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.email" label="Email" />
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input dense outlined v-model="contratosData[codigo].telefono_principal"
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.telefono_principal"
                       label="Teléfono principal" />
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input dense outlined v-model="contratosData[codigo].telefono_secundario"
+                    <q-input dense outlined v-model="contratosData[codigo].cliente.telefono_secundario"
                       label="Teléfono secundario" />
                   </div>
                   <div class="col-12">
-                    <div class="text-h6 text-center">Parcelas
+                    <div class="text-h6 text-center">{{ (contratosData[codigo].tipo_parcela || 'Producto').concat('s') }}
                       <q-icon name="help_outline" class="q-ml-xs">
                         <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                          Al asignar las parcelas, su estatus cambiará a "Vendido", y se asignará al comprador como propietario de las parcelas.
+                          Al asignar las {{ (contratosData[codigo].tipo_parcela || 'Producto').concat('s') }}, su estatus cambiará a "Vendido", y se asignará al comprador como propietario.
                         </q-tooltip>
                       </q-icon>
                     </div>
                   </div>
                   <div class="col-12">
                     <QSelectParcelas dense v-model="contratosData[codigo].parcelas" outlined clearable
-                      label="Seleccionar parcelas a asignar" required rule="Selecciona la parcelas a asignar."
-                      hint="Solo se muestran las parcelas con estatus: Disponible" :filters="{ estatus: 'Disponible' }" />
+                      :label="`Selecciona los ${(contratosData[codigo].tipo_parcela || 'Producto').concat('s')} a asignar`" required
+                      :rule="`Debes seleccionar al menos un ${(contratosData[codigo].tipo_parcela || 'Producto')}`"
+                      :hint="`Solo se muestran ${(contratosData[codigo].tipo_parcela || 'Producto').concat('s')} con estatus: Disponible`"
+                      :filters="{ estatus: 'Disponible', tipo_parcela: contratosData[codigo].tipo_parcela }" />
                   </div>
                   <div class="col-12">
                     <div class="text-h6 text-center">Información del contrato</div>
@@ -183,6 +194,7 @@ import { api } from 'src/boot/axios';
 import { ref, watch, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar, scroll } from 'quasar';
+import { qNotify } from 'src/boot/jardines';
 
 // Components
 import QSelectTiposContratos from 'src/components/selects/QSelectTiposContratos.vue'
@@ -264,8 +276,21 @@ const handleSelectTipoContrato = (opciones) => {
       codigo_contrato: opcion,
       autogenerar_numero: true,
       autocalcular_total: true,
-      parcelas: []
+      parcelas: [],
+      cliente: {},
+      tipo_parcela: 'Producto'
     }
+
+    api.get('contratos/tipos/' + opcion)
+      .then(response => {
+        if (response.data) {
+          contratosData.value[opcion].tipo_parcela = response.data.tipo_parcela
+          contratosData.value[opcion].valor_venta = response.data.valor_venta
+          contratosData.value[opcion].numero_cuotas = response.data.numero_cuotas
+          contratosData.value[opcion].valor_cuota_inicial = response.data.valor_cuota_inicial
+          contratosData.value[opcion].valor_cuota_mensual = response.data.valor_cuota_mensual
+        }
+      })
   });
 
   opcionesAEliminar.forEach(opcion => {
@@ -278,9 +303,18 @@ const handleCopiarContratoAnterior = (codigo) => {
   let index = keys.indexOf(codigo);
   if (index > 0) {
     let anterior = keys[index - 1];
-    contratosData.value[codigo] = Object.assign({}, contratosData.value[anterior])
-    contratosData.value[codigo].vendedor_id = null;
-    contratosData.value[codigo].codigo_contrato = codigo
+
+    // Valores a mantener
+    let mantenerValoresContrato = {
+      vendedor_id: null,
+      codigo_contrato: codigo,
+      valor_venta: contratosData.value[codigo].valor_venta || null,
+      numero_cuotas: contratosData.value[codigo].numero_cuotas || null,
+      valor_cuota_inicial: contratosData.value[codigo].valor_cuota_inicial || null,
+      valor_cuota_mensual: contratosData.value[codigo].valor_cuota_mensual || null,
+    }
+
+    contratosData.value[codigo] = Object.assign({}, contratosData.value[anterior], mantenerValoresContrato)
   }
 }
 
@@ -293,19 +327,12 @@ const handleRellenarCamposDeCliente = (value, codigo) => {
   api.get('clientes/' + value)
     .then(response => {
       if (response.data) {
-        ['nombre', 'apellido', 'fecha_nacimiento', 'direccion_habitacion', 'direccion_trabajo',
+        ['nombre', 'doc_numero', 'doc_identidad', 'apellido', 'fecha_nacimiento', 'direccion_habitacion', 'direccion_trabajo',
           'estado_civil', 'genero', 'email', 'telefono_principal', 'telefono_secundario'].forEach(key => {
-            contratosData.value[codigo][key] = response.data[key]
+            contratosData.value[codigo]['cliente'][key] = response.data[key]
           });
       }
     })
-}
-
-function qNotifyError(error) {
-  let message = !!error?.response?.data?.messages ?
-    Object.values(error.response.data.messages).join(' ') :
-    'Ha ocurrido un error.'
-  $q.notify({ message, color: 'negative' })
 }
 
 const handleSubmitGenerarContratos = () => {
@@ -323,7 +350,7 @@ const handleSubmitGenerarContratos = () => {
         emit('created', response.data)
       }
     })
-    .catch(error => qNotifyError(error))
+    .catch((error) => qNotify(error, 'error', handleSubmitGenerarContratos))
     .finally(() => isLoadingSubmit.value = false)
 
 }

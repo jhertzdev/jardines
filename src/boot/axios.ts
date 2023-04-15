@@ -9,33 +9,39 @@ import { AxiosError } from 'axios';
 // "export default () => {}" function below (which runs individually
 // for each client)
 // const api = axios.create({ baseURL: 'https://jardines-backend.test/api' })
-const api = axios.create({ baseURL: 'http://192.168.0.108/jardines-backend/public/api' })
+const api = axios.create({ baseURL: 'http://192.168.56.1/jardines-backend/public/api' })
 
 if (localStorage.getItem('token')) {
   api.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
 }
 
-/*api.interceptors.response.use((response) => {
-  if (response.status === 401) {
-    console.log('INTERCEPTED 401 ###: You are not authorized');
-  }
-  return response;
-}, (error) => {
-  console.log('Intercepted ERROR ### ', JSON.stringify(error));
-  if (error.response && error.response.data) {
-    return Promise.reject(error.response.data);
-  }
-  return Promise.reject(error.message);
-});*/
-
 export default boot(({ app, router }) => {
 
-  api.interceptors.response.use((response) => {
-    if (response.status === 401) {
-      // Unauthorized
+  api.interceptors.request.use(function (config) {
+    //console.log('Intercepting request...', config);
+    return config;
+  }, function (error) {
+    // Do something with request error
+    // console.log('Request error...', error);
+    return Promise.reject(error);
+  });
+
+  api.interceptors.response.use((response) => {   
+
+0    // Enviar token en la siguiente petición
+    if (response?.statusText === 'OTP-Token') {
+      api.defaults.headers.common['OTP-Token'] = response.data.token
     }
+
+    /* if (response.status === 401) { } */
+
     return response;
   }, async (error: AxiosError) => {
+
+    // Eliminar token
+    if (error?.response?.data?.error === 'OTP_TOKEN_REQUIRED') {    
+      delete api.defaults.headers.common['OTP-Token']
+    }
 
     const publicPages = ['/auth/login', '/auth/logout'];
     const authRequired = !publicPages.includes(router.currentRoute.value.path);
@@ -43,6 +49,8 @@ export default boot(({ app, router }) => {
     if (authRequired) {
       try {
         let response = await api.get('auth/check')
+        console.log('Checking auth...', response.data);
+        
         if (!response.data) {
           router.push('/auth/logout')
           return Promise.reject('Unauthorized');

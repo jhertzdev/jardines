@@ -129,57 +129,81 @@
 </style>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, toRef } from 'vue'
 import MenuLink from 'src/components/MenuLink.vue'
 import { useAuthStore } from 'src/stores/auth.store'
 import { useRoute, useRouter } from 'vue-router';
+import { useQuasar } from 'quasar'
+import { useAppStore } from 'src/stores/app.store';
 
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
+const permisos = authStore.user.role_perms;
+
 const linksList = [
   {
     title: 'Dashboard',
     icon: 'dashboard',
-    to: '/'
+    to: '/',
   },
   {
     title: 'Clientes',
     icon: 'people',
-    to: '/clientes'
+    to: '/clientes',
+    perms: 'clientes',
   },
   {
     title: 'Parcelas',
     icon: 'yard',
-    to: '/parcelas'
+    to: '/parcelas',
+    perms: 'parcelas',
   },
   {
     title: 'Contratos',
     icon: 'description',
-    to: '/contratos'
+    to: '/contratos',
+    perms: 'contratos',
   },
   {
     title: 'Usuarios',
     icon: 'groups',
-    to: '/usuarios'
+    to: '/usuarios',
+    perms: 'usuarios',
   },
   {
     title: 'Configuración',
     icon: 'settings',
-    to: '/configuracion'
+    to: '/configuracion',
+    perms: 'configuracion',
   },
   {
     title: 'Cerrar sesión',
     icon: 'logout',
-    to: '/auth/logout'
+    to: '/auth/logout',
   }
-]
+].filter(link => !link.perms || authStore.can(link.perms))
 
 const leftDrawerOpen = ref(false)
 const essentialLinks = linksList
 const toggleLeftDrawer = () => {
   leftDrawerOpen.value = !leftDrawerOpen.value
 }
+
+const $q = useQuasar()
+const appStore = useAppStore()
+
+watch(toRef(appStore, 'modalMessage'), () => {
+  if (!appStore.modalIsVisible) {
+    appStore.modalIsVisible = true
+    $q.dialog({
+      title: appStore.modalMessage.title,
+      message: appStore.modalMessage.message
+    }).onDismiss(() => {
+      appStore.modalIsVisible = false
+    })
+  }
+});
 
 </script>
