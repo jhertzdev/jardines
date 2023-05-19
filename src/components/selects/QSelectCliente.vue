@@ -79,6 +79,8 @@ async function getOptions(params = null) {
     });
   }
 
+  searchParams.append('rowsPerPage', '-1');
+
   endpoint += '?' + searchParams.toString();
   console.log(endpoint);
 
@@ -86,7 +88,7 @@ async function getOptions(params = null) {
     const response = await api.get(endpoint)
     if (response.data) {
       options.value = []
-      response.data.forEach(row => {
+      response.data.data.forEach(row => {
         options.value.push({
           label: `${row.nombre_completo} (${row.num_identidad})`,
           value: row.id,

@@ -228,6 +228,11 @@
 .puesto-tooltip p {
   margin: 0;
 }
+
+.map-wrapper {
+  height: calc(100vh - 240px);
+}
+
 </style>
 
 <script setup>

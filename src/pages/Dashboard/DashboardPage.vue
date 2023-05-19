@@ -120,7 +120,7 @@ const searchQuery = ref('')
 
 watch(searchQuery, query => {
 
-  if (!query) return searchResults.value = {};
+  if (!query || query.length < 3) return searchResults.value = {};
 
   const searchParams = new URLSearchParams;
   searchParams.append('q', query)
@@ -151,21 +151,6 @@ const dashboardOptions = ref([
 ])
 
 const searchResults = ref({});
-
-const handleSubmitSearch = () => {
-
-  if (!searchQuery.value) return false;
-
-  const searchParams = new URLSearchParams;
-  searchParams.append('q', searchQuery.value)
-  
-  api.get('search?' + searchParams.toString())
-    .then(response => {
-      if (response.data) searchResults.value = response.data
-    })
-    .catch(error => console.log(error))
-
-}
 
 onMounted(() => {
   api.get('pages/dashboard')

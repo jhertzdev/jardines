@@ -38,7 +38,7 @@
             <th>Vendidas</th>
             <td>{{ stats.parcelas_estatus_vendido }}</td>
           </tr>
-          <tr>
+          <!--<tr>
             <th colspan="2" style="text-align: right;">NICHOS</th>
           </tr>
           <tr>
@@ -67,7 +67,7 @@
           <tr>
             <th>Disponibles</th>
             <td>0</td>
-          </tr>
+          </tr>-->
         </table>
       </q-card>
     </div>
@@ -78,7 +78,8 @@
           <q-btn label="Agregar" icon="add" color="primary" @click="openDialogAgregarParcelas" />
           <q-btn-dropdown label="Ver mapa" icon="yard" color="primary">
             <q-list>
-              <q-item clickable v-close-popup v-for="seccion in secciones" :to="`/parcelas/${seccion.codigo_seccion}/mapa`">
+              <q-item clickable v-close-popup v-for="seccion in secciones"
+                :to="`/parcelas/${seccion.codigo_seccion}/mapa`">
                 <q-item-section>
                   <q-item-label>{{ seccion.nombre }}</q-item-label>
                 </q-item-section>
@@ -88,17 +89,9 @@
         </div>
         <q-separator class="q-my-lg" />
 
-        <q-table
-          :rows="parcelas"
-          :columns="parcelasColumnas"
-          row-key="id"
-          :class="!$q.screen.lt.md && 'text-wrap'"
-          ref="parcelasTableRef"
-          v-model:pagination="parcelasTablePagination"
-          :loading="parcelasTableLoading"
-          :filter="parcelasTableFilter"
-          @request="parcelasTableRequest"
-        >
+        <q-table :rows="parcelas" :columns="parcelasColumnas" row-key="id" :class="!$q.screen.lt.md && 'text-wrap'"
+          ref="parcelasTableRef" v-model:pagination="parcelasTablePagination" :loading="parcelasTableLoading"
+          :filter="parcelasTableFilter" @request="parcelasTableRequest">
           <template v-slot:top-right>
             <q-input dense debounce="300" v-model="parcelasTableFilter" placeholder="Buscar...">
               <template v-slot:append>
@@ -134,12 +127,14 @@
                   <div class="col-12 col-sm-6">
                     <q-select outlined v-model="agregarParcelasData.codigo_seccion" :options="seccionesOptions"
                       label="Selecciona una sección *" lazy-rules
-                      :rules="[val => val && val.length > 0 || 'Selecciona una sección.']" emit-value map-options clearable />
+                      :rules="[val => val && val.length > 0 || 'Selecciona una sección.']" emit-value map-options
+                      clearable />
                   </div>
                   <div class="col-12 col-sm-6">
                     <q-select outlined v-model="agregarParcelasData.tipo_parcela_id" :options="tiposParcelasOptions"
                       label="Tipo de parcela *" lazy-rules
-                      :rules="[val => val && val.length > 0 || 'Selecciona un tipo de parcela.']" emit-value map-options clearable />
+                      :rules="[val => val && val.length > 0 || 'Selecciona un tipo de parcela.']" emit-value map-options
+                      clearable />
                   </div>
                 </div>
               </q-card-section>
@@ -422,10 +417,6 @@ const handleEliminarParcela = (id) => {
     .finally(() => isLoadingEliminarParcela.value = false)
 }
 
-const isLoadingEmpresas = ref(true)
-const isLoadingAreas = ref(true)
-const isLoadingSecciones = ref(true)
-
 const stats = ref({});
 
 /**
@@ -436,7 +427,7 @@ const parcelasTableLoading = ref(true)
 const parcelasTableFilter = ref('');
 const parcelasTablePagination = ref({
   page: 1,
-  rowsPerPage: 10,
+  rowsPerPage: 25,
 })
 
 const parcelasTableRequest = (props) => {
@@ -458,12 +449,12 @@ const parcelasTableRequest = (props) => {
   if (sortBy) {
     searchParams.append('order', descending ? 'DESC' : 'ASC')
   }
-  
+
   if (searchParams) {
     endpoint += '?' + searchParams.toString();
   }
 
- 
+
   api.get(endpoint)
     .then(response => {
       if (response.data) {
@@ -499,13 +490,13 @@ onMounted(() => {
     })
     .catch(e => console.log(e))
 
-  parcelasTableRef.value.requestServerInteraction()    
+  parcelasTableRef.value.requestServerInteraction()
 
   api.get('parcelas/params')
     .then(response => {
       if (response.data?.tipos_parcelas) {
         response.data.tipos_parcelas.forEach(tipoParcela => {
-        tiposParcelasOptions.push(
+          tiposParcelasOptions.push(
             {
               label: `${tipoParcela.nombre}`,
               value: tipoParcela.id

@@ -28,12 +28,10 @@
             </q-input>
           </template>
           <template v-slot:body-cell-actions="props">
-            <!--<q-td :props="props" style="width: 100px;" class="q-gutter-xs">
-              <q-btn outline icon="visibility" size="sm" color="blue" dense
-                @click="router.push('/parcelas/' + props.row.id)" />
-              <q-btn outline icon="delete" size="sm" color="negative" dense
-                @click="openDialogEliminarParcela(props.row.id)" />
-            </q-td>-->
+            <q-td :props="props" style="width: 0px;" class="q-gutter-xs">
+              <q-btn outline icon="edit" size="sm" color="blue" dense
+                @click="editarContratoDialog.openDialog(props.row.id)" />
+            </q-td>
           </template>
           <template v-slot:body-cell="props">
             <q-td :props="props">
@@ -42,9 +40,9 @@
           </template>
           <template v-slot:body-cell-parcelas="props">
             <q-td :props="props" class="q-gutter-xs">
-              <q-badge v-for="parcela in props.row.parcelas">
-                {{ parcela.codigo_parcela }}
-              </q-badge>              
+              <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
+                @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
+               
             </q-td>
           </template>
         </q-table>
@@ -53,6 +51,7 @@
   </div>
 
   <DialogGenerarContratosMultiple ref="generarContratosDialog" @created="handleGenerarContratos" />
+  <DialogEditarContrato ref="editarContratoDialog" @updated="handleEditarContrato"></DialogEditarContrato>
 </template>
 
 <script setup>
@@ -64,8 +63,12 @@ import { useQuasar } from "quasar";
 
 // Dialogs
 import DialogGenerarContratosMultiple from "src/components/popups/DialogGenerarContratosMultiple.vue";
+import DialogEditarContrato from "src/components/popups/DialogEditarContrato.vue";
+
+const router = useRouter()
 
 const generarContratosDialog = ref(null)
+const editarContratoDialog = ref(null)
 
 const openDialogGenerarContratos = () => {
   generarContratosDialog.value.openDialog()
@@ -81,7 +84,7 @@ const contratosColumnas = [
   { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: true, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
   { name: 'parcelas', label: 'Parcelas', align: 'left', field: 'parcelas', sortable: true },
-  //{ name: 'actions', label: 'Acciones', field: 'actions' },
+  { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 
 /**

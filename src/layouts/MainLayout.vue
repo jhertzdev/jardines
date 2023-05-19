@@ -46,6 +46,11 @@
   max-width: calc(100% - 30px);
 }
 
+.j-dialog.j-dialog-xl .q-card {
+  width: 1024px;
+  max-width: calc(100% - 30px);
+}
+
 .q-form.no-bottoms .q-field--with-bottom {
   padding-bottom: 0;
 }
@@ -123,6 +128,16 @@
 
 .j-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.dialog-info-cliente .section-info .row:not(.no-borders) > div {
+  outline: 1px solid #ccc;
+  outline-offset: -2px;
+  padding: 5px;
+}
+
+.dialog-info-cliente .section-info .row p {
+  margin-bottom: 0;
 }
 
 
