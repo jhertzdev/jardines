@@ -22,10 +22,10 @@
               </div>
               <div class="col-12">
                 <QSelectEmpresa dense outlined required clearable
-                  v-model="contratoData.vendedor_id" 
+                  v-model="contratoData.vendedor_id"
                   label="Selecciona una empresa (vendedor)"
                   rule="El campo es requerido."
-                  :filters="{ contrato: contratoData.codigo_contrato }"                      
+                  :filters="{ contrato: contratoData.codigo_contrato }"
                   />
               </div>
               <div class="col-12">
@@ -36,7 +36,7 @@
                   label="Cliente relacionado" required
                   @update:model-value="val => handleRellenarCamposDeCliente(val)" />
               </div>
-              
+
               <div class="col-sm-5 col-4">
                 <q-select dense outlined v-model="contratoData.cliente.doc_identidad" :options="['V', 'E', 'P', 'J', 'G']" label="Documento" clearable
                   @clear="contratoData.cliente.doc_numero = null" hide-bottom-space/>
@@ -89,7 +89,7 @@
                 <q-input dense outlined v-model="contratoData.cliente.telefono_secundario"
                   label="Teléfono secundario" />
               </div>
-              
+
               <div class="col-12">
                 <div class="text-h6 text-center">{{ (contratoData.tipo_parcela || 'Producto').concat('s') }}
                   <q-icon name="help_outline" class="q-ml-xs">
@@ -151,7 +151,7 @@
                 </q-icon>
               </div>
             </div>
-              
+
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancelar" v-close-popup />
@@ -161,7 +161,7 @@
         <q-card-section v-else>
           <p class="text-center">Contrato no encontrado.</p>
         </q-card-section>
-        
+
 
       </q-form>
 
@@ -169,7 +169,7 @@
   </q-dialog>
 
   <DialogAgregarCliente ref="agregarClienteDialog" />
-  
+
 </template>
 
 <script setup>
@@ -243,7 +243,7 @@ watch(contratoData, (value) => {
     if (contratosData.value[codigo].autoeditar_numero) {
       contratosData.value[codigo].num_contrato = contratosParams.value?.siguiente_num_contrato
     }
-  });*/ 
+  });*/
 
 }, { deep: true })
 
@@ -263,17 +263,15 @@ const handleRellenarCamposDeCliente = (value, codigo) => {
 
 const handleSubmitEditarContratos = () => {
   isLoadingSubmit.value = true
-  
-  let postData = Object.values(contratoData.value);
 
-  console.log(postData);
+  let postData = contratoData.value;
 
-  api.post('contratos', postData)
+  api.put('contratos/' + postData.id, postData)
     .then(response => {
       if (response.data) {
         dialog.value = false
-        $q.notify({ message: 'Contratos generados exitosamente.', color: 'positive' })
-        emit('created', response.data)
+        $q.notify({ message: 'Contrato editado exitosamente.', color: 'positive' })
+        emit('updated', response.data)
       }
     })
     .catch((error) => qNotify(error, 'error', handleSubmitEditarContratos))
@@ -300,7 +298,7 @@ const openDialog = (id) => {
 
         contratoData.value.autocalcular_total = false
 
-        
+
       }
     })
     .finally(() => isLoadingContrato.value = false)
@@ -313,7 +311,7 @@ const emit = defineEmits(['created'])
 const contratosParams = ref(null)
 const siguienteNumContrato = ref('');
 
-onMounted(() => {  
+onMounted(() => {
   api.get('parcelas/params')
     .then(response => {
       if (response.data) {
