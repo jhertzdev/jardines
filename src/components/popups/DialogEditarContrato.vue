@@ -21,9 +21,12 @@
                 </q-input>
               </div>
               <div class="col-12">
-                <QSelectEmpresa dense outlined required clearable v-model="contratoData.vendedor_id"
-                  label="Selecciona una empresa (vendedor)" rule="El campo es requerido."
-                  :filters="{ contrato: contratoData.codigo_contrato }" />
+                <QSelectEmpresa dense outlined required clearable
+                  v-model="contratoData.vendedor_id"
+                  label="Selecciona una empresa (vendedor)"
+                  rule="El campo es requerido."
+                  :filters="{ contrato: contratoData.codigo_contrato }"
+                  />
               </div>
               <div class="col-12">
                 <div class="text-h6 text-center">Información del cliente</div>
@@ -205,6 +208,7 @@
   </q-dialog>
 
   <DialogAgregarCliente ref="agregarClienteDialog" />
+  
 </template>
 
 <script setup>
@@ -301,34 +305,15 @@ const handleRellenarCamposDeCliente = (value, codigo) => {
 
 const handleSubmitEditarContratos = () => {
   isLoadingSubmit.value = true
-
+  
   let postData = Object.values(contratoData.value);
 
-  console.log(postData);
-
-  api.post('contratos', postData)
+  api.put('contratos/' + postData.id, postData)
     .then(response => {
       if (response.data) {
         dialog.value = false
         $q.notify({ message: 'Contratos generados exitosamente.', color: 'positive' })
-        emit('updated', response.data)
-      }
-    })
-    .catch((error) => qNotify(error, 'error', handleSubmitEditarContratos))
-    .finally(() => isLoadingSubmit.value = false)
-
-}
-
-const handleSubmitAgregarProductos = () => {
-  isLoadingSubmit.value = true
-
-  api.post('contratos/' + contratoData.value.id + '/agregarProductos', addProducts.value)
-    .then(response => {
-      if (response.data) {
-        console.log(response.data);
-        addProducts.value = []
-        openDialog(contratoData.value.id)
-        $q.notify({ message: 'Agregados exitosamente.', color: 'positive' })
+        emit('created', response.data)
       }
     })
     .catch((error) => qNotify(error, 'error', handleSubmitEditarContratos))
@@ -373,6 +358,8 @@ const openDialog = (id) => {
           return parcela.id
         }) || []
         contratoData.value.autocalcular_total = false
+
+        
       }
     })
     .finally(() => isLoadingContrato.value = false)
