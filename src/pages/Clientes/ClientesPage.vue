@@ -113,28 +113,18 @@
       <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
-            <th>Propietarios de parcelas</th>
-            <td>0</td>
+            <th colspan="2" style="text-align: right;">CLIENTES POR TIPO</th>
+          </tr>
+          <tr v-for="cliente in stats?.clientes_por_tipo">
+            <th class="text-left">{{ cliente.tipo_cliente || 'No definido' }}</th>
+            <td class="text-right">{{ cliente.total }}</td>
           </tr>
           <tr>
-            <th>Enterrados</th>
-            <td>0</td>
+            <th colspan="2" style="text-align: right;">FALLECIDOS</th>
           </tr>
           <tr>
-            <th>Últimas 24h</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Esta semana</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Este mes</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Este año</th>
-            <td>0</td>
+            <th>Total</th>
+            <td>{{ stats.total_fallecidos || 0 }}</td>
           </tr>
         </table>
       </q-card>
@@ -269,6 +259,8 @@ const dialogInfoCliente = ref(false)
 const infoCliente = ref(null)
 const isLoadingInfoCliente = ref(true)
 
+const stats = ref({});
+
 const openDialogInfoCliente = (id) => {
   isLoadingInfoCliente.value = true
   api.get('clientes/' + id + '?with[]=data')
@@ -402,6 +394,13 @@ const clientesTableRequest = (props) => {
 
 onMounted(() => {
   clientesTableRef.value.requestServerInteraction()
+
+  api.get('pages/clientes')
+    .then(response => {
+      if (response.data) {
+        stats.value = response.data
+      }
+    })
 
   /*api.get('clientes')
     .then(response => {

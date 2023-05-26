@@ -140,7 +140,20 @@
   margin-bottom: 0;
 }
 
+</style>
 
+<style lang="scss">
+table.info-table {
+  width: 100%;
+
+  th {
+    text-align: left;
+  }
+
+  td {
+    text-align: right;
+  }
+}
 </style>
 
 <script setup>

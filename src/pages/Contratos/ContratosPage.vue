@@ -4,7 +4,18 @@
       <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
-            <th colspan="2" style="text-align: right;">CONTRATOS</th>
+            <th colspan="2" style="text-align: right;">CONTRATOS POR ESTATUS</th>
+          </tr>
+          <tr v-for="contrato in stats?.contratos_por_estatus">
+            <th class="text-left">{{ contrato.estatus || 'No definido' }}</th>
+            <td class="text-right">{{ contrato.total }}</td>
+          </tr>
+          <tr>
+            <th colspan="2" style="text-align: right;">CONTRATOS POR TIPO</th>
+          </tr>
+          <tr v-for="contrato in stats?.contratos_por_tipo">
+            <th class="text-left">{{ contrato.nombre || 'No definido' }}</th>
+            <td class="text-right">{{ contrato.total }}</td>
           </tr>
         </table>
       </q-card>
@@ -42,7 +53,7 @@
             <q-td :props="props" class="q-gutter-xs">
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
                 @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
-               
+
             </q-td>
           </template>
         </q-table>
@@ -77,6 +88,8 @@ const openDialogGenerarContratos = () => {
 const handleGenerarContratos = (data) => {
   console.log('Contratos Generados', data);
 }
+
+const stats = ref({});
 
 const contratos = ref([])
 const contratosColumnas = [
@@ -142,6 +155,13 @@ const contratosTableRequest = (props) => {
 
 onMounted(() => {
   contratosTableRef.value.requestServerInteraction()
+
+  api.get('pages/contratos')
+    .then(response => {
+      if (response.data) {
+        stats.value = response.data
+      }
+    })
 })
 
 </script>

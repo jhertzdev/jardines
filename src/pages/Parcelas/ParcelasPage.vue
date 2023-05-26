@@ -4,7 +4,7 @@
       <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
-            <th colspan="2" style="text-align: right;">PARCELAS</th>
+            <th colspan="2" style="text-align: right;">PARCELAS POR OCUPACIÓN</th>
           </tr>
           <tr>
             <th>Totales</th>
@@ -19,24 +19,11 @@
             <td>{{ stats.parcelas_ocupadas_parcialmente }}</td>
           </tr>
           <tr>
-            <th>Disponibles</th>
-            <td>{{ stats.parcelas_estatus_disponible }}</td>
+            <th colspan="2" style="text-align: right;">PARCELAS POR ESTATUS</th>
           </tr>
-          <tr>
-            <th>En espera</th>
-            <td>{{ stats.parcelas_estatus_en_espera }}</td>
-          </tr>
-          <tr>
-            <th>No disponibles</th>
-            <td>{{ stats.parcelas_estatus_no_disponible }}</td>
-          </tr>
-          <tr>
-            <th>Pendientes</th>
-            <td>{{ stats.parcelas_estatus_pendiente }}</td>
-          </tr>
-          <tr>
-            <th>Vendidas</th>
-            <td>{{ stats.parcelas_estatus_vendido }}</td>
+          <tr v-for="parcela in stats?.parcelas_por_estatus">
+            <th class="text-left">{{ parcela.estatus || 'No definido' }}</th>
+            <td class="text-right">{{ parcela.total }}</td>
           </tr>
           <!--<tr>
             <th colspan="2" style="text-align: right;">NICHOS</th>
@@ -177,20 +164,6 @@
     </div>
   </div>
 </template>
-
-<style lang="scss">
-table.info-table {
-  width: 100%;
-
-  th {
-    text-align: left;
-  }
-
-  td {
-    text-align: right;
-  }
-}
-</style>
 
 <style lang="scss">
 .q-table__container.text-wrap th,

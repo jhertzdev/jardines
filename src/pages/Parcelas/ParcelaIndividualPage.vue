@@ -206,7 +206,7 @@
                         <q-badge class="float-right" color="white" text-color="primary">
                           {{ contrato.estatus }}
                         </q-badge>
-                        <div class="text-h5">{{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</div>
+                        <div class="text-h5">{{ contrato.codnum_contrato }}</div>
                         <p class="q-mb-none">{{ contrato.nombre_contrato }}</p>
                       </q-card-section>
                       <q-card-section>

@@ -92,6 +92,37 @@
             </q-markup-table>
           </q-card-section>
         </template>
+        <template v-if="searchResults.contratos">
+          <q-card-section class="bg-primary text-white">
+            <div class="text-h6">Contratos</div>
+          </q-card-section>
+          <q-card-section v-if="!searchResults.contratos.length">
+            No hay contratos que mostrar.
+          </q-card-section>
+          <q-card-section v-else>
+            <q-markup-table flat bordered separator="cell" wrap-cells>
+              <thead>
+                <tr>
+                  <th class="text-left">Parcela</th>
+                  <th class="text-left">Estatus</th>
+                  <th class="text-left">Propietario/a</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="contrato in searchResults.contratos">
+                  <td>{{ contrato.codnum_contrato }}</td>
+                  <td>{{ contrato.estatus }}</td>
+                  <td>
+                    <template v-if="contrato.propietario_id">
+                      {{ contrato.propietario_nombre }}<br/>({{ contrato.propietario_identidad }})
+                    </template>
+                    <template v-else> - </template>
+                  </td>
+                </tr>
+              </tbody>
+            </q-markup-table>
+          </q-card-section>
+        </template>
       </q-card>
     </div>
   </div>
