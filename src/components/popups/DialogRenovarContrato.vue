@@ -1,9 +1,9 @@
 <template>
   <q-dialog v-model="dialog" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md scroll">
-      <q-form ref="editarContratosForm" @submit="handleSubmitEditarContratos" @validation-error="onValidationError">
+      <q-form ref="renovarContratosForm" @submit="handleSubmitRenovarContratos" @validation-error="onValidationError">
         <q-card-section>
-          <div class="text-h6">Editar contrato</div>
+          <div class="text-h6">Renovar contrato</div>
         </q-card-section>
         <div class="q-pb-lg text-center" v-if="isLoadingContrato">
           <q-spinner size="xl" color="primary" />
@@ -11,7 +11,7 @@
         <template v-else-if="contratoData?.num_contrato">
           <q-card-section class="q-py-none">
             <div class="row q-col-gutter-md">
-              <div class="col-12">
+              <div class="col-12 col-md">
                 <q-input class="input-num-parcela" dense stack-label v-model="contratoData.num_contrato" outlined
                   label="Número de contrato" lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space
                   readonly>
@@ -20,13 +20,24 @@
                   </template>
                 </q-input>
               </div>
+              <div class="col-12 col-md-auto">
+                <q-input class="input-num-parcela" dense stack-label v-model="contratoData.num_serie" outlined
+                  label="Núm. serie" hide-bottom-space
+                  :readonly="contratoData.autogenerar_serie" />
+              </div>
+              <div class="col-12 col-md-auto">
+                <q-checkbox v-model="contratoData.autogenerar_serie" label="Autogenerar" />
+                <q-icon name="help_outline" class="q-ml-xs">
+                  <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
+                    Al marcar esta opción, el número de serie se genera automáticamente siguiendo la secuencia
+                    del número anterior.
+                  </q-tooltip>
+                </q-icon>
+              </div>
               <div class="col-12">
-                <QSelectEmpresa dense outlined required clearable
-                  v-model="contratoData.vendedor_id"
-                  label="Selecciona una empresa (vendedor)"
-                  rule="El campo es requerido."
-                  :filters="{ contrato: contratoData.codigo_contrato }"
-                  />
+                <QSelectEmpresa dense outlined required clearable v-model="contratoData.vendedor_id"
+                  label="Selecciona una empresa (vendedor)" rule="El campo es requerido."
+                  :filters="{ contrato: contratoData.codigo_contrato }" />
               </div>
               <div class="col-12">
                 <div class="text-h6 text-center">Información del cliente</div>
@@ -95,22 +106,8 @@
                 <q-table class="q-mb-lg" :columns="[
                   { name: 'codigo_parcela', label: 'Cód. parcela', field: 'codigo_parcela', sortable: false, align: 'center' },
                   { name: 'estatus', label: 'Estatus', field: 'estatus', sortable: false, align: 'center' },
-                ]" :rows="contratoData.parcelas" row-key="id" separator="cell" selection="multiple"
-                  v-model:selected="selectedProducts"
-                  :pagination="{rowsPerPage: -1}"
-                  />
-                <div class="text-center q-gutter-sm flex justify-center">
-                  <div>
-                    <q-btn color="primary" label="Agregar" icon="add" @click="dialogAgregarProductos = true" />
-                  </div>
-                  <div>
-                    <q-btn color="primary" label="Liberar" icon="lock_open" @click="handleLiberarProductos" :disable="selectedProducts.length < 1" />
-                    <q-tooltip anchor="top middle" self="bottom middle" max-width="240px"
-                      v-if="selectedProducts.length < 1">
-                      Debes selecciona 1 o más {{ (contratoData.tipo_parcela || 'Producto').concat('s') }} para liberar.
-                    </q-tooltip>
-                  </div>
-                </div>
+                ]" :rows="contratoData.parcelas" row-key="id" separator="cell" :pagination="{ rowsPerPage: -1 }" />
+
               </div>
               <div class="col-12">
                 <div class="text-h6 text-center">Información del contrato</div>
@@ -162,8 +159,8 @@
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancelar" v-close-popup />
-            <q-btn color="primary" label="Editar contratos" icon="description" :loading="isLoadingSubmit"
-              @click="editarContratosForm.submit()" />
+            <q-btn color="primary" label="Renovar contrato" icon="description" :loading="isLoadingSubmit"
+              @click="renovarContratosForm.submit()" />
           </q-card-actions>
         </template>
         <q-card-section v-else>
@@ -176,39 +173,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="dialogAgregarProductos" class="j-dialog">
-
-    <q-card class="q-pa-md scroll">
-      <q-form>
-
-        <q-card-section>
-          <div class="text-h6">Agregar {{(contratoData.tipo_parcela || 'Producto').concat('s')}}</div>
-        </q-card-section>
-        
-        <q-card-section class="q-py-none">
-          <div class="row q-col-gutter-md">
-            <div class="col-12">
-              <QSelectParcelas dense v-model="addProducts" outlined clearable
-                :label="`Selecciona los ${(contratoData.tipo_parcela || 'Producto').concat('s')} a asignar`" required
-                :rule="`Debes seleccionar al menos un ${(contratoData.tipo_parcela || 'Producto')}`"
-                :hint="`Solo se muestran ${(contratoData.tipo_parcela || 'Producto').concat('s')} con estatus: Disponible`"
-                :filters="{ estatus: 'Disponible', tipo_parcela: contratoData.tipo_parcela }" />
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn color="primary" label="Agregar" icon="add" :loading="isLoadingSubmit" @click="handleSubmitAgregarProductos"/>
-        </q-card-actions>
-        
-      </q-form>
-    </q-card>
-
-  </q-dialog>
-
   <DialogAgregarCliente ref="agregarClienteDialog" />
-  
 </template>
 
 <script setup>
@@ -227,14 +192,11 @@ import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue
 
 const $q = useQuasar()
 const dialog = ref(false)
-const dialogAgregarProductos = ref(false)
 const step = ref(0)
 const route = useRoute()
 
 const agregarClienteDialog = ref(null)
-const editarContratosForm = ref(null)
-const selectedProducts = ref([])
-const addProducts = ref([])
+const renovarContratosForm = ref(null)
 
 const props = defineProps({
   propietarioId: {
@@ -251,7 +213,7 @@ const props = defineProps({
   }
 })
 
-const selectEditarContratos = ref([])
+const selectRenovarContratos = ref([])
 const contratoData = ref(null)
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll
@@ -279,13 +241,13 @@ watch(contratoData, (value) => {
       contratosData.value[codigo].valor_total = valorVenta + cuotaInicial + (numeroCuotas - 1) * cuotaMensual
     }
   });
+  */
 
-  // Autoeditar código de contrato
-  Object.keys(value).forEach(codigo => {
-    if (contratosData.value[codigo].autoeditar_numero) {
-      contratosData.value[codigo].num_contrato = contratosParams.value?.siguiente_num_contrato
-    }
-  });*/
+  // Autogenerar código de contrato  
+  if (contratoData.value.autogenerar_serie) {
+    console.log(contratoData.value);
+    contratoData.value.num_serie = contratoData.value.siguiente_num_serie
+  }
 
 }, { deep: true })
 
@@ -303,41 +265,21 @@ const handleRellenarCamposDeCliente = (value, codigo) => {
     })
 }
 
-const handleSubmitEditarContratos = () => {
+const handleSubmitRenovarContratos = () => {
   isLoadingSubmit.value = true
 
-  api.put('contratos/' + contratoData.value.id, contratoData.value)
-    .then(response => {
-      if (response.data) {
-        dialog.value = false
-        $q.notify({ message: 'Contratos generados exitosamente.', color: 'positive' })
-        emit('created', response.data)
-      }
-    })
-    .catch((error) => qNotify(error, 'error', handleSubmitEditarContratos))
-    .finally(() => isLoadingSubmit.value = false)
-  
-}
-
-const handleLiberarProductos = () => {
-  isLoadingSubmit.value = true
-
-  let postData = selectedProducts?.value?.map(parcela => {
-    return parcela.id
-  }) || []
-
-  api.post('contratos/' + contratoData.value.id + '/liberarProductos', postData)
+  api.post('contratos/' + contratoData.value.id + '/renovar', contratoData.value)
     .then(response => {
       if (response.data) {
         console.log(response.data);
-        selectedProducts.value = []
-        openDialog(contratoData.value.id)
-        $q.notify({ message: 'Liberados exitosamente.', color: 'positive' })
+        dialog.value = false
+        $q.notify({ message: 'Contrato renovado exitosamente.', color: 'positive' })
+        emit('done', response.data)
       }
     })
-    .catch((error) => qNotify(error, 'error', handleLiberarProductos))
+    .catch((error) => qNotify(error, 'error', handleSubmitRenovarContratos))
     .finally(() => isLoadingSubmit.value = false)
-  
+
 }
 
 const isLoadingSubmit = ref(false)
@@ -345,7 +287,7 @@ const isLoadingContrato = ref(true)
 
 const openDialog = (id) => {
   isLoadingContrato.value = true
-  api.get('contratos/' + id)
+  api.get('contratos/' + id + '?with[]=sigNumSerie')
     .then(response => {
       if (response.data) {
         contratoData.value = response.data
@@ -356,8 +298,7 @@ const openDialog = (id) => {
           return parcela.id
         }) || []
         contratoData.value.autocalcular_total = false
-
-        
+        contratoData.value.autogenerar_serie = true
       }
     })
     .finally(() => isLoadingContrato.value = false)

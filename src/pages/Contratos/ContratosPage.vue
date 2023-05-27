@@ -42,6 +42,8 @@
             <q-td :props="props" style="width: 0px;" class="q-gutter-xs">
               <q-btn outline icon="edit" size="sm" color="blue" dense
                 @click="editarContratoDialog.openDialog(props.row.id)" />
+              <q-btn outline icon="rotate_right" size="sm" color="blue" dense
+                @click="renovarContratoDialog.openDialog(props.row.id)" />
             </q-td>
           </template>
           <template v-slot:body-cell="props">
@@ -63,6 +65,7 @@
 
   <DialogGenerarContratosMultiple ref="generarContratosDialog" @created="handleGenerarContratos" />
   <DialogEditarContrato ref="editarContratoDialog" @updated="handleEditarContrato"></DialogEditarContrato>
+  <DialogRenovarContrato ref="renovarContratoDialog" @done="handleEditarContrato"></DialogRenovarContrato>
 </template>
 
 <script setup>
@@ -75,11 +78,13 @@ import { useQuasar } from "quasar";
 // Dialogs
 import DialogGenerarContratosMultiple from "src/components/popups/DialogGenerarContratosMultiple.vue";
 import DialogEditarContrato from "src/components/popups/DialogEditarContrato.vue";
+import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
 
 const router = useRouter()
 
 const generarContratosDialog = ref(null)
 const editarContratoDialog = ref(null)
+const renovarContratoDialog = ref(null)
 
 const openDialogGenerarContratos = () => {
   generarContratosDialog.value.openDialog()
