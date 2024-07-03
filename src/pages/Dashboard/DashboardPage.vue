@@ -34,7 +34,7 @@
               <thead>
                 <tr>
                   <th class="text-left">Cliente</th>
-                  <th class="text-left">Parcelas</th>
+                  <th class="text-left">Ubicación</th>
                 </tr>
               </thead>
               <tbody>
@@ -53,16 +53,16 @@
         </template>
         <template v-if="searchResults.parcelas">
           <q-card-section class="bg-primary text-white">
-            <div class="text-h6">Parcelas</div>
+            <div class="text-h6">Ubicaciones</div>
           </q-card-section>
           <q-card-section v-if="!searchResults.parcelas.length">
-            No hay parcelas que mostrar.
+            No hay ubicaciones que mostrar.
           </q-card-section>
           <q-card-section v-else>
             <q-markup-table flat bordered separator="cell" wrap-cells>
               <thead>
                 <tr>
-                  <th class="text-left">Parcela</th>
+                  <th class="text-left">Ubicación</th>
                   <th class="text-left">Estatus</th>
                   <th class="text-left">Propietario/a</th>
                   <th class="text-left">Ocupante/s</th>
@@ -145,6 +145,8 @@ import BtnLink from "components/BtnLink.vue"
 
 const $q = useQuasar()
 
+const showDialogBusqueda = ref(true)
+
 const isLoading = ref(true)
 
 const searchQuery = ref('')
@@ -155,7 +157,7 @@ watch(searchQuery, query => {
 
   const searchParams = new URLSearchParams;
   searchParams.append('q', query)
-  
+
   api.get('search?' + searchParams.toString())
     .then(response => {
       if (response.data) searchResults.value = response.data

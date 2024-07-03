@@ -6,6 +6,10 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'App'
+  name: 'App',
+  mounted() {
+    //this.$router.push('/auth/login')
+    this.$q.dark.set(false);
+  }
 })
 </script>

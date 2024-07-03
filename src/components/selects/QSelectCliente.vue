@@ -1,38 +1,25 @@
 <template>
-  <q-select v-model="props.modelValue" :dense="props.dense" :outlined="props.outlined" :options="options" :label="props.label || ''" :hint="props.hint || ''"
-    :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]" :style="!props.rule && 'margin-bottom: -20px;'"
-    :clearable="clearable" use-input input-debounce="500" @filter="filterFn" emit-value map-options @update:model-value="updateValue"/>
+  <q-select
+    v-bind="$attrs"
+    v-model="selectedId"
+    :options="options"
+    :rules="[val => !props.required || (val && val.length > 0) || props.rule ]"
+    :style="!props.rule && 'margin-bottom: -20px;'"
+    :label="props.label"
+    use-input
+    input-debounce="500"
+    @filter="filterFn"
+    emit-value
+    map-options
+    @update:model-value="updateValue"/>
 </template>
 
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, onMounted } from 'vue'
-
-const filterFn = (val, update) => {
-  let params = val ? {s: val} : null
-  getOptions(params).then(() => {
-    update()
-  })
-}
+import { ref, onMounted, watch } from 'vue'
 
 const props = defineProps({
-  dense: {
-    type: Boolean,
-    default: false,
-  },
-  outlined: {
-    type: Boolean,
-    default: false,
-  },
-  clearable: {
-    type: Boolean,
-    default: false,
-  },
-  required: {
-    type: Boolean,
-    default: false,
-  },
   label: {
     type: String,
     default: 'Selecciona una opción',
@@ -51,7 +38,42 @@ const props = defineProps({
   },
   modelValue: {
     type: String
+  },
+  required: {
+    type: Boolean,
+    default: false
   }
+})
+
+const selectedId = ref(props.modelValue ? props.modelValue.toString() : null);
+
+const filterFn = (val, update) => {
+  let params = val ? {s: val} : null
+  getOptions(params).then(() => {
+    update()
+  })
+}
+
+watch(() => props.modelValue, async (val) => {
+
+  selectedId.value = val ? val.toString() : null
+
+  let params = val ? {s: val} : null
+  await getOptions(params)
+
+  console.log('update', val, options.value);
+
+  // If the modelValue is set and it's not in the options, fetch it
+  if (selectedId.value && !options.value.find(option => option.value === selectedId.value)) {
+    const response = await api.get('clientes/' + selectedId.value)
+    if (response.data) {
+      options.value.push({
+        label: `${response.data.nombre_completo} (${response.data.num_identidad})`,
+        value: response.data.id,
+      })
+    }
+  }
+
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -63,6 +85,20 @@ const updateValue = (value) => {
 const options = ref([]);
 
 async function getOptions(params = null) {
+
+  const initOptions = []
+
+  if (selectedId.value) {
+    const response = await api.get('clientes/' + selectedId.value + '?with[]=data');
+    if (response.data) {
+      initOptions.push({
+        label: `${response.data.nombre_completo} (${response.data.num_identidad})`,
+        value: response.data.id,
+      })
+    }
+  }
+
+  //console.log('propsss', props, initOptions);
 
   let endpoint = 'clientes';
   const searchParams = new URLSearchParams();
@@ -79,14 +115,17 @@ async function getOptions(params = null) {
     });
   }
 
-  searchParams.append('rowsPerPage', '-1');
+  searchParams.append('sortBy', 'id');
+  searchParams.append('order', 'desc');
 
   endpoint += '?' + searchParams.toString();
-  console.log(endpoint);
+  //console.log(endpoint);
 
   try {
     const response = await api.get(endpoint)
     if (response.data) {
+
+      //console.log(response.data);
       options.value = []
       response.data.data.forEach(row => {
         options.value.push({
@@ -94,10 +133,22 @@ async function getOptions(params = null) {
           value: row.id,
         })
       })
+
+      // Si falta identificar al cliente seleccionado
+      if (props?.modelValue && !options.value.map(val => val.id).includes(selectedId.value)) {
+        const response2 = await api.get('clientes/' + selectedId.value)
+        if (response2.data) {
+          options.value.push({
+            label: `${response2.data.nombre_completo} (${response2.data.num_identidad})`,
+            value: response2.data.id,
+          })
+        }
+      }
+
       return true
-    }    
+    }
   } catch (error) {
-    return false;    
+    return false;
   }
 }
 

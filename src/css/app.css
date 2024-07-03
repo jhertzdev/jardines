@@ -1,1 +1,50 @@
 /* app global css */
+.single-line-value-select .q-field__native {
+  flex-wrap: nowrap;
+}
+
+.single-line-value-select .q-field__native > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.size-limited-selected-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(100% - 50px)
+}
+
+.q-chip--dense {
+  border-radius: 3px;
+  margin-bottom: 0;
+  background-color: #d6ddd5;
+}
+
+.q-field--error.error-mb {
+  margin-bottom: 20px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.q-select--with-input.q-select--single .q-field__input--padding {
+  display: none;
+}
+
+.q-select--with-input.q-select--single span {
+  text-overflow: ellipsis;
+  display: inline-block;
+  white-space: nowrap;
+  width: 100%;
+  overflow: hidden;
+}

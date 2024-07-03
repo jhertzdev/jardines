@@ -15,15 +15,11 @@
     </div>
     <div>
       <q-badge align="middle" class="q-mr-xs" style="background: gray"/>
-      <span>No disponible</span>
+      <span>En construcción</span>
     </div>
     <div>
       <q-badge align="middle" class="q-mr-xs" style="background: violet"/>
-      <span>Pendiente</span>
-    </div>
-    <div>
-      <q-badge align="middle" class="q-mr-xs" style="background: coral"/>
-      <span>En espera</span>
+      <span>Donada</span>
     </div>
     <div>
       <q-badge align="middle" class="q-mr-xs" style="background: lightseagreen"/>
@@ -130,7 +126,7 @@
 
 .vue-grid-layout::before {
   content: '';
-  background-size: calc(calc(100% - var(--vue-grid-margin) / 2) / var(--vue-col-num) * 2) 
+  background-size: calc(calc(100% - var(--vue-grid-margin) / 2) / var(--vue-col-num) * 2)
                    calc((var(--vue-row-height) + var(--vue-grid-margin)) * 2);
   background-image: linear-gradient(
     to right,
@@ -158,16 +154,12 @@
   background-color: lightgreen;
 }
 
-.vue-grid-item.no-disponible {
+.vue-grid-item.en-construccin {
   background-color: gray;
 }
 
-.vue-grid-item.pendiente {
+.vue-grid-item.donada {
   background-color: violet;
-}
-
-.vue-grid-item.en-espera {
-  background-color: coral;
 }
 
 .vue-grid-item.vendido {
@@ -305,7 +297,7 @@ const handleReduceHorizontal = () => {
   numColumnas.value -= 2
   if (minNumColumnas.value > numColumnas.value) {
     minNumColumnas.value = numColumnas.value
-  }  
+  }
   calculateLayout()
 }
 
@@ -317,7 +309,7 @@ const handleUpdatePositions = () => {
       pos_y: item.y,
     }
   });
-  
+
   isLoadingUpdatePositions.value = true;
 
   api.post('parcelas/posiciones', postData)
@@ -348,7 +340,7 @@ function calculateLayout() {
   const gridItemWidth = Math.floor(wrapperWidth / availableElements);
 
   // console.log('giw', gridItemWidth, availableElements);
-  
+
   if (maxHorizontalPosition + colsPerItem > numColumnas.value) {
     numColumnas.value = maxHorizontalPosition + colsPerItem
   }
@@ -358,15 +350,15 @@ function calculateLayout() {
   }
 
   // Redibujar layout
-  
+
   if (gridItemWidth > gridItemMinWidth.value) {
     gridWidth.value = mapa.value.offsetWidth;
     // console.log(gridWidth.value);
   } else {
     gridWidth.value = gridItemMinWidth.value * availableElements;
     // console.log(gridWidth.value);
-  } 
-    
+  }
+
 }
 
 onMounted(() => {
@@ -395,7 +387,7 @@ onMounted(() => {
             },
             class: [slugify(parcela.estatus)]
           })
-          
+
         });
       }
     })

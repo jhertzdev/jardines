@@ -109,122 +109,122 @@
     </q-card>
   </q-dialog>
   <div class="row full-width">
-    <div class="col-md-4 col-12">
-      <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
-        <table class="info-table">
-          <tr>
-            <th colspan="2" style="text-align: right;">CLIENTES POR TIPO</th>
-          </tr>
-          <tr v-for="cliente in stats?.clientes_por_tipo">
-            <th class="text-left">{{ cliente.tipo_cliente || 'No definido' }}</th>
-            <td class="text-right">{{ cliente.total }}</td>
-          </tr>
-          <tr>
-            <th colspan="2" style="text-align: right;">FALLECIDOS</th>
-          </tr>
-          <tr>
-            <th>Total</th>
-            <td>{{ stats.total_fallecidos || 0 }}</td>
-          </tr>
-        </table>
-      </q-card>
 
-    </div>
-    <div class="col-md-8 col-12">
-      <div :class="$q.screen.lt.md ? 'q-mt-sm q-py-md' : 'q-ml-sm q-px-md'">
+    <div class="col-12">
 
-        <div class="q-gutter-md">
-          <q-btn label="Agregar" icon="add" color="primary" @click="agregarClienteDialog.openDialog()" />
-        </div>
-        <q-separator class="q-my-lg" />
+      <div class="flex justify-between q-mb-md">
 
-        <q-btn-toggle v-model="tipoCliente" toggle-color="primary" class="q-mb-lg" :options="[
+        <q-btn-toggle v-model="tipoCliente" toggle-color="primary" :options="[
           { label: 'Clientes', value: 'clientes' },
           { label: 'Fallecidos', value: 'fallecidos' },
           { label: 'Ver todos', value: 'todos' }
         ]" />
 
-        <q-table :rows="clientes" :columns="clientesColumnas" row-key="name" :class="!$q.screen.lt.md && 'text-wrap'"
-          ref="clientesTableRef" v-model:pagination="clientesTablePagination" :loading="clientesTableLoading"
-          :filter="clientesTableFilter" @request="clientesTableRequest">
-          <template v-slot:top-right>
-            <q-input dense debounce="300" v-model="clientesTableFilter" placeholder="Buscar...">
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
-          </template>
-          <template v-slot:body-cell-actions="props">
-            <q-td :props="props" style="width: 120px;" class="q-gutter-xs">
-              <q-btn outline icon="edit" size="sm" color="primary" dense
-                @click="agregarClienteDialog.openDialog(props.row.id)" />
-              <q-btn outline icon="delete" size="sm" color="negative" dense
-                @click="openDialogEliminarCliente(props.row.id)" />
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-contratos="props">
-            <q-td :props="props" class="q-gutter-xs" style="white-space: break-spaces;">
-              <q-btn size="sm" dense color="primary" v-for="contrato in props.row.contratos"
-                @click="router.push('/contratos/' + contrato.id)">
-                {{ contrato.codnum_contrato }}
-              </q-btn>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-parcelas="props">
-            <q-td :props="props" class="q-gutter-xs" style="white-space: break-spaces;">
-              <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
-                @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-nombre_completo="props">
-            <q-td :props="props" style="white-space: break-spaces; min-width: 240px;">
-              <div class="row items-center">
-                <div class="col-auto">
-                  <q-btn outline icon="visibility" size="sm" color="blue" dense
-                    @click="openDialogInfoCliente(props.row.id)" class="q-mr-sm" />
-                </div>
-                <div class="col">
-                  {{ props.value || '-' }}
-                </div>
-              </div>
-            </q-td>
-          </template>
-          <template v-slot:body-cell="props">
-            <q-td :props="props">
-              {{ props.value || '-' }}
-            </q-td>
-          </template>
-        </q-table>
-
-        <!-- AGREGAR CLIENTE -->
-        <DialogAgregarCliente ref="agregarClienteDialog" @created="handleClienteAgregado"
-          @updated="handleClienteEditado" />
-
-        <!-- Eliminar cliente -->
-        <q-dialog v-model="dialogEliminarCliente" class="j-dialog">
-          <q-card class="q-pa-md text-center">
-            <q-card-section>
-              <div class="text-h6">Eliminar cliente</div>
-            </q-card-section>
-            <q-card-section class="q-py-none">
-              <q-avatar round size="100px" font-size="80px" color="negative" text-color="white" icon="close" />
-            </q-card-section>
-            <q-card-section>
-              ¿Estás seguro de que quieres eliminar a "<span class="text-weight-bold">{{ selectedCliente.nombre_completo
-              }}</span>"? Esta acción no se puede deshacer.
-            </q-card-section>
-            <q-card-actions class="justify-end">
-              <q-btn flat label="Cancelar" v-close-popup />
-              <q-btn label="Eliminar" color="negative" @click="handleEliminarCliente(selectedCliente.id)"
-                :loading="isLoadingEliminarCliente" />
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
-
+        <q-btn label="Agregar" icon="add" color="primary" @click="agregarClienteDialog.openDialog()" />
       </div>
+
+
+      <q-table :rows="clientes" :columns="clientesColumnas" row-key="name" :class="!$q.screen.lt.md && 'text-wrap'"
+        ref="clientesTableRef" v-model:pagination="clientesTablePagination" :loading="clientesTableLoading"
+        :filter="clientesTableFilter" @request="clientesTableRequest">
+        <template v-slot:top-right>
+          <q-input dense debounce="300" v-model="clientesTableFilter" placeholder="Buscar...">
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
+        <template v-slot:body-cell-etiqueta="props">
+          <q-td :props="props" class="q-gutter-xs">
+            <q-badge v-if="props.row.estado_cuenta" class="q-py-xs text-weight-bold bg-red">
+              {{ props.row.estado_cuenta }}
+            </q-badge>
+            <q-badge v-if="props.row.estado_cliente" class="q-py-xs text-weight-bold bg-red">
+              {{ props.row.estado_cliente }}
+            </q-badge>
+            <q-badge v-if="props.row.etiqueta_texto" class="q-py-xs text-weight-bold" :style="`border: 1px solid ${props.row.etiqueta_color || '#000'}; color: ${props.row.etiqueta_color || '#000'}; background: none`">
+              {{ props.row.etiqueta_texto }}
+            </q-badge>
+          </q-td>
+        </template>
+        <template v-slot:body-cell-actions="props">
+          <q-td :props="props" style="width: 120px;" class="q-gutter-xs">
+            <q-btn outline icon="edit" size="sm" color="primary" dense
+              @click="agregarClienteDialog.openDialog(props.row.id)" />
+            <q-btn outline icon="delete" size="sm" color="negative" dense
+              @click="openDialogEliminarCliente(props.row.id)" />
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-contratos="props">
+          <q-td :props="props" class="q-gutter-xs" style="white-space: break-spaces;">
+            <q-btn size="sm" dense color="primary" v-for="contrato in props.row.contratos"
+              @click="handleDownloadPdf(contrato.id)">
+              {{ contrato.codnum_contrato }}
+            </q-btn>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-parcelas="props">
+          <q-td :props="props" class="q-gutter-xs" style="white-space: break-spaces;">
+            <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
+              @click="router.push('/ubicaciones/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-nombre="props">
+          <q-td :props="props" style="white-space: break-spaces; min-width: 240px;">
+            <div class="row items-center">
+              <div class="col-auto">
+                <q-btn outline icon="visibility" size="sm" color="blue" dense @click="openDialogInfoCliente(props.row.id)"
+                  class="q-mr-sm" />
+              </div>
+              <div class="col">
+                {{ props.value || '-' }}
+              </div>
+            </div>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-created_at="props">
+          <q-td :props="props">
+            {{ format(props.row.created_at.date, 'dd/MM/yyyy') }}
+          </q-td>
+        </template>
+
+
+        <template v-slot:body-cell="props">
+          <q-td :props="props">
+            {{ props.value || '-' }}
+          </q-td>
+        </template>
+      </q-table>
+
+      <!-- AGREGAR CLIENTE -->
+      <DialogAgregarCliente ref="agregarClienteDialog" @created="handleClienteAgregado" @updated="handleClienteEditado" />
+
+      <!-- Eliminar cliente -->
+      <q-dialog v-model="dialogEliminarCliente" class="j-dialog">
+        <q-card class="q-pa-md text-center">
+          <q-card-section>
+            <div class="text-h6">Eliminar cliente</div>
+          </q-card-section>
+          <q-card-section class="q-py-none">
+            <q-avatar round size="100px" font-size="80px" color="negative" text-color="white" icon="close" />
+          </q-card-section>
+          <q-card-section>
+            ¿Estás seguro de que quieres eliminar a "<span class="text-weight-bold">{{ selectedCliente.nombre_completo
+            }}</span>"? Esta acción no se puede deshacer.
+          </q-card-section>
+          <q-card-actions class="justify-end">
+            <q-btn flat label="Cancelar" v-close-popup />
+            <q-btn label="Eliminar" color="negative" @click="handleEliminarCliente(selectedCliente.id)"
+              :loading="isLoadingEliminarCliente" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+
     </div>
   </div>
 </template>
@@ -251,6 +251,7 @@ import { useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 import { qNotify } from 'src/boot/jardines';
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
+import { format } from 'date-fns';
 
 const router = useRouter()
 const $q = useQuasar()
@@ -280,24 +281,28 @@ const openDialogInfoCliente = (id) => {
 const isLoadingClientes = ref(true)
 
 const clientesColumnas = [
-  { name: 'nombre_completo', label: 'Nombre', align: 'left', field: 'nombre_completo', sortable: true },
-  { name: 'num_identidad', label: 'Doc. identidad', align: 'left', field: 'num_identidad', sortable: true },
+  { name: 'nombre', label: 'Nombre', align: 'left', field: 'nombre_completo', sortable: true },
+  { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true },
+  { name: 'doc_numero', label: 'Doc. identidad', align: 'left', field: 'num_identidad', sortable: true },
   { name: 'contratos', align: 'left', label: 'Contratos', field: 'contratos', sortable: true },
   { name: 'parcelas', align: 'left', label: 'Parcelas', field: 'parcelas', sortable: true },
+  { name: 'etiqueta', label: 'Etiqueta', align: 'left', field: 'etiqueta', sortable: true },
   { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 
 const clientes = ref([])
 const agregarClienteDialog = ref(null)
 const handleClienteAgregado = (data) => {
-  clientes.value.push(data)
+  //clientes.value.push(data)
+  clientesTableRef.value.requestServerInteraction()
 }
 
 const handleClienteEditado = (data) => {
-  const index = clientes.value.findIndex(cliente => cliente.id == data.id)
+  /*const index = clientes.value.findIndex(cliente => cliente.id == data.id)
   if (index > -1) {
     clientes.value[index] = data;
-  }
+  }*/
+  clientesTableRef.value.requestServerInteraction()
 }
 
 // Eliminar cliente
@@ -331,10 +336,12 @@ const tipoCliente = ref('clientes');
  */
 const clientesTableRef = ref(null)
 const clientesTableLoading = ref(true)
-const clientesTableFilter = ref('');
+const clientesTableFilter = ref(router.currentRoute.value.query.search || '');
 const clientesTablePagination = ref({
   page: 1,
   rowsPerPage: 25,
+  sortBy: 'created_at',
+  descending: true,
 })
 
 watch(tipoCliente, () => {
@@ -355,6 +362,7 @@ const clientesTableRequest = (props) => {
 
   if (clientesTableFilter.value) {
     searchParams.append('s', clientesTableFilter.value)
+    router.replace({ query: { search: clientesTableFilter.value } })
   }
 
   if (sortBy) {
@@ -391,6 +399,18 @@ const clientesTableRequest = (props) => {
 /**
  * END OF PAGINATION
  */
+
+const handleDownloadPdf = (contratoId) => {
+  api.get('contratos/' + contratoId + '/pdf', { responseType: 'blob' })
+    .then((response) => {
+      console.log(response);
+      window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async error => {
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, 'error', { callback: () => handleDownloadPdf(contratoId) });
+    })
+}
 
 onMounted(() => {
   clientesTableRef.value.requestServerInteraction()

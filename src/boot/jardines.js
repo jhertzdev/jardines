@@ -14,11 +14,21 @@ const slugify = str =>
 
 const qNotify = (content, type = 'positive', params = {}) => {
 
+  console.log(content)
+
   if (type == 'error') {
     console.log('error', content?.response);
-    let message = !!content?.response?.data?.messages ?
-      Object.values(content.response.data.messages).join(' ') :
-      'Ha ocurrido un error.'
+
+    let message;
+
+    if (typeof content === 'string') {
+      message = content;
+    } else if (!!content?.response?.data?.messages) {
+      message = Object.values(content.response.data.messages).join(' ')
+    } else if (content?.response?.data?.error) {
+      message = content?.response?.data?.error
+    }
+
     let error = content?.response?.data?.error;
 
     if (error === 'OTP_TOKEN_REQUIRED') {
@@ -52,8 +62,8 @@ const qNotify = (content, type = 'positive', params = {}) => {
 
     } else {
 
-      Notify.create({ message, color: 'negative' })
-      
+      Notify.create({ message: message || error || 'Ha ocurrido un error', color: 'negative' })
+
     }
 
   }
@@ -136,6 +146,15 @@ const $bs = (amount) => {
   }).format(amount);
 }
 
+const $dinero = (amount) => {
+  let formateado = new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+  }).format(amount);
+
+  // Remover el símbolo de la moneda
+  return formateado.replace(/[^0-9.,-]+/g,"");
+}
+
 const $toFixed = (num) => {
   return parseFloat(num).toFixed(2)
 }
@@ -145,6 +164,21 @@ const obtenerValoresFaltantes = (arr1, arr2) => {
   return arr1.filter(val => !valuesArr2.includes(val));
 }
 
+function obtenerParcelaExhumableId(parcelas) {
+  let maxIndice = -Infinity;
+  let idParcelaMasAlta = undefined;
+
+  for (let i = 0; i < parcelas.length; i++) {
+    const parcela = parcelas[i];
+    if (parseInt(parcela.ocupado) === 1 && parcela.indice > maxIndice) {
+      maxIndice = parcela.indice;
+      idParcelaMasAlta = parcela.id;
+    }
+  }
+
+  return idParcelaMasAlta;
+}
+
 // "async" is optional;
 // more info on params: https://v2.quasar.dev/quasar-cli/boot-files
 export default boot(({ app, router }) => {
@@ -152,10 +186,11 @@ export default boot(({ app, router }) => {
   app.config.globalProperties.$money = {
     $usd,
     $bs,
+    $dinero,
   }
 
   app.use(GridLayout)
 
 })
 
-export { slugify, qNotify, $usd, $bs, $toFixed, obtenerValoresFaltantes }
+export { slugify, qNotify, $usd, $bs, $dinero, $toFixed, obtenerValoresFaltantes, obtenerParcelaExhumableId }

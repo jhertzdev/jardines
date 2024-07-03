@@ -71,8 +71,8 @@ const authStore = useAuthStore()
 const isLoading = ref(false)
 
 const loginData = reactive({
-  email: "admin",
-  password: "jardines",
+  email: "",
+  password: "",
 })
 
 const handleLogin = async () => {

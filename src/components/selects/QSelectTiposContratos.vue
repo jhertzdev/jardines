@@ -1,7 +1,7 @@
 <template>
   <q-select v-model="props.modelValue" :dense="props.dense" :outlined="props.outlined" :options="options" :label="props.label || ''" :hint="props.hint || ''"
     :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]" :style="!props.rule && 'margin-bottom: -20px;'"
-    :clearable="clearable" emit-value map-options multiple use-chips @update:model-value="updateValue"/>
+    :clearable="clearable" emit-value map-options :multiple="props.multiple" :use-chips="props.multiple" @update:model-value="updateValue"/>
 </template>
 
 <script setup>
@@ -38,6 +38,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  multiple: {
+    type: Boolean,
+    default: true,
+  },
   modelValue: {
     type: Array,
     default: []
@@ -56,8 +60,6 @@ async function getOptions(params = null) {
   try {
     const response = await api.get('contratos/tipos')
     if (response.data) {
-
-      
       options.value = []
       response.data.forEach(row => {
         options.value.push({
@@ -66,9 +68,9 @@ async function getOptions(params = null) {
         })
       })
       return true
-    }    
+    }
   } catch (error) {
-    return false;    
+    return false;
   }
 }
 

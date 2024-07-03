@@ -4,7 +4,7 @@
       <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
-            <th colspan="2" style="text-align: right;">PARCELAS POR OCUPACIÓN</th>
+            <th colspan="2" style="text-align: right;">UBICACIONES</th>
           </tr>
           <tr>
             <th>Totales</th>
@@ -19,7 +19,7 @@
             <td>{{ stats.parcelas_ocupadas_parcialmente }}</td>
           </tr>
           <tr>
-            <th colspan="2" style="text-align: right;">PARCELAS POR ESTATUS</th>
+            <th colspan="2" style="text-align: right;">POR ESTATUS</th>
           </tr>
           <tr v-for="parcela in stats?.parcelas_por_estatus">
             <th class="text-left">{{ parcela.estatus || 'No definido' }}</th>
@@ -66,7 +66,7 @@
           <q-btn-dropdown label="Ver mapa" icon="yard" color="primary">
             <q-list>
               <q-item clickable v-close-popup v-for="seccion in secciones"
-                :to="`/parcelas/${seccion.codigo_seccion}/mapa`">
+                :to="`/ubicaciones/${seccion.codigo_seccion}/mapa`">
                 <q-item-section>
                   <q-item-label>{{ seccion.nombre }}</q-item-label>
                 </q-item-section>
@@ -86,10 +86,23 @@
               </template>
             </q-input>
           </template>
+          <template v-slot:body-cell-codigo_parcela="props">
+            <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
+              {{ props.value }}
+            </q-td>
+          </template>
+          <template v-slot:body-cell-propietario="props">
+            <q-td :props="props" class="q-gutter-xs">
+              <template v-if="props.row.cliente_nombre || props.row.cliente_identidad">
+                {{ props.row.cliente_nombre }} ({{ props.row.cliente_identidad }})
+              </template>
+              <template v-else>-</template>
+            </q-td>
+          </template>
           <template v-slot:body-cell-actions="props">
             <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
               <q-btn outline icon="visibility" size="sm" color="blue" dense
-                @click="router.push('/parcelas/' + props.row.id)" />
+                @click="router.push('/ubicaciones/' + props.row.id)" />
               <q-btn outline icon="delete" size="sm" color="negative" dense
                 @click="openDialogEliminarParcela(props.row.id)" />
             </q-td>
@@ -216,18 +229,21 @@
 
 <script setup>
 
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { api } from "src/boot/axios";
 import { qNotify } from 'src/boot/jardines';
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
 
 const router = useRouter()
+const route = useRoute()
 const $q = useQuasar()
 
 const parcelasColumnas = [
-  { name: 'codigo_parcela', label: 'Núm. parcela', align: 'left', field: 'codigo_parcela', sortable: true },
+  { name: 'codigo_parcela', label: 'Ubicación', align: 'left', field: 'codigo_parcela', sortable: true, headerStyle: "width: 105px"},
+  { name: 'propietario', label: 'Propietario', align: 'left', field: 'cliente_nombre', sortable: true },
   { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
+  { name: 'ocupacion', label: 'Ocupación', align: 'left', field: 'ocupacion', sortable: true },
   { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 
@@ -320,6 +336,11 @@ const handleAgregarParcelas = () => {
     .finally(() => isLoadingAgregarParcelas.value = false)
 }
 
+watch(() => route.meta.tipoUbicacion, (value) => {
+  parcelas.value = []
+  parcelasTableRef.value.requestServerInteraction()
+})
+
 const openDialogAgregarParcelas = (id) => {
   agregarParcelasData.value = {
     codigo_seccion: null,
@@ -397,7 +418,7 @@ const stats = ref({});
  */
 const parcelasTableRef = ref(null)
 const parcelasTableLoading = ref(true)
-const parcelasTableFilter = ref('');
+const parcelasTableFilter = ref(router.currentRoute.value.query.search || '');
 const parcelasTablePagination = ref({
   page: 1,
   rowsPerPage: 25,
@@ -415,6 +436,11 @@ const parcelasTableRequest = (props) => {
 
   if (parcelasTableFilter.value) {
     searchParams.append('q', parcelasTableFilter.value)
+    router.replace({query: { search: parcelasTableFilter.value}})
+  }
+
+  if (route.meta.tipoUbicacion) {
+    searchParams.append('f[tipo_parcela]', route.meta.tipoUbicacion)
   }
 
   console.log('sortby', sortBy);
@@ -468,11 +494,11 @@ onMounted(() => {
   api.get('parcelas/params')
     .then(response => {
       if (response.data?.tipos_parcelas) {
-        response.data.tipos_parcelas.forEach(tipoParcela => {
+        response.data.tipos_parcelas.forEach(tipoUbicacion => {
           tiposParcelasOptions.push(
             {
-              label: `${tipoParcela.nombre}`,
-              value: tipoParcela.id
+              label: `${tipoUbicacion.nombre}`,
+              value: tipoUbicacion.id
             }
           );
         });

@@ -319,7 +319,7 @@ import QTabPanelConfiguracionContent from 'src/components/configuracion/QTabPane
 
 const $q = useQuasar()
 
-const tab = ref('areas')
+const tab = ref('configuracion')
 const splitterModel = ref(20)
 const selectedEmpresa = ref(null)
 

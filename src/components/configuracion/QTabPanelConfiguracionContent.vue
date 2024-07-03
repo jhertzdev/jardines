@@ -4,12 +4,12 @@
   </div>
 
   <template v-else>
-    <q-form @submit="handleSubmitMasterPassword">
+    <q-form @submit="handleSubmitMasterPassword" @keydown.enter.prevent="">
       <q-card class="q-pa-md q-mb-lg">
         <q-card-section>
           <div class="text-h6">Contraseña maestra</div>
         </q-card-section>
-    
+
         <q-card-section>
           <q-input type="password" v-model="masterPassword" label="Contraseña" hint="Escribe una contraseña segura, de 8 caracteres como mínimo.">
             <template v-slot:append>
@@ -17,7 +17,7 @@
             </template>
           </q-input>
         </q-card-section>
-    
+
       </q-card>
     </q-form>
 
@@ -26,7 +26,7 @@
         <q-card-section>
           <div class="text-h6">Permisos de usuarios</div>
         </q-card-section>
-    
+
         <q-card-section>
           <div class="row">
             <div class="col-12 col-sm-6" v-for="(grupo, key) in permissions?.groups || []">
@@ -39,7 +39,7 @@
         <q-card-actions align="right">
           <q-btn color="primary" type="submit" label="Guardar permisos" :loading="isLoadingSubmitPermisos"/>
         </q-card-actions>
-    
+
       </q-card>
     </q-form>
   </template>

@@ -48,6 +48,6 @@ const updateValue = (value) => {
   emit('update:modelValue', value)
 }
 
-const options = ref(['Disponible', 'Vendido', 'Pendiente', 'En espera', 'No disponible']);
+const options = ref(['Disponible', 'Vendido', 'Donado', 'Pendiente', 'En espera', 'No disponible']);
 
 </script>

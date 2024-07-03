@@ -8,6 +8,7 @@
           {{ route.meta.viewName || 'Jardines Santa Ana' }}
         </q-toolbar-title>
 
+        <q-btn flat dense round icon="search" aria-label="Buscar" @click="showSectionBusqueda = !showSectionBusqueda" />
       </q-toolbar>
     </q-header>
 
@@ -18,12 +19,31 @@
       </div>
       <q-separator />
       <q-list>
-
         <MenuLink v-for="link in essentialLinks" :key="link.title" v-bind="link" />
+        <q-separator />
+        <q-item clickable @click="$q.dark.set(false)" v-if="$q.dark.isActive">
+          <q-item-section avatar>
+            <q-icon name="light_mode" />
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>Modo claro</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item clickable @click="$q.dark.set(true)" v-else>
+          <q-item-section avatar>
+            <q-icon name="dark_mode" />
+          </q-item-section>
+
+          <q-item-section>
+            <q-item-label>Modo oscuro</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
     <q-page-container>
+      <SearchBar v-if="showSectionBusqueda" @close="showSectionBusqueda = false" />
       <q-page class="q-pa-lg">
         <q-breadcrumbs class="q-mb-lg">
           <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer" v-if="router.options.history.state.back !== '/auth/login'"/>
@@ -48,6 +68,11 @@
 
 .j-dialog.j-dialog-xl .q-card {
   width: 1024px;
+  max-width: calc(100% - 30px);
+}
+
+.j-dialog.j-dialog-xxl .q-card {
+  width: 1200px;
   max-width: calc(100% - 30px);
 }
 
@@ -140,6 +165,134 @@
   margin-bottom: 0;
 }
 
+.q-textarea.no-resize .q-field__native {
+  resize: none;
+}
+
+.q-list .q-list {
+  padding-left: 1rem;
+  background: #9991;
+}
+
+.card-busqueda {
+  z-index: 6001;
+  transition: 0.2s;
+  position: fixed;
+  width: calc(100% - 80px);
+  top: 70px;
+  left: 40px;
+  height: 160px;
+}
+
+.card-busqueda .q-markup-table th {
+  white-space: nowrap;
+}
+
+.card-busqueda .q-markup-table .q-badge,
+.card-busqueda .q-markup-table .badge-contrato {
+  font-size: 0.7rem;
+  margin-bottom: 2px;
+  margin-right: 2px;
+}
+
+.card-busqueda .q-markup-table .q-badge:last-child,
+.card-busqueda .q-markup-table .badge-contrato:last-child {
+  margin-right: 0;
+}
+
+.card-busqueda .q-markup-table .q-badge {
+  padding: 2px 3px;
+}
+
+.q-menu {
+  z-index: 6001;
+}
+
+.left-drawer-open:not(.q-body--prevent-scroll) .card-busqueda {
+  width: calc(100% - 350px);
+  left: 325px;
+}
+
+.section-busqueda-open .q-page-container {
+  padding-top: 230px !important;
+}
+
+.q-body--prevent-scroll .card-busqueda {
+  top: 25px;
+}
+
+.section-busqueda-open .q-dialog__inner {
+  padding-top: 210px;
+  align-items: start;
+}
+
+.section-busqueda-open .q-dialog .q-dialog__inner--minimized > div {
+  max-height: calc(100vh - 230px);
+}
+
+
+.section-busqueda-open .results-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.section-busqueda-open .results-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.section-busqueda-open .results-wrapper::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: #888;
+}
+
+.section-busqueda-open .results-wrapper {
+  height: 100%;
+  overflow-y: scroll;
+}
+
+.results-table .q-table thead tr,
+.results-table .q-table tbody tr,
+.results-table .q-table tbody td {
+  height: 24px;
+}
+
+.results-table .q-table thead th {
+  line-height: 1;
+}
+
+.results-table .q-table tbody td,
+.results-table .q-table thead th {
+  padding: 0px 4px;
+  line-height: 1;
+}
+
+.results-table .q-badge {
+  margin-bottom: 1px;
+}
+
+.badge-contrato {
+  display: inline-flex;
+  margin-bottom: 1px;
+}
+
+.badge-contrato > span:first-child {
+  border-radius: 5px 0 0 5px;
+  background: var(--q-primary);
+  border: 1px solid var(--q-primary);
+  color: #fff;
+  padding-left: 3px;
+  padding-right: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.badge-contrato > span:last-child {
+  border: 1px solid var(--q-primary);
+  border-radius: 0 5px 5px 0;
+  padding-left: 2px;
+  padding-right: 3px;
+}
+
 </style>
 
 <style lang="scss">
@@ -157,16 +310,20 @@ table.info-table {
 </style>
 
 <script setup>
-import { ref, watch, toRef } from 'vue'
+import { ref, watch, toRef, onMounted } from 'vue'
 import MenuLink from 'src/components/MenuLink.vue'
 import { useAuthStore } from 'src/stores/auth.store'
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar'
 import { useAppStore } from 'src/stores/app.store';
+import SearchBar from 'src/components/SearchBar.vue';
 
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const showSectionBusqueda = ref(false)
+const busqueda = ref('')
 
 const permisos = authStore.user.role_perms;
 
@@ -183,10 +340,24 @@ const linksList = [
     perms: 'clientes',
   },
   {
-    title: 'Parcelas',
-    icon: 'yard',
-    to: '/parcelas',
-    perms: 'parcelas',
+    title: 'Ubicaciones',
+    children: [
+      {
+        title: 'Parcelas',
+        icon: 'yard',
+        to: '/parcelas',
+      },
+      {
+        title: 'Nichos',
+        icon: 'takeout_dining',
+        to: '/nichos',
+      },
+      {
+        title: 'Columbarios',
+        icon: 'inventory',
+        to: '/columbarios',
+      },
+    ]
   },
   {
     title: 'Contratos',
@@ -201,9 +372,20 @@ const linksList = [
     perms: 'usuarios',
   },
   {
+    title: 'Caja',
+    icon: 'point_of_sale',
+    to: '/caja',
+  },
+  {
     title: 'Configuración',
     icon: 'settings',
     to: '/configuracion',
+    perms: 'configuracion',
+  },
+  {
+    title: 'Auditoría',
+    icon: 'manage_history',
+    to: '/auditoria',
     perms: 'configuracion',
   },
   {
@@ -219,6 +401,14 @@ const toggleLeftDrawer = () => {
   leftDrawerOpen.value = !leftDrawerOpen.value
 }
 
+watch(leftDrawerOpen, (value) => {
+  if (leftDrawerOpen.value) {
+    document.body.classList.add('left-drawer-open');
+  } else {
+    document.body.classList.remove('left-drawer-open');
+  }
+})
+
 const $q = useQuasar()
 const appStore = useAppStore()
 
@@ -231,6 +421,22 @@ watch(toRef(appStore, 'modalMessage'), () => {
     }).onDismiss(() => {
       appStore.modalIsVisible = false
     })
+  }
+});
+
+onMounted(() => {
+  showSectionBusqueda.value = false;
+  document.body.classList.remove('section-busqueda-open');
+  if (leftDrawerOpen.value) {
+    document.body.classList.add('left-drawer-open');
+  }
+})
+
+watch(showSectionBusqueda, () => {
+  if (showSectionBusqueda.value) {
+    document.body.classList.add('section-busqueda-open');
+  } else {
+    document.body.classList.remove('section-busqueda-open');
   }
 });
 

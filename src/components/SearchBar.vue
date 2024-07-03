@@ -1,0 +1,348 @@
+<template>
+  <q-card bordered class="q-mb-lg card-busqueda">
+    <q-card-section class="q-pa-xs" style="height:100%">
+      <!-- Close button -->
+      <q-btn dense unelevated color="primary" icon="close" class="q-mr-sm" @click="$emit('close')" style="position: absolute; top: 0; right: -8px; font-size: 0.5rem; z-index: 1;" />
+      <div class="row" style="height:100%">
+        <div class="flex column justify-center col-12 col-md-4 q-px-md">
+
+          <q-input dense v-model="busqueda" placeholder="Buscar..." @keyup.enter="ejecutarBusqueda" :disable="isLoading">
+            <template v-slot:append>
+              <q-btn dense flat icon="filter_alt" color="primary" @click="showBusquedaAvanzada = true" />
+              <q-btn dense unelevated icon="search" color="primary" @click="ejecutarBusqueda" :loading="isLoading" />
+            </template>
+          </q-input>
+          <span class="text-caption text-grey-6 q-mt-xs" v-if="hintFiltrosAplicados.length">
+            <q-btn dense round unelevated icon="close" color="red" @click="removerFiltrosAvanzados" style="font-size: 0.5rem" />
+            {{ hintFiltrosAplicados }}
+          </span>
+
+          <!-- Agregar grupo de checkboxes -->
+          <q-option-group
+            class="q-mt-xs"
+            v-model="filtrosBusqueda"
+            :options="filtrosBusquedaOptions"
+            type="checkbox"
+            inline
+            dense
+          />
+        </div>
+        <div class="col-12 col-md-8 results-wrapper">
+
+          <!-- Muted -->
+          <div class="flex justify-center items-center" style="height:100%" v-if="!filtrosBusqueda.length">
+            <span class="text-grey-5">No hay resultados para mostrar.</span>
+          </div>
+          <template v-else>
+            <template v-if="filtrosBusqueda.includes('clientes')">
+              <div class="text-body text-weight-bold text-primary">Clientes</div>
+              <template v-if="resultados?.clientes?.length">
+                <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Núm. identidad</th>
+                      <th>Estatus / Cuenta</th>
+                      <th>Ubicaciones</th>
+                      <th>Contratos</th>
+                      <th>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in resultados.clientes" :key="row.id">
+                      <td>{{ row.nombre }} {{ row.apellido }}</td>
+                      <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
+                      <td>
+                        <q-badge class="q-px-xs q-mr-xs" v-if="row.estado_cliente">
+                          {{ row.estado_cliente }}
+                        </q-badge>
+                        <q-badge class="q-px-xs" v-if="row.estado_cuenta">
+                          {{ row.estado_cuenta }}
+                        </q-badge>
+                      </td>
+                      <td>
+                        <q-badge v-for="ubicacion in row.ubicaciones || []">
+                          {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                        </q-badge>
+                      </td>
+                      <td>
+                        <template v-for="contrato in row.contratos || []">
+                          <div class="badge-contrato">
+                            <span>
+                              {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                              <template v-if="contrato.num_serie">
+                                <span>
+                                  -{{ contrato.num_serie }}
+                                </span>
+                              </template>
+                            </span>
+                            <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
+                          </div>
+                        </template>
+                      </td>
+                      <td style="font-size:.7rem; letter-spacing: -0.2px;">
+                        {{ row.notas }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </template>
+              <template v-else>
+                <div class="text-grey-5 text-caption">No hay clientes que mostrar.</div>
+              </template>
+            </template>
+            <template v-if="filtrosBusqueda.includes('fallecidos')">
+              <div class="text-body text-weight-bold text-primary">Fallecidos</div>
+              <template v-if="resultados?.fallecidos?.length">
+                <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                  <thead>
+                    <tr>
+                      <th>Nombre completo</th>
+                      <th>Núm. ident.</th>
+                      <th>Ubicación</th>
+                      <th>Contratos</th>
+                      <th>Ubicaciones</th>
+                      <th>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in resultados.fallecidos" :key="row.id">
+                      <td>{{ row.nombre }} {{ row.apellido }}</td>
+                      <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
+                      <td>
+                        <template v-if="row.puesto_id">
+                          {{ row.codigo_seccion }}-{{ row.num_parcela }} ({{ row.puesto_nombre }})
+                        </template>
+                        <template v-else>
+                          -
+                        </template>
+                      </td>
+                      <td>
+                        <template v-for="contrato in row.contratos || []">
+                          <div class="badge-contrato">
+                            <span>
+                              {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                              <template v-if="contrato.num_serie">
+                                <span>
+                                  -{{ contrato.num_serie }}
+                                </span>
+                              </template>
+                            </span>
+                            <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
+                          </div>
+                        </template>
+                      </td>
+                      <td>
+                        <q-badge v-for="ubicacion in row.ubicaciones || []">
+                          {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                        </q-badge>
+                      </td>
+                      <td style="font-size:.7rem; letter-spacing: -0.2px;">
+                        {{ row.notas }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </q-markup-table>
+              </template>
+              <template v-else>
+                <div class="text-grey-5 text-caption">No hay fallecidos que mostrar.</div>
+              </template>
+            </template>
+            <div class="row q-col-gutter-sm">
+              <div class="col-md-6" v-if="filtrosBusqueda.includes('contratos')">
+                <div class="text-body text-weight-bold text-primary">Contratos</div>
+                <template v-if="resultados?.contratos?.length">
+                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                    <thead>
+                      <tr>
+                        <th>Núm. contrato</th>
+                        <th>Propietario</th>
+                        <th>Estatus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="contrato in resultados.contratos" :key="contrato.id">
+                        <td>{{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</td>
+                        <td>
+                          <template v-if="contrato.comprador_id">
+                            {{ contrato.nombre_completo }} {{  contrato.documento_ident }}
+                          </template>
+                          <template v-else>
+                            -
+                          </template>
+                        </td>
+                        <td>{{ contrato.estatus }}</td>
+                      </tr>
+                    </tbody>
+                  </q-markup-table>
+                </template>
+                <template v-else>
+                  <div class="text-grey-5 text-caption">No hay contratos que mostrar.</div>
+                </template>
+              </div>
+              <div class="col-md-6" v-if="filtrosBusqueda.includes('ubicaciones')">
+                <div class="text-body text-weight-bold text-primary">Ubicaciones</div>
+                <template v-if="resultados?.ubicaciones?.length">
+                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                    <thead>
+                      <tr>
+                        <th>Ubicación</th>
+                        <th>Propietario</th>
+                        <th>Estatus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="ubicacion in resultados.ubicaciones" :key="ubicacion.id">
+                        <td>{{ ubicacion.codigo_seccion }}-{{ ubicacion.num_parcela }}</td>
+                        <td>
+                          <template v-if="ubicacion.propietario_id">
+                            {{ ubicacion.nombre_completo }} ({{  ubicacion.documento_ident }})
+                          </template>
+                          <template v-else>
+                            -
+                          </template>
+                        </td>
+                        <td>{{ ubicacion.estatus }}</td>
+                      </tr>
+                    </tbody>
+                  </q-markup-table>
+                </template>
+                <template v-else>
+                  <div class="text-grey-5 text-caption">No hay ubicaciones que mostrar.</div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </q-card-section>
+  </q-card>
+  <q-dialog v-model="showBusquedaAvanzada" class="j-dialog j-dialog-lg">
+    <q-card class="q-pa-md">
+      <q-card-section class="q-py-none text-center">
+        <div class="text-h6">Búsqueda avanzada</div>
+      </q-card-section>
+      <q-card-section>
+        <div class="row q-col-gutter-md">
+          <div class="col-12 col-md-6">
+            <q-input v-model="fechaCreadoDesde" type="date" label="Fecha desde" clearable />
+          </div>
+          <div class="col-12 col-md-6">
+            <q-input v-model="fechaCreadoHasta" type="date" label="Fecha hasta" clearable />
+          </div>
+          <div class="col-12 q-gutter-xs text-center">
+            <q-btn dense unelevated label="Hoy" color="primary" @click="setFechasCreado('HOY')" class="q-px-sm"/>
+            <q-btn dense unelevated label="Últ. 7 días" color="primary" @click="setFechasCreado('7D')" class="q-px-sm"/>
+            <q-btn dense unelevated label="Últ. 30 días" color="primary" @click="setFechasCreado('30D')" class="q-px-sm"/>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+</template>
+
+<script setup>
+  import { ref, onMounted, computed } from "vue";
+  import { useAppStore } from "src/stores/app.store";
+  import { useRouter } from "vue-router";
+  import { api } from "src/boot/axios";
+
+  const appStore = useAppStore();
+  const router = useRouter()
+
+  const busqueda = ref('')
+  const tipoBusqueda = ref('texto')
+  const filtrosBusqueda = ref([
+    'clientes',
+    'fallecidos',
+    'contratos',
+    'ubicaciones',
+  ])
+  const filtrosBusquedaOptions = [
+    { label: 'Clientes', value: 'clientes' },
+    { label: 'Fallecidos', value: 'fallecidos' },
+    { label: 'Contratos', value: 'contratos' },
+    { label: 'Ubicaciones', value: 'ubicaciones' },
+  ]
+
+  const showBusquedaAvanzada = ref(false)
+  const isLoading = ref(false)
+
+  const fechaCreadoDesde = ref(null)
+  const fechaCreadoHasta = ref(null)
+
+  const resultados = ref({})
+
+  function getYMD(date) {
+    let year = date.getFullYear();
+    let month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero based
+    let day = ("0" + date.getDate()).slice(-2);
+    let ymd = `${year}-${month}-${day}`;
+    return ymd;
+  }
+
+  function setFechasCreado(fecha) {
+    let fechaHoy = new Date();
+
+    if (fecha === 'HOY') {
+      fechaCreadoDesde.value = getYMD(fechaHoy)
+      fechaCreadoHasta.value = getYMD(fechaHoy)
+    } else if (fecha === '7D') {
+      let fecha7d = new Date();
+      fecha7d.setDate(fechaHoy.getDate() - 7);
+      fechaCreadoDesde.value = getYMD(fecha7d)
+      fechaCreadoHasta.value = getYMD(fechaHoy)
+    } else if (fecha === '30D') {
+      let fecha30d = new Date();
+      fecha30d.setDate(fechaHoy.getDate() - 30);
+      fechaCreadoDesde.value = getYMD(fecha30d)
+      fechaCreadoHasta.value = getYMD(fechaHoy)
+    }
+  }
+
+  const hintFiltrosAplicados = computed(() => {
+    let filtros = '';
+
+    if (fechaCreadoDesde.value) {
+      filtros += `desde ${fechaCreadoDesde.value}`;
+    }
+
+    if (fechaCreadoHasta.value) {
+      filtros += ` hasta ${fechaCreadoHasta.value}`;
+    }
+
+    if (filtros.length) {
+      filtros = filtros.trim();
+      filtros = filtros.charAt(0).toUpperCase() + filtros.slice(1);
+    }
+    // Trim space and first char is uppercase
+    return filtros;
+  })
+
+  function removerFiltrosAvanzados() {
+    fechaCreadoDesde.value = null;
+    fechaCreadoHasta.value = null;
+  }
+
+  function ejecutarBusqueda() {
+    isLoading.value = true
+
+    let params = {
+      q: busqueda.value,
+      include: filtrosBusqueda.value || '',
+      desde: fechaCreadoDesde.value || null,
+      hasta: fechaCreadoHasta.value || null,
+    }
+
+    api.post('busqueda', params)
+      .then(response => {
+        console.log(response);
+        if (response.data) {
+          resultados.value = response.data
+        }
+      })
+      .catch(error => qNotify(error, 'error'))
+      .finally(() => isLoading.value = false)
+
+  }
+</script>

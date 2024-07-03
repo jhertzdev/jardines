@@ -1,6 +1,6 @@
 <template>
   <div class="row full-width">
-    <div class="col-md-4 col-12">
+    <!--<div class="col-md-4 col-12">
       <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
         <table class="info-table">
           <tr>
@@ -19,13 +19,48 @@
           </tr>
         </table>
       </q-card>
-    </div>
-    <div class="col-md-8 col-12">
-      <div :class="$q.screen.lt.md ? 'q-mt-sm q-py-md' : 'q-ml-sm q-px-md'">
+    </div>-->
+    <div class="col-12">
+      <div class="q-mb-md">
 
-        <div class="q-gutter-md">
-          <q-btn label="Generar contratos" icon="description" color="primary" @click="openDialogGenerarContratos" />
+        <div class="flex justify-between q-mb-md">
+
+          <q-btn-toggle v-model="tipoContrato" toggle-color="primary" :options="[
+            { label: 'Todos', value: '' },
+            { label: 'Parcelas', value: 'Parcela' },
+            { label: 'Nichos', value: 'Nicho' },
+            { label: 'Columbarios', value: 'Columbario' },
+          ]" />
+
+          <div class="q-gutter-sm">
+            <q-btn-dropdown color="primary" icon="description" label="Nuevo contrato">
+              <q-list>
+                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Parcela')">
+                  <q-item-section>
+                    <q-item-label>Parcelas</q-item-label>
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Nicho')">
+                  <q-item-section>
+                    <q-item-label>Nichos</q-item-label>
+                  </q-item-section>
+                </q-item>
+
+                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Columbario')">
+                  <q-item-section>
+                    <q-item-label>Columbarios</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+
+            <!--<q-btn color="primary" label="Traspaso" icon="swap_horiz" @click="traspasarContratosDialog.openDialog()"/>-->
+          </div>
+
+
         </div>
+
         <q-separator class="q-my-lg" />
 
         <q-table :rows="contratos" :columns="contratosColumnas" row-key="id" :class="!$q.screen.lt.md && 'text-wrap'"
@@ -38,24 +73,35 @@
               </template>
             </q-input>
           </template>
-          <template v-slot:body-cell-actions="props">
-            <q-td :props="props" style="width: 0px;" class="q-gutter-xs">
-              <q-btn outline icon="edit" size="sm" color="blue" dense
-                @click="editarContratoDialog.openDialog(props.row.id)" />
-              <q-btn outline icon="rotate_right" size="sm" color="blue" dense
-                @click="renovarContratoDialog.openDialog(props.row.id)" />
+
+          <template v-slot:body-cell-num_contrato="props">
+            <q-td :props="props">
+              <a href="javascript:void(0)" @click="(e) => verContratosDialog.openDialog(props.row.num_contrato, props.row.tipo_parcela)" v-if="props.row.id">{{ props.value }}</a>
+              <span v-else>-</span>
             </q-td>
           </template>
+
           <template v-slot:body-cell="props">
             <q-td :props="props">
               {{ props.value || '-' }}
             </q-td>
           </template>
+          <template v-slot:body-cell-cliente="props">
+            <q-td :props="props">
+              <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
+              <span v-else>-</span>
+            </q-td>
+          </template>
+
+
           <template v-slot:body-cell-parcelas="props">
             <q-td :props="props" class="q-gutter-xs">
+              <!--<q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
+                @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>-->
+              <!--<q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
+                @click="router.push('/parcelas?search=' + parcela.codigo_parcela)">{{ parcela.codigo_parcela }}</q-btn>-->
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
-                @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
-
+                @click="editarParcelaDialog.openDialog(parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
             </q-td>
           </template>
         </q-table>
@@ -64,45 +110,67 @@
   </div>
 
   <DialogGenerarContratosMultiple ref="generarContratosDialog" @created="handleGenerarContratos" />
-  <DialogEditarContrato ref="editarContratoDialog" @updated="handleEditarContrato"></DialogEditarContrato>
-  <DialogRenovarContrato ref="renovarContratoDialog" @done="handleEditarContrato"></DialogRenovarContrato>
+  <!--<DialogTraspasoContratos ref="traspasarContratosDialog" />-->
+  <DialogVerContratos ref="verContratosDialog" @updated="handleGenerarContratos" />
+  <DialogEditarParcela ref="editarParcelaDialog" @done="handleEditarParcela"></DialogEditarParcela>
+  <DialogAgregarCliente ref="verClienteDialog" />
+
 </template>
 
 <script setup>
 
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
+import { qNotify } from 'src/boot/jardines';
 import { useQuasar } from "quasar";
 
 // Dialogs
 import DialogGenerarContratosMultiple from "src/components/popups/DialogGenerarContratosMultiple.vue";
-import DialogEditarContrato from "src/components/popups/DialogEditarContrato.vue";
-import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
+import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
+import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
+import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
+import { format } from "date-fns";
 
 const router = useRouter()
+const $q = useQuasar()
+
+const tipoContrato = ref('');
 
 const generarContratosDialog = ref(null)
-const editarContratoDialog = ref(null)
-const renovarContratoDialog = ref(null)
+const verContratosDialog = ref(null)
+const editarParcelaDialog = ref(null)
+const verClienteDialog = ref(null);
 
-const openDialogGenerarContratos = () => {
-  generarContratosDialog.value.openDialog()
+watch(tipoContrato, (value) => {
+  contratosTableRef.value.requestServerInteraction()
+})
+
+const openDialogGenerarContratos = (tipo = null) => {
+  generarContratosDialog.value.openDialog(tipo)
 }
 
 const handleGenerarContratos = (data) => {
   console.log('Contratos Generados', data);
+  contratosTableRef.value.requestServerInteraction()
+}
+
+const handleEditarParcela = (data) => {
+  console.log('Contratos Editados/Renovados', data);
+  contratosTableRef.value.requestServerInteraction()
 }
 
 const stats = ref({});
 
 const contratos = ref([])
 const contratosColumnas = [
-  { name: 'codnum_contrato', label: 'Núm. contrato', align: 'left', field: 'codnum_contrato', sortable: true },
+  { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'num_contrato', sortable: true },
+  { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
+  { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
+  { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
   { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
-  { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: true, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
-  { name: 'parcelas', label: 'Parcelas', align: 'left', field: 'parcelas', sortable: true },
-  { name: 'actions', label: 'Acciones', field: 'actions' },
+  { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
+  { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
 ]
 
 /**
@@ -110,17 +178,19 @@ const contratosColumnas = [
  */
 const contratosTableRef = ref(null)
 const contratosTableLoading = ref(true)
-const contratosTableFilter = ref('');
+const contratosTableFilter =  ref(router.currentRoute.value.query.search || '');
 const contratosTablePagination = ref({
   page: 1,
   rowsPerPage: 10,
+  sortBy: 'num_contrato',
+  descending: true,
 })
 
 const contratosTableRequest = (props) => {
   const { page, rowsPerPage, sortBy, descending } = props.pagination
   contratosTableLoading.value = true;
 
-  let endpoint = 'contratos';
+  let endpoint = 'numcontratos';
 
   const searchParams = new URLSearchParams(
     Object.fromEntries(Object.entries(props.pagination).filter(([k, v]) => v != null && k != 'descending'))
@@ -128,17 +198,22 @@ const contratosTableRequest = (props) => {
 
   if (contratosTableFilter.value) {
     searchParams.append('q', contratosTableFilter.value)
+    router.replace({ query: { search: contratosTableFilter.value } })
   }
-
-  console.log('sortby', sortBy);
 
   if (sortBy) {
     searchParams.append('order', descending ? 'DESC' : 'ASC')
   }
 
+  if (tipoContrato.value) {
+    searchParams.append('f[tipo_parcela]', tipoContrato.value)
+  }
+
   if (searchParams) {
     endpoint += '?' + searchParams.toString();
   }
+
+  console.log('sortby', endpoint);
 
   api.get(endpoint)
     .then(response => {

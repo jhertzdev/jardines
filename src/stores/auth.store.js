@@ -79,7 +79,7 @@ export const useAuthStore = defineStore({
                 message: 'Ha ocurrido un error. Vuelve a intentarlo.'
             }
         }
-        
+
     },*/
     logout() {
       this.user = null;
@@ -92,10 +92,10 @@ export const useAuthStore = defineStore({
     can(permiso) {
 
       let matriz = this.user?.role_perms || []
-      
+
       for (let i = 0; i < matriz.length; i++) {
         const valor = matriz[i];
-    
+
         // Si "permiso" no contiene punto, cualquiera de su tipo en la matriz lo validará como verdadero
         if (!permiso.includes('.') && valor.includes(permiso + '.') || valor === permiso) {
           return true;

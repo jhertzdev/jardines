@@ -12,9 +12,15 @@ const routes = [
       {
         path: 'configuracion',
         component: () => import('src/pages/Configuracion/ConfiguracionPage.vue'),
-        meta: { viewName: 'Configuración', viewIcon: 'settings' } 
+        meta: { viewName: 'Configuración', viewIcon: 'settings' }
       },
-      { path: 'usuarios',
+      {
+        path: 'auditoria',
+        component: () => import('src/pages/Auditoria/AuditoriaPage.vue'),
+        meta: { viewName: 'Auditoría', viewIcon: 'manage_history' }
+      },
+      {
+        path: 'usuarios',
         component: () => import('src/pages/Usuarios/UsuariosPage.vue'),
         meta: { viewName: 'Usuarios', viewIcon: 'groups' }
       },
@@ -31,7 +37,17 @@ const routes = [
       {
         path: 'parcelas',
         component: () => import('src/pages/Parcelas/ParcelasPage.vue'),
-        meta: { viewName: 'Parcelas', viewIcon: 'yard' }
+        meta: { viewName: 'Parcelas', viewIcon: 'yard', tipoUbicacion: "Parcela" }
+      },
+      {
+        path: 'nichos',
+        component: () => import('src/pages/Parcelas/ParcelasPage.vue'),
+        meta: { viewName: 'Nichos', viewIcon: 'takeout_dining', tipoUbicacion: "Nicho" }
+      },
+      {
+        path: 'columbarios',
+        component: () => import('src/pages/Parcelas/ParcelasPage.vue'),
+        meta: { viewName: 'Columbarios', viewIcon: 'inventory', tipoUbicacion: "Columbario"}
       },
       {
         path: 'contratos',
@@ -39,12 +55,12 @@ const routes = [
         meta: { viewName: 'Contratos', viewIcon: 'description' }
       },
       {
-        path: 'parcelas/:id',
+        path: 'ubicaciones/:id',
         component: () => import('src/pages/Parcelas/ParcelaIndividualPage.vue'),
         meta: { viewName: 'Parcelas', viewIcon: 'yard' }
       },
       {
-        path: 'parcelas/:codigo/mapa',
+        path: 'ubicaciones/:codigo/mapa',
         component: () => import('src/pages/Parcelas/ParcelasMapaPage.vue'),
         meta: { viewName: 'Mapa', viewIcon: 'yard' }
       }
@@ -58,7 +74,57 @@ const routes = [
       { path: 'logout', component: () => import('pages/Auth/LogoutPage.vue') },
     ]
   },
-
+  {
+    path: '/caja/',
+    component: () => import('layouts/CashboxLayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Caja/CajaPage.vue'),
+        meta: { viewName: 'Caja', viewIcon: 'point_of_sale'}
+      },
+      {
+        path: 'bancos',
+        component: () => import('pages/Caja/BancosPage.vue'),
+        meta: { viewName: 'Bancos', viewIcon: 'account_balance' }
+      },
+      {
+        path: 'recibos',
+        component: () => import('pages/Caja/RecibosPage.vue'),
+        meta: { viewName: 'Recibos', viewIcon: 'receipt' }
+      },
+      {
+        path: 'servicios',
+        component: () => import('pages/Caja/ServiciosPage.vue'),
+        meta: { viewName: 'Servicios y productos', viewIcon: 'yard' }
+      },
+      {
+        path: 'recibos/nuevo',
+        component: () => import('pages/Caja/RecibosNuevoPage.vue'),
+        meta: { viewName: 'Nuevo recibo', viewIcon: 'receipt' }
+      },
+      {
+        path: 'contratos',
+        component: () => import('pages/Caja/CajaContratosPage.vue'),
+        meta: { viewName: 'Contratos', viewIcon: 'description' }
+      },
+      {
+        path: 'metodos',
+        component: () => import('pages/Caja/MetodosPagoPage.vue'),
+        meta: { viewName: 'Métodos de pago', viewIcon: 'account_balance_wallet' }
+      },
+      {
+        path: 'monedas',
+        component: () => import('pages/Caja/MonedasPage.vue'),
+        meta: { viewName: 'Monedas', viewIcon: 'euro_symbol' }
+      },
+      {
+        path: 'reportes/ingresos',
+        component: () => import('pages/Caja/ReporteIngresosPage.vue'),
+        meta: { viewName: 'Reporte de ingresos', viewIcon: 'assessment' }
+      },
+    ]
+  },
   // Always leave this as last one,
   // but you can also remove it
   {

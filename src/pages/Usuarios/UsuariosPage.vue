@@ -1,9 +1,9 @@
 <template>
-  
+
   <div class="q-gutter-md">
     <q-btn label="Agregar" icon="add" color="primary" @click="openDialogAgregarUsuario" />
   </div>
-  
+
   <q-separator class="q-my-lg" />
 
   <div class="q-pb-lg text-center" v-if="isLoadingUsuarios">
@@ -31,6 +31,10 @@
         <q-card-section class="q-gutter-md">
           <q-input outlined v-model="agregarEditarUsuarioData.username" label="Nombre de usuario *" lazy-rules
             :rules="[val => val && val.length > 0 || 'Escribe el nombre de usuario.']" clearable />
+          <q-input outlined v-model="agregarEditarUsuarioData.nombre_completo" label="Nombre completo *" lazy-rules
+            :rules="[val => val && val.length > 0 || 'Escribe el nombre completo.']" clearable />
+          <q-input outlined v-model="agregarEditarUsuarioData.num_identidad" label="Número de cédula *" lazy-rules
+            :rules="[val => val && val.length > 0 || 'Escribe el número de cédula.']" clearable />
           <q-select outlined v-model="agregarEditarUsuarioData.group" :options="groupOptions"
             label="Selecciona un rol de usuario *" lazy-rules
             :rules="[val => val && val.length > 0 || 'Selecciona un rol de usuario.']" emit-value map-options clearable />
@@ -84,6 +88,8 @@ const isLoadingUsuarios = ref(true)
 const usuarios = ref([])
 const usuariosColumnas = [
   { name: 'username', label: 'Nombre de usuario', align: 'left', field: 'username', sortable: true },
+  { name: 'nombre_completo', label: 'Nombre completo', align: 'left', field: 'nombre_completo', sortable: true },
+  { name: 'num_identidad', label: 'Número de cédula', align: 'left', field: 'num_identidad', sortable: true },
   { name: 'group', label: 'Rol', align: 'left', field: 'group', sortable: true },
   { name: 'fecha_creado', align: 'left', label: 'Creado el', field: 'fecha_creado', sortable: true },
   { name: 'actions', label: 'Acciones', field: 'actions' },
@@ -141,6 +147,8 @@ const isLoadingAgregarEditarUsuario = ref(false)
 const agregarEditarUsuarioData = reactive({
   id: null,
   username: null,
+  nombre_completo: null,
+  num_identidad: null,
   password: null,
   group: null,
 })
@@ -151,7 +159,25 @@ const handleAgregarEditarUsuario = () => {
 
   if (postData.id) {
 
-    $q.notify({ message: 'Editado!! exitosamente.', color: 'positive' })
+    api.post('auth/updateUser', postData)
+      .then(response => {
+        if (response.data) {
+          Object.keys(agregarEditarUsuarioData).forEach((i) => agregarEditarUsuarioData[i] = null)
+          dialogAgregarEditarUsuario.value = false
+          $q.notify({ message: 'Editado exitosamente.', color: 'positive' })
+
+          const index = usuarios.value.findIndex(user => user.id === response.data.id);
+
+          if (index === -1) return null
+
+          usuarios.value[index] = {
+            ...usuarios.value[index],
+            ...response.data
+          };
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: handleAgregarEditarUsuario }))
+      .finally(() => isLoadingAgregarEditarUsuario.value = false)
 
   } else {
 

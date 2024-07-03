@@ -60,8 +60,17 @@ console.log('parcelprops', props.modelValue);
 
 const emit = defineEmits(['update:modelValue'])
 
+const fullData = ref([])
+
 const updateValue = (value) => {
   emit('update:modelValue', value)
+
+  if (fullData.value.length) {
+    let itemData = fullData.value.filter(item => value.includes(item.id));
+    if (itemData) {
+      emit('selected', itemData)
+    }
+  }
 }
 
 const options = ref([]);
@@ -90,6 +99,9 @@ async function getOptions(params = null) {
     const response = await api.get(endpoint)
     if (response.data) {
       options.value = []
+
+      fullData.value = response.data.data;
+
       response.data.data.forEach(row => {
         options.value.push({
           label: `${row.codigo_seccion}-${row.num_parcela} (${row.estatus})`,
@@ -105,6 +117,7 @@ async function getOptions(params = null) {
         if (response2.data) {
           console.log('response2', response2.data);
           response2.data.data.forEach(row => {
+            fullData.value.push(row);
             options.value.push({
               label: `${row.codigo_seccion}-${row.num_parcela} (${row.estatus})`,
               value: row.id,
@@ -114,9 +127,9 @@ async function getOptions(params = null) {
       }
 
       return true
-    }    
+    }
   } catch (error) {
-    return false;    
+    return false;
   }
 }
 
