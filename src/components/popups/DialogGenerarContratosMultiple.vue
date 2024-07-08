@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-xxl">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
     <q-card class="q-pa-md scroll">
       <q-form ref="generarContratosForm" @submit="handleSubmitGenerarContratos" @validation-error="onValidationError">
         <q-card-section>
@@ -293,6 +293,11 @@ const agregarTipoContrato = (tipo) => {
     generar_recibo: false,
     parcelas: [],
     cliente: {},
+    numero_cuotas: 1,
+    valor_cuota_inicial: 0,
+    valor_cuota_mensual: 0,
+    num_contrato: null,
+    comprador_id: clienteId.value,
     tipo_parcela: tipo.tipo_parcela,
     fecha_emision: currentDate.toISOString().substr(0, 10),
     fecha_vencimiento: tipo.tipo_actividad == 'mantenimiento_parcelas' ? nextYearDate.toISOString().substr(0, 10) : currentDate.toISOString().substr(0, 10),
@@ -532,7 +537,9 @@ const handleSubmitGenerarContratos = () => {
 
   let postData = JSON.parse(JSON.stringify(Object.values(contratosData.value)))
 
-  let numContrato = postData[0] && postData[0].numContrato
+  console.log('post', postData)
+
+  let numContrato = postData[0] && postData[0].num_contrato
 
   postData.forEach( (contrato, key) => {
 

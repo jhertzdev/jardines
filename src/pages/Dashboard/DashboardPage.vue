@@ -1,5 +1,5 @@
 <template>
-  <div class="row q-col-gutter-md">
+  <div class="row q-col-gutter-md" style="display:none">
     <div class="col-sm-4 col-12">
       <q-card class="my-card q-mb-md" v-for="option in dashboardOptions">
         <q-card-section class="bg-primary text-white">
@@ -132,6 +132,25 @@
 .q-table .btn-link {
   margin: 2px 3px;
 }
+
+body:not(.q-body--prevent-scroll) .page-dashboard .card-busqueda {
+  height: calc(100vh - 90px) !important;
+  box-shadow: none !important;
+}
+
+body:not(.q-body--prevent-scroll) .page-dashboard .card-busqueda-row {
+  flex-flow: column !important;
+}
+
+body:not(.q-body--prevent-scroll) .page-dashboard .card-busqueda-row .results-wrapper {
+  width: 100%;
+  padding: 10px 15px;
+  height: 90%;
+}
+
+body:not(.q-body--prevent-scroll) .page-dashboard .card-busqueda-close {
+  display: none !important
+}
 </style>
 
 <script setup>
@@ -144,8 +163,6 @@ import { qNotify } from 'src/boot/jardines';
 import BtnLink from "components/BtnLink.vue"
 
 const $q = useQuasar()
-
-const showDialogBusqueda = ref(true)
 
 const isLoading = ref(true)
 
@@ -185,6 +202,8 @@ const dashboardOptions = ref([
 
 const searchResults = ref({});
 
+const emit = defineEmits(['toggleBusqueda'])
+
 onMounted(() => {
   api.get('pages/dashboard')
     .then(response => {
@@ -199,9 +218,14 @@ onMounted(() => {
     })
     .catch(error => qNotify(error, 'error'))
     .finally(() => isLoading.value = false)
+
+  emit('toggleBusqueda', true)
 })
 
 
 const router = useRouter()
+
+
+
 
 </script>

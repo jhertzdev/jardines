@@ -156,33 +156,69 @@
           <div class="text-h6">Nuevo recibo {{ siguienteNumeroRecibo }} </div>
         </q-card-section>
         <q-card-section>
-
           <div class="row q-col-gutter-md q-mb-md">
+
+
             <div class="col-md-4">
-              <QSelectCliente dense outlined v-model="reciboData.cliente_id" clearable required
-                rule="Este campo es requerido." :filters="{ difunto: 0 }" label="Cliente relacionado" />
-              <div class="text-right text-caption text-grey-6">
-                <template v-if="parseInt(reciboData.cliente_id)">
-                  <q-btn id="btnEditInvoiceClient" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
-                    color="primary" @click="(e) =>
-                      agregarClienteDialog.openDialog(reciboData.cliente_id, e)" />
-                </template>
-                <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
-                  color="primary" @click="agregarClienteDialog.openDialog()" />
+              <div class="row q-col-gutter-md">
+                <div class="col-6 col-sm-auto flex items-center">
+                  <div class="text-weight-bold text-center">Cliente</div>
+                </div>
+                <div class="col-6 col-sm">
+                  <QSelectCliente dense outlined v-model="reciboData.cliente_id" clearable required
+                    rule="Este campo es requerido." :filters="{ difunto: 0 }" />
+                </div>
+                <div class="col-12 text-right text-caption text-grey-6" style="margin-top: -10px">
+                  <template v-if="parseInt(reciboData.cliente_id)">
+                    <q-btn id="btnEditInvoiceClient" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
+                      color="primary" @click="(e) =>
+                        agregarClienteDialog.openDialog(reciboData.cliente_id, e)" />
+                  </template>
+                  <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
+                    color="primary" @click="agregarClienteDialog.openDialog()" />
+                </div>
               </div>
             </div>
             <div class="col-md-4">
-              <q-input dense outlined :model-value="appStore.cajaSeleccionada.razon_social || '-'" label="Razón social" readonly/>
+              <div class="row q-col-gutter-md">
+                <div class="col-6 col-sm-auto flex items-center" style="min-height: 56px;">
+                  <div class="text-weight-bold text-center" style="width: 120px">Razón social</div>
+                </div>
+                <div class="col-6 col-sm flex items-center">
+                  {{  appStore.cajaSeleccionada.razon_social || '-'  }}
+                </div>
+              </div>
             </div>
             <div class="col-md-4">
-              <QSelectMoneda dense outlined v-model="reciboData.moneda_id" required
-                rule="Este campo es requerido." label="Moneda" />
+              <div class="row q-col-gutter-md">
+                <div class="col-6 col-sm-auto flex items-center">
+                  <div class="text-weight-bold">Moneda</div>
+                </div>
+                <div class="col-6 col-sm">
+                  <QSelectMoneda dense outlined v-model="reciboData.moneda_id" required
+                    rule="Este campo es requerido." />
+                </div>
+              </div>
             </div>
-            <div class="col-md-4">
-              <q-input type="number" dense outlined v-model="reciboData.num_transaccion"
-                :class="reciboData.autogenerar_numero && 'bg-grey-3'" :disable="reciboData.autogenerar_numero"
-                lazy-rules :rules="[val => val && val.length > 0 || '']" label="Número de recibo" />
-                <div class="text-right">
+
+
+
+
+
+
+
+
+            <div class="col-12 col-md-5">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 120px"># de recibo</div>
+                </div>
+                <div class="col-12 col-md">
+                  <q-input type="number" dense outlined v-model="reciboData.num_transaccion"
+                    :class="reciboData.autogenerar_numero && 'bg-grey-3'" :disable="reciboData.autogenerar_numero"
+                    lazy-rules :rules="[val => val && val.length > 0 || '']" />
+                </div>
+                <div class="col-md-auto flex items-center">
                   <q-checkbox size="sm" dense v-model="reciboData.autogenerar_numero" label="Autogenerar"
                     style="font-size: 12px" @update:model-value="handleChangeAutogenerarNumero" >
                     <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
@@ -191,25 +227,87 @@
                     </q-tooltip>
                   </q-checkbox>
                 </div>
+              </div>
             </div>
-            <div class="col-md-4">
-              <template v-if="['venta_propiedad', 'mantenimiento_propiedad'].includes(reciboData.tipo_factura)">
-                <q-input dense outlined v-model="reciboData.contrato_num"
-                  :class="reciboData.tipo_factura == 'venta_propiedad' && 'bg-grey-3'" lazy-rules
-                  :rules="[val => val && val.length > 0 || '']">
-                  <template v-slot:prepend>
-                    <span style="font-size: 12px;">{{ reciboData.contrato_codigo }}</span>
+            <div class="col-12 col-md-3">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 100px">Núm. contrato</div>
+                </div>
+                <div class="col-12 col-md">
+                  <template v-if="['venta_propiedad', 'mantenimiento_propiedad'].includes(reciboData.tipo_factura)">
+
+                    <q-input dense outlined v-model="reciboData.contrato_num"
+                      :class="reciboData.tipo_factura == 'venta_propiedad' && 'bg-grey-3'" lazy-rules
+                      :rules="[val => val && val.length > 0 || '']">
+                      <template v-slot:prepend>
+                        <span style="font-size: 12px;">{{ reciboData.contrato_codigo }}</span>
+                      </template>
+                    </q-input>
+
                   </template>
-                </q-input>
-              </template>
-              <template v-else>
-                <QSelectContratos :multiple="false" dense outlined v-model="reciboData.contrato_id" clearable label="Número de contrato"
-                  @selected="handleSelectContrato" @clear="handleSelectContrato(null)" :filters="{ vendedor_id: reciboData.empresa_id, comprador_id: reciboData.cliente_id }" :rule="[val => val && val.length > 0 || '']" />
-              </template>
+                  <template v-else>
+                    <QSelectContratos :multiple="false" dense outlined v-model="reciboData.contrato_id" clearable @selected="handleSelectContrato" @clear="handleSelectContrato(null)" :filters="{ vendedor_id: reciboData.empresa_id}" :rule="[val => val && val.length > 0 || '']" />
+                  </template>
+                </div>
+              </div>
             </div>
-            <div class="col-md-4">
-              <q-input type="date" dense outlined v-model="reciboData.fecha_emision" label="Fecha de emisión"
-                @change="reciboData.fecha_vencimiento = reciboData.fecha_emision" />
+            <div class="col-12 col-md-4">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 100px">Descuento</div>
+                </div>
+                <div class="col-12 col-md">
+                  <q-input type="number" dense outlined v-model="reciboData.descuento_total" />
+                </div>
+                <div class="col-md-auto flex items-center">
+                  <q-btn-toggle v-model="reciboData.tipo_descuento" toggle-color="primary" :options="[
+                    { label: '%', value: 'perc' },
+                    { label: 'Neto', value: 'neto' },
+                  ]" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 120px">Fecha de emisión</div>
+                </div>
+                <div class="col-12 col-md">
+                  <q-input type="date" dense outlined v-model="reciboData.fecha_emision"
+                    @change="reciboData.fecha_vencimiento = reciboData.fecha_emision" />
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <!--<div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 120px">Fecha vencimiento</div>
+                </div>
+                <div class="col-12 col-md">
+                  <q-input type="date" dense outlined v-model="reciboData.fecha_vencimiento" />
+                </div>
+              </div>
+              -->
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-md-auto flex items-center">
+                  <div class="text-weight-bold" style="width: 120px">Impuesto</div>
+                </div>
+                <div class="col-12 col-md">
+                  <q-input type="number" dense outlined v-model="reciboData.impuesto_total" />
+                </div>
+                <div class="col-md-auto flex items-center">
+                  <q-btn-toggle v-model="reciboData.tipo_impuesto" toggle-color="primary" :options="[
+                    { label: '%', value: 'perc' },
+                  ]" />
+                </div>
+              </div>
             </div>
           </div>
         </q-card-section>
@@ -316,7 +414,7 @@
                 <template v-else>
                   <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" min="0" @update:model-value="handleRecalcularLinea(props.row)" />
                 </template>
-                <div class="text-left" style="height: 20px;">
+                <div class="text-right" style="height: 20px;">
                   <template v-if="selectedMoneda">
                     <span class="text-grey-5">{{ selectedMoneda?.simbolo }} {{ $dinero(selectedMoneda?.tasa * props.row[props.col.name]) }}</span>
                   </template>
@@ -324,9 +422,9 @@
               </q-td>
             </template>
             <template v-slot:body-cell-total="props">
-              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" class="text-right">
+              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
                 {{ $dinero(props.row[props.col.name]) }}
-                <div class="text-right" style="height: 20px; margin-bottom: -10px; margin-top: 5px;">
+                <div class="text-right" style="height: 20px;">
                   <template v-if="selectedMoneda">
                     <span class="text-grey-5">{{ selectedMoneda?.simbolo }} {{ $dinero(selectedMoneda?.tasa * props.row[props.col.name]) }}</span>
                   </template>
@@ -392,19 +490,6 @@
                 </q-td>
               </template>
             </q-table>
-
-            <q-checkbox size="sm" class="q-mt-lg q-mb-sm" dense v-model="reciboData['aplicar_descuentos']" label="Aplicar descuentos" @update:model-value="reciboData.descuento_total = null" />
-
-            <div class="flex items-center" v-if="reciboData.aplicar_descuentos">
-              <q-input type="number" dense size="sm" flat v-model="reciboData.descuento_total"
-                 label="Descuento total" class="q-mr-sm" style="width: 100px"  />
-              <q-btn-toggle v-model="reciboData.tipo_descuento" toggle-color="primary" style="border: 1px solid var(--q-primary)" unelevated :options="[
-                { label: '%', value: 'perc' },
-                { label: 'Neto', value: 'neto' },
-              ]" />
-            </div>
-
-
             <q-btn label="Generar recibo" icon="receipt" color="primary" class="q-my-md" @click="openDialogGenerarRecibo"/>
           </div>
 
@@ -996,7 +1081,7 @@
       headerStyle: 'width: 100px',
       style: 'width: 100px',
     },
-    /*{
+    {
       name: 'impuesto',
       required: true,
       label: 'Impuesto',
@@ -1005,8 +1090,8 @@
       format: value => `${value.toFixed(2)}`,
       headerStyle: 'width: 125px',
       style: 'width: 125px',
-    },*/
-    /*{
+    },
+    {
       name: 'descuento',
       required: true,
       label: 'Descuento',
@@ -1015,7 +1100,7 @@
       format: value => `${value.toFixed(2)}`,
       headerStyle: 'width: 125px',
       style: 'width: 125px',
-    },*/
+    },
   ]
 
   const tableData = ref([
@@ -1289,33 +1374,6 @@
       })
     }
 
-    if (metodosPagoSelected.value?.length) {
-      let error = false;
-
-      metodosPagoSelected.value.forEach(metodo => {
-        console.log(metodo);
-        if (!metodo.cantidad || parseFloat(metodo.cantidad) <= 0) {
-          error = `El pago por "${metodo.metodo}" debe tener una cantidad válida.`;
-          return;
-        }
-
-        if (metodo.tipo_metodo != 'Efectivo' && !metodo.referencia) {
-          error = `El pago por "${metodo.metodo}" debe tener una referencia.`
-          return;
-        }
-
-        if (metodo.referencias_usadas?.length && !metodo.referencia_usada) {
-          error = `Confirma el uso de la referencia por "${metodo.metodo}".`
-          return;
-        }
-      });
-
-      if (error) {
-        qNotify(error, 'error')
-        return;
-      }
-    }
-
     let postData = {
       ...reciboData,
       subtotal: totalsData.value.find(total => total.tipo == 'Subtotal')?.total || null,
@@ -1354,14 +1412,14 @@
       })
     }
 
+    console.log('postData', postData);
+
     api.post('caja/transacciones/crear', postData)
       .then(response => {
-
         qNotify('Recibo creado correctamente', 'positive')
         setTimeout(() => {
           router.push('/caja')
         }, 1000)
-
       })
       .catch(error => {
         qNotify(error, 'error')
@@ -1500,7 +1558,7 @@
     cliente_id: null,
     contrato_id: null,
     autogenerar_numero: true,
-    tipo_descuento: 'neto',
+    tipo_descuento: 'perc',
     tipo_impuesto: 'perc',
     tipo_ubicacion: null,
     fecha_emision: new Date().toISOString().substr(0, 10),

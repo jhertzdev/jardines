@@ -1,6 +1,6 @@
 <template>
   <!-- Crear cliente -->
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md">
       <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'" class="no-bottoms">
         <q-card-section>
@@ -72,10 +72,10 @@ const data = reactive({
 
 const handleSubmit = () => {
 
-  
+
   isLoadingSubmit.value = true
   let postData = { ...data }
-  
+
   if (data.id) {
     api.put('caja/bancos/' + data.id, postData)
       .then(response => {

@@ -8,14 +8,7 @@
 
 import { api } from 'src/boot/axios';
 import { obtenerValoresFaltantes } from 'src/boot/jardines'
-import { ref, onMounted } from 'vue'
-
-const filterFn = (val, update) => {
-  let params = val ? {q: val} : null
-  getOptions(params).then(() => {
-    update()
-  })
-}
+import { ref, onMounted, watch } from 'vue'
 
 const props = defineProps({
   dense: {
@@ -58,6 +51,38 @@ const props = defineProps({
     type: Array,
     default: []
   }
+})
+
+const selectedId = ref(props.modelValue ? props.modelValue.toString() : null);
+
+const filterFn = (val, update) => {
+  let params = val ? {q: val} : null
+  getOptions(params).then(() => {
+    update()
+  })
+}
+
+watch(() => props.modelValue, async (val) => {
+
+  selectedId.value = val ? val.toString() : null
+
+  let params = val ? {s: val} : null
+  await getOptions(params)
+
+  console.log('updatecontrato', val, options.value);
+
+  // If the modelValue is set and it's not in the options, fetch it
+  if (selectedId.value && !options.value.find(option => option.value === selectedId.value)) {
+    const response = await api.get('contratos/' + selectedId.value)
+    if (response.data) {
+      emit('selected', response.data)
+      options.value.push({
+        label: `${response.data.codigo_contrato}-${response.data.num_contrato}`,
+        value: response.data.id,
+      })
+    }
+  }
+
 })
 
 const emit = defineEmits(['update:modelValue'])

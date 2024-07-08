@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
     <q-table :rows="parcelas" flat :columns="parcelasColumnas" row-key="id" :class="!$q.screen.lt.md && 'text-wrap'"
       ref="parcelasTableRef" v-model:pagination="parcelasTablePagination" :loading="parcelasTableLoading"
       :filter="parcelasTableFilter" @request="parcelasTableRequest" selection="multiple"
@@ -81,8 +81,8 @@
             return parcela.id
           }) || []
           contratoData.value.autocalcular_total = false
-  
-  
+
+
         }
       })
       .finally(() => isLoadingContrato.value = false)*/

@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="showModalAgregarPago" class="j-dialog j-dialog-xl">
+  <q-dialog allow-focus-outside v-model="showModalAgregarPago" class="j-dialog j-dialog-xl">
     <q-card>
       <q-card-section class="q-pa-none">
         <div class="row">

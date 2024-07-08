@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHh Lpr lFf" :class="{ 'page-dashboard': $route.path == '/' }">
     <q-header elevated>
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
@@ -8,7 +8,7 @@
           {{ route.meta.viewName || 'Jardines Santa Ana' }}
         </q-toolbar-title>
 
-        <q-btn flat dense round icon="search" aria-label="Buscar" @click="showSectionBusqueda = !showSectionBusqueda" />
+        <q-btn flat dense round icon="search" aria-label="Buscar" @click="searchBar.toggleOpen()" />
       </q-toolbar>
     </q-header>
 
@@ -43,7 +43,7 @@
     </q-drawer>
 
     <q-page-container>
-      <SearchBar v-if="showSectionBusqueda" @close="showSectionBusqueda = false" />
+      <SearchBar ref="searchBar" />
       <q-page class="q-pa-lg">
         <q-breadcrumbs class="q-mb-lg">
           <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer" v-if="router.options.history.state.back !== '/auth/login'"/>
@@ -217,6 +217,10 @@
   padding-top: 230px !important;
 }
 
+.section-busqueda-open .q-layout.layout-auth .q-page-container {
+  padding-top: inherit !important;
+}
+
 .q-body--prevent-scroll .card-busqueda {
   top: 25px;
 }
@@ -321,6 +325,8 @@ import SearchBar from 'src/components/SearchBar.vue';
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const searchBar = ref(null)
 
 const showSectionBusqueda = ref(false)
 const busqueda = ref('')
@@ -432,12 +438,12 @@ onMounted(() => {
   }
 })
 
-watch(showSectionBusqueda, () => {
+/*watch(showSectionBusqueda, () => {
   if (showSectionBusqueda.value) {
     document.body.classList.add('section-busqueda-open');
   } else {
     document.body.classList.remove('section-busqueda-open');
   }
-});
+});*/
 
 </script>

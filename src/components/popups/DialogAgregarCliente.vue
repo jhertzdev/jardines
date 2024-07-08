@@ -262,7 +262,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="dialogAgregarRelacion" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogAgregarRelacion" class="j-dialog">
     <q-card class="q-pa-md">
       <q-form @submit="handleAgregarRelacion" :class="isLoadingSubmitRelacion && 'form-disabled'">
         <q-card-section>

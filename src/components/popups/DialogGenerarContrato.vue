@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-xxl">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
     <q-card class="q-pa-md scroll">
       <q-form ref="generarContratosForm" @submit="handleSubmitGenerarContratos" @validation-error="onValidationError">
         <q-card-section>

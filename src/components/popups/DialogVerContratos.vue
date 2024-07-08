@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-xl">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
 
     <q-card class="q-pa-md scroll">
       <q-card-section>
@@ -25,7 +25,7 @@
 
         </q-card-section>
         <q-card-section class="q-px-none">
-          <q-table flat :rows="contratos" :columns="columnas" v-model:pagination="tablePagination" hide-bottom row-key="name">
+          <q-table dense flat :rows="contratos" :columns="columnas" v-model:pagination="tablePagination" hide-bottom row-key="name">
             <template v-slot:body-cell-actions="props">
               <q-td :props="props" class="q-gutter-xs">
 
@@ -36,6 +36,12 @@
                         <q-icon color="black" name="edit" />
                       </q-item-section>
                       <q-item-section>Editar</q-item-section>
+                    </q-item>
+                    <q-item clickable @click="handleCrearRecibo( { contrato_id: props.row.id, tipo_actividad: props.row.tipo_actividad, cliente_id: props.row.comprador_id } )" v-close-popup>
+                      <q-item-section side>
+                        <q-icon color="black" name="receipt" />
+                      </q-item-section>
+                      <q-item-section>Crear recibo</q-item-section>
                     </q-item>
                     <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup>
                       <q-item-section side>
@@ -99,14 +105,14 @@
 
   </q-dialog>
 
-  <DialogEditarContrato ref="editarContratoDialog" @updated="handleEditarContrato"></DialogEditarContrato>
-  <DialogRenovarContrato ref="renovarContratoDialog" @done="handleEditarContrato"></DialogRenovarContrato>
-  <DialogEditarParcela ref="editarParcelaDialog" @done="handleEditarParcela" @updated="handleEditarParcela"></DialogEditarParcela>
-  <DialogGenerarContrato ref="generarContratoDialog" @created="handleEditarContrato"></DialogGenerarContrato>
-  <DialogEditarParcela ref="editarParcelaDialog" @done="handleEditarParcela"></DialogEditarParcela>
-  <DialogAgregarCliente ref="verClienteDialog" />
+  <DialogEditarContrato ref="editarContratoDialog"></DialogEditarContrato>
+  <DialogRenovarContrato ref="renovarContratoDialog"></DialogRenovarContrato>
+  <DialogEditarParcela ref="editarParcelaDialog"></DialogEditarParcela>
+  <DialogGenerarContrato ref="generarContratoDialog"></DialogGenerarContrato>
+  <DialogEditarParcela ref="editarParcelaDialog"></DialogEditarParcela>
+  <DialogAgregarCliente ref="verClienteDialog"/>
 
-  <q-dialog v-model="eliminarContratoDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="eliminarContratoDialog" class="j-dialog">
     <q-card class="q-pa-md text-center">
       <q-card-section>
         <div class="text-h6">Eliminar contrato</div>
@@ -134,6 +140,7 @@ import { ref, onMounted } from 'vue';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { format } from 'date-fns';
+import { useRouter } from 'vue-router';
 
 import DialogEditarContrato from "src/components/popups/DialogEditarContrato.vue";
 import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
@@ -141,19 +148,25 @@ import DialogGenerarContrato from "src/components/popups/DialogGenerarContrato.v
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
 
+import { useAppStore } from "src/stores/app.store";
+
 const $q = useQuasar()
 const dialog = ref(false)
 const isLoading = ref(false)
 
+const appStore = useAppStore();
+
 const contratos = ref([])
+const router = useRouter()
 
 const editarContratoDialog = ref(null)
 const renovarContratoDialog = ref(null)
 const generarContratoDialog = ref(null)
-const verClienteDialog = ref(null);
+const verClienteDialog = ref(null)
 const editarParcelaDialog = ref(null)
 
 const columnas = [
+  { name: 'actions', label: '', field: 'actions' },
   { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'codnum_contrato', sortable: true },
   { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
   { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
@@ -161,12 +174,43 @@ const columnas = [
   { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
   { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
-  { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 
 const handleEditarContrato = (data) => {
   getData();
   emit('updated', data)
+}
+
+const handleCrearRecibo = (data) => {
+
+  console.log(data);
+
+  if (data.contrato_id && data.tipo_actividad) {
+
+    api.get('caja/cajas')
+      .then(response => {
+        if (response.data) {
+          let caja = response.data.find(c => c.tipo_actividad == data.tipo_actividad)
+
+          if (!caja) {
+            qNotify('No se pudo encontrar la caja asociada al contrato.', 'error')
+            return
+          }
+
+          if (!caja.esta_abierta) {
+            qNotify(`La caja "${caja.nombre_caja}" está cerrada.`, 'error')
+            return
+          }
+
+          appStore.seleccionarCaja(caja)
+          router.push({ path: '/caja/recibos/nuevo', query: { contrato_id: data.contrato_id, cliente_id: data.cliente_id } })
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleCrearRecibo(data) }))
+
+
+
+  }
 }
 
 // Eliminar contrato

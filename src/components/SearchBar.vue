@@ -1,244 +1,294 @@
 <template>
-  <q-card bordered class="q-mb-lg card-busqueda">
-    <q-card-section class="q-pa-xs" style="height:100%">
-      <!-- Close button -->
-      <q-btn dense unelevated color="primary" icon="close" class="q-mr-sm" @click="$emit('close')" style="position: absolute; top: 0; right: -8px; font-size: 0.5rem; z-index: 1;" />
-      <div class="row" style="height:100%">
-        <div class="flex column justify-center col-12 col-md-4 q-px-md">
+  <template v-if="showBusqueda">
+    <q-card bordered class="q-mb-lg card-busqueda">
+      <q-card-section class="q-pa-xs" style="height:100%">
+        <!-- Close button -->
+        <q-btn dense unelevated color="primary" icon="close" class="q-mr-sm card-busqueda-close" @click="toggleOpen()" style="position: absolute; top: 0; right: -8px; font-size: 0.5rem; z-index: 1;" />
+        <div class="row card-busqueda-row" style="height:100%">
+          <div class="flex column justify-center col-12 col-md-4 q-px-md">
 
-          <q-input dense v-model="busqueda" placeholder="Buscar..." @keyup.enter="ejecutarBusqueda" :disable="isLoading">
-            <template v-slot:append>
-              <q-btn dense flat icon="filter_alt" color="primary" @click="showBusquedaAvanzada = true" />
-              <q-btn dense unelevated icon="search" color="primary" @click="ejecutarBusqueda" :loading="isLoading" />
-            </template>
-          </q-input>
-          <span class="text-caption text-grey-6 q-mt-xs" v-if="hintFiltrosAplicados.length">
-            <q-btn dense round unelevated icon="close" color="red" @click="removerFiltrosAvanzados" style="font-size: 0.5rem" />
-            {{ hintFiltrosAplicados }}
-          </span>
+            <q-input dense v-model="busqueda" placeholder="Buscar..." @keyup.enter="ejecutarBusqueda" :disable="isLoading">
+              <template v-slot:append>
+                <q-btn dense flat icon="filter_alt" color="primary" @click="showBusquedaAvanzada = true" />
+                <q-btn dense unelevated icon="search" color="primary" @click="ejecutarBusqueda" :loading="isLoading" />
+              </template>
+            </q-input>
+            <span class="text-caption text-grey-6 q-mt-xs" v-if="hintFiltrosAplicados.length">
+              <q-btn dense round unelevated icon="close" color="red" @click="removerFiltrosAvanzados" style="font-size: 0.5rem" />
+              {{ hintFiltrosAplicados }}
+            </span>
 
-          <!-- Agregar grupo de checkboxes -->
-          <q-option-group
-            class="q-mt-xs"
-            v-model="filtrosBusqueda"
-            :options="filtrosBusquedaOptions"
-            type="checkbox"
-            inline
-            dense
-          />
-        </div>
-        <div class="col-12 col-md-8 results-wrapper">
-
-          <!-- Muted -->
-          <div class="flex justify-center items-center" style="height:100%" v-if="!filtrosBusqueda.length">
-            <span class="text-grey-5">No hay resultados para mostrar.</span>
+            <!-- Agregar grupo de checkboxes -->
+            <q-option-group
+              class="q-mt-xs"
+              v-model="filtrosBusqueda"
+              :options="filtrosBusquedaOptions"
+              type="checkbox"
+              inline
+              dense
+            />
           </div>
-          <template v-else>
-            <template v-if="filtrosBusqueda.includes('clientes')">
-              <div class="text-body text-weight-bold text-primary">Clientes</div>
-              <template v-if="resultados?.clientes?.length">
-                <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
-                  <thead>
-                    <tr>
-                      <th>Nombre completo</th>
-                      <th>Núm. identidad</th>
-                      <th>Estatus / Cuenta</th>
-                      <th>Ubicaciones</th>
-                      <th>Contratos</th>
-                      <th>Notas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="row in resultados.clientes" :key="row.id">
-                      <td>{{ row.nombre }} {{ row.apellido }}</td>
-                      <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
-                      <td>
-                        <q-badge class="q-px-xs q-mr-xs" v-if="row.estado_cliente">
-                          {{ row.estado_cliente }}
-                        </q-badge>
-                        <q-badge class="q-px-xs" v-if="row.estado_cuenta">
-                          {{ row.estado_cuenta }}
-                        </q-badge>
-                      </td>
-                      <td>
-                        <q-badge v-for="ubicacion in row.ubicaciones || []">
-                          {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
-                        </q-badge>
-                      </td>
-                      <td>
-                        <template v-for="contrato in row.contratos || []">
-                          <div class="badge-contrato">
-                            <span>
-                              {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
-                              <template v-if="contrato.num_serie">
-                                <span>
-                                  -{{ contrato.num_serie }}
-                                </span>
-                              </template>
-                            </span>
-                            <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
-                          </div>
-                        </template>
-                      </td>
-                      <td style="font-size:.7rem; letter-spacing: -0.2px;">
-                        {{ row.notas }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </q-markup-table>
-              </template>
-              <template v-else>
-                <div class="text-grey-5 text-caption">No hay clientes que mostrar.</div>
-              </template>
-            </template>
-            <template v-if="filtrosBusqueda.includes('fallecidos')">
-              <div class="text-body text-weight-bold text-primary">Fallecidos</div>
-              <template v-if="resultados?.fallecidos?.length">
-                <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
-                  <thead>
-                    <tr>
-                      <th>Nombre completo</th>
-                      <th>Núm. ident.</th>
-                      <th>Ubicación</th>
-                      <th>Contratos</th>
-                      <th>Ubicaciones</th>
-                      <th>Notas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="row in resultados.fallecidos" :key="row.id">
-                      <td>{{ row.nombre }} {{ row.apellido }}</td>
-                      <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
-                      <td>
-                        <template v-if="row.puesto_id">
-                          {{ row.codigo_seccion }}-{{ row.num_parcela }} ({{ row.puesto_nombre }})
-                        </template>
-                        <template v-else>
-                          -
-                        </template>
-                      </td>
-                      <td>
-                        <template v-for="contrato in row.contratos || []">
-                          <div class="badge-contrato">
-                            <span>
-                              {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
-                              <template v-if="contrato.num_serie">
-                                <span>
-                                  -{{ contrato.num_serie }}
-                                </span>
-                              </template>
-                            </span>
-                            <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
-                          </div>
-                        </template>
-                      </td>
-                      <td>
-                        <q-badge v-for="ubicacion in row.ubicaciones || []">
-                          {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
-                        </q-badge>
-                      </td>
-                      <td style="font-size:.7rem; letter-spacing: -0.2px;">
-                        {{ row.notas }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </q-markup-table>
-              </template>
-              <template v-else>
-                <div class="text-grey-5 text-caption">No hay fallecidos que mostrar.</div>
-              </template>
-            </template>
-            <div class="row q-col-gutter-sm">
-              <div class="col-md-6" v-if="filtrosBusqueda.includes('contratos')">
-                <div class="text-body text-weight-bold text-primary">Contratos</div>
-                <template v-if="resultados?.contratos?.length">
-                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
-                    <thead>
-                      <tr>
-                        <th>Núm. contrato</th>
-                        <th>Propietario</th>
-                        <th>Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="contrato in resultados.contratos" :key="contrato.id">
-                        <td>{{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</td>
-                        <td>
-                          <template v-if="contrato.comprador_id">
-                            {{ contrato.nombre_completo }} {{  contrato.documento_ident }}
-                          </template>
-                          <template v-else>
-                            -
-                          </template>
-                        </td>
-                        <td>{{ contrato.estatus }}</td>
-                      </tr>
-                    </tbody>
-                  </q-markup-table>
-                </template>
-                <template v-else>
-                  <div class="text-grey-5 text-caption">No hay contratos que mostrar.</div>
-                </template>
-              </div>
-              <div class="col-md-6" v-if="filtrosBusqueda.includes('ubicaciones')">
-                <div class="text-body text-weight-bold text-primary">Ubicaciones</div>
-                <template v-if="resultados?.ubicaciones?.length">
-                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
-                    <thead>
-                      <tr>
-                        <th>Ubicación</th>
-                        <th>Propietario</th>
-                        <th>Estatus</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="ubicacion in resultados.ubicaciones" :key="ubicacion.id">
-                        <td>{{ ubicacion.codigo_seccion }}-{{ ubicacion.num_parcela }}</td>
-                        <td>
-                          <template v-if="ubicacion.propietario_id">
-                            {{ ubicacion.nombre_completo }} ({{  ubicacion.documento_ident }})
-                          </template>
-                          <template v-else>
-                            -
-                          </template>
-                        </td>
-                        <td>{{ ubicacion.estatus }}</td>
-                      </tr>
-                    </tbody>
-                  </q-markup-table>
-                </template>
-                <template v-else>
-                  <div class="text-grey-5 text-caption">No hay ubicaciones que mostrar.</div>
-                </template>
-              </div>
+          <div class="col-12 col-md-8 results-wrapper">
+
+            <!-- Muted -->
+            <div class="flex justify-center items-center" style="height:100%" v-if="!filtrosBusqueda.length">
+              <span class="text-grey-5">No hay resultados para mostrar.</span>
             </div>
-          </template>
-        </div>
-      </div>
-    </q-card-section>
-  </q-card>
-  <q-dialog v-model="showBusquedaAvanzada" class="j-dialog j-dialog-lg">
-    <q-card class="q-pa-md">
-      <q-card-section class="q-py-none text-center">
-        <div class="text-h6">Búsqueda avanzada</div>
-      </q-card-section>
-      <q-card-section>
-        <div class="row q-col-gutter-md">
-          <div class="col-12 col-md-6">
-            <q-input v-model="fechaCreadoDesde" type="date" label="Fecha desde" clearable />
-          </div>
-          <div class="col-12 col-md-6">
-            <q-input v-model="fechaCreadoHasta" type="date" label="Fecha hasta" clearable />
-          </div>
-          <div class="col-12 q-gutter-xs text-center">
-            <q-btn dense unelevated label="Hoy" color="primary" @click="setFechasCreado('HOY')" class="q-px-sm"/>
-            <q-btn dense unelevated label="Últ. 7 días" color="primary" @click="setFechasCreado('7D')" class="q-px-sm"/>
-            <q-btn dense unelevated label="Últ. 30 días" color="primary" @click="setFechasCreado('30D')" class="q-px-sm"/>
+            <template v-else>
+              <template v-if="filtrosBusqueda.includes('clientes')">
+                <div class="text-body text-weight-bold text-primary">Clientes</div>
+                <template v-if="resultados?.clientes?.length">
+                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                    <thead>
+                      <tr>
+                        <th>Nombre completo</th>
+                        <th>Núm. identidad</th>
+                        <th>Estatus / Cuenta</th>
+                        <th>Ubicaciones</th>
+                        <th>Contratos</th>
+                        <th>Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="row in resultados.clientes" :key="row.id">
+                        <td><a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(row.id)" class="text-dark">{{ row.nombre }} {{ row.apellido }}</a></td>
+                        <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
+                        <td>
+                          <q-badge class="q-px-xs q-mr-xs" v-if="row.estado_cliente">
+                            {{ row.estado_cliente }}
+                          </q-badge>
+                          <q-badge class="q-px-xs" v-if="row.estado_cuenta">
+                            {{ row.estado_cuenta }}
+                          </q-badge>
+                        </td>
+                        <td>
+                          <q-badge v-for="ubicacion in row.ubicaciones || []">
+                            <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(ubicacion.id)" class="text-white">
+                              {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                            </a>
+                          </q-badge>
+                        </td>
+                        <td>
+                          <template v-for="contrato in row.contratos || []">
+                            <div class="badge-contrato">
+                              <span>
+                                <a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-white">
+                                  {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                                  <template v-if="contrato.num_serie">
+                                    <span>
+                                      -{{ contrato.num_serie }}
+                                    </span>
+                                  </template>
+                                </a>
+                              </span>
+                              <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
+                            </div>
+                          </template>
+                        </td>
+                        <td style="font-size:.7rem; letter-spacing: -0.2px;">
+                          {{ row.notas }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </q-markup-table>
+                </template>
+                <template v-else>
+                  <div class="text-grey-5 text-caption">No hay clientes que mostrar.</div>
+                </template>
+              </template>
+              <template v-if="filtrosBusqueda.includes('fallecidos')">
+                <div class="text-body text-weight-bold text-primary">Fallecidos</div>
+                <template v-if="resultados?.fallecidos?.length">
+                  <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                    <thead>
+                      <tr>
+                        <th>Nombre completo</th>
+                        <th>Núm. ident.</th>
+                        <th>Ubicación</th>
+                        <th>Titular</th>
+                        <th>Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="row in resultados.fallecidos" :key="row.id">
+                        <td><a href="javascript:void(0)" @click="agregarDifuntoDialog.openDialog(row.id)" class="text-dark">{{ row.nombre }} {{ row.apellido }}</a></td>
+                        <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
+
+
+                        <td class="text-center">
+                          <template v-if="row.ubicacion">
+                            <div class="badge-contrato" v-for="ub in row.ubicacion">
+                              <span>
+                                <a href="javascript:void(0)" @click="verContratosDialog.openDialog(ub.num_contrato, ub.tipo_parcela)" class="text-white">
+                                  {{ ub.num_contrato }}
+                                  <template v-if="ub.num_serie">
+                                    <span>
+                                      -{{ ub.num_serie }}
+                                    </span>
+                                  </template>
+                                </a>
+                              </span>
+                              <span> {{ ub.ubicacion }}</span>
+                            </div>
+                          </template>
+                          <template v-else-if="row.puesto_id">
+                            {{ row.codigo_seccion }}-{{ row.num_parcela }} ({{ row.puesto_nombre }})
+                          </template>
+                          <template v-else>
+                            -
+                          </template>
+                        </td>
+
+                        <td class="text-center">
+                          <template v-if="row.ubicacion?.length">
+                            <a href="javascript:void(0)" class="text-dark" @click="agregarClienteDialog.openDialog(row.ubicacion[0].propietario_id)">{{ row.ubicacion[0].propietario_nombre }}</a> <br />
+                            ({{ row.ubicacion[0].propietario_identidad }})
+                            <q-badge class="q-px-xs q-mr-xs" v-if="row.ubicacion[0].estado_cliente">
+                              {{ row.ubicacion[0].estado_cliente }}
+                            </q-badge>
+                            <q-badge class="q-px-xs" v-if="row.ubicacion[0].estado_cuenta">
+                              {{ row.ubicacion[0].estado_cuenta }}
+                            </q-badge>
+                          </template>
+                        </td>
+
+
+                        <!--<td>
+                          <template v-for="contrato in row.contratos || []">
+                            <div class="badge-contrato">
+                              <span>
+                                {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                                <template v-if="contrato.num_serie">
+                                  <span>
+                                    -{{ contrato.num_serie }}
+                                  </span>
+                                </template>
+                              </span>
+                              <span> {{ contrato.posiciones.map(posicion => posicion.codigo_seccion + posicion.num_parcela).join(', ') }}</span>
+                            </div>
+                          </template>
+                        </td>
+                        <td>
+                          <q-badge v-for="ubicacion in row.ubicaciones || []">
+                            {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                          </q-badge>
+                        </td>-->
+                        <td style="font-size:.7rem; letter-spacing: -0.2px;">
+                          <template v-if="row.ubicacion?.length && row.ubicacion[0].propietario_notas">
+                            <div class="q-mb-xs"><span class="text-italic">Nota del cliente:</span> {{ row.ubicacion[0].propietario_notas }}</div>
+                          </template>
+                          <template v-if="row.notas">
+                            <div class="q-mb-xs"><span class="text-italic">Nota del difunto:</span> {{ row.notas }}</div>
+                          </template>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </q-markup-table>
+                </template>
+                <template v-else>
+                  <div class="text-grey-5 text-caption">No hay fallecidos que mostrar.</div>
+                </template>
+              </template>
+              <div class="row q-col-gutter-sm">
+                <div class="col-md-6" v-if="filtrosBusqueda.includes('contratos')">
+                  <div class="text-body text-weight-bold text-primary">Contratos</div>
+                  <template v-if="resultados?.contratos?.length">
+                    <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                      <thead>
+                        <tr>
+                          <th>Núm. contrato</th>
+                          <th>Propietario</th>
+                          <th>Estatus</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="contrato in resultados.contratos" :key="contrato.id">
+                          <td><a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-dark">
+                            {{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</a></td>
+                          <td>
+                            <template v-if="contrato.comprador_id">
+                              <a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(contrato.comprador_id)" class="text-dark">{{ contrato.nombre_completo }} ({{  contrato.documento_ident }})</a>
+
+                            </template>
+                            <template v-else>
+                              -
+                            </template>
+                          </td>
+                          <td>{{ contrato.estatus }}</td>
+                        </tr>
+                      </tbody>
+                    </q-markup-table>
+                  </template>
+                  <template v-else>
+                    <div class="text-grey-5 text-caption">No hay contratos que mostrar.</div>
+                  </template>
+                </div>
+                <div class="col-md-6" v-if="filtrosBusqueda.includes('ubicaciones')">
+                  <div class="text-body text-weight-bold text-primary">Ubicaciones</div>
+                  <template v-if="resultados?.ubicaciones?.length">
+                    <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                      <thead>
+                        <tr>
+                          <th>Ubicación</th>
+                          <th>Propietario</th>
+                          <th>Estatus</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="ubicacion in resultados.ubicaciones" :key="ubicacion.id">
+                          <td>{{ ubicacion.codigo_seccion }}-{{ ubicacion.num_parcela }}</td>
+                          <td>
+                            <template v-if="ubicacion.propietario_id">
+                              {{ ubicacion.nombre_completo }} ({{  ubicacion.documento_ident }})
+                            </template>
+                            <template v-else>
+                              -
+                            </template>
+                          </td>
+                          <td>{{ ubicacion.estatus }}</td>
+                        </tr>
+                      </tbody>
+                    </q-markup-table>
+                  </template>
+                  <template v-else>
+                    <div class="text-grey-5 text-caption">No hay ubicaciones que mostrar.</div>
+                  </template>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </q-card-section>
     </q-card>
-  </q-dialog>
+    <q-dialog v-model="showBusquedaAvanzada" class="j-dialog j-dialog-lg">
+      <q-card class="q-pa-md">
+        <q-card-section class="q-py-none text-center">
+          <div class="text-h6">Búsqueda avanzada</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-6">
+              <q-input v-model="fechaCreadoDesde" type="date" label="Fecha desde" clearable />
+            </div>
+            <div class="col-12 col-md-6">
+              <q-input v-model="fechaCreadoHasta" type="date" label="Fecha hasta" clearable />
+            </div>
+            <div class="col-12 q-gutter-xs text-center">
+              <q-btn dense unelevated label="Hoy" color="primary" @click="setFechasCreado('HOY')" class="q-px-sm"/>
+              <q-btn dense unelevated label="Últ. 7 días" color="primary" @click="setFechasCreado('7D')" class="q-px-sm"/>
+              <q-btn dense unelevated label="Últ. 30 días" color="primary" @click="setFechasCreado('30D')" class="q-px-sm"/>
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+  </template>
+
+  <DialogAgregarCliente ref="agregarClienteDialog" />
+  <DialogAgregarDifunto ref="agregarDifuntoDialog" :difunto="true" />
+  <DialogVerContratos ref="verContratosDialog" />
+  <DialogEditarParcela ref="editarParcelaDialog" />
+
 </template>
 
 <script setup>
@@ -247,8 +297,35 @@
   import { useRouter } from "vue-router";
   import { api } from "src/boot/axios";
 
+  import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
+  import DialogAgregarDifunto from "src/components/popups/DialogAgregarCliente.vue";
+  import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
+  import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
+
+  const agregarClienteDialog = ref(null)
+  const agregarDifuntoDialog = ref(null)
+  const verContratosDialog = ref(null)
+  const editarParcelaDialog = ref(null)
+
   const appStore = useAppStore();
   const router = useRouter()
+  const showBusqueda = ref(false)
+
+  onMounted(() => {
+    setTimeout(() => {
+      toggleOpen()
+    }, 50)
+  })
+
+  const toggleOpen = () => {
+    showBusqueda.value = !showBusqueda.value
+
+    if (showBusqueda.value) {
+      document.body.classList.add('section-busqueda-open');
+    } else {
+      document.body.classList.remove('section-busqueda-open');
+    }
+  }
 
   const busqueda = ref('')
   const tipoBusqueda = ref('texto')
@@ -345,4 +422,10 @@
       .finally(() => isLoading.value = false)
 
   }
+
+  defineExpose({
+    toggleOpen,
+  })
+
+
 </script>

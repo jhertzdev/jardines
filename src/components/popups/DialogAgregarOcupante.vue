@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Agregar ocupante</div>

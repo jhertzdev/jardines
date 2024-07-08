@@ -1,6 +1,6 @@
 <template>
   <!-- Crear cliente -->
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md">
       <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'">
         <q-card-section>

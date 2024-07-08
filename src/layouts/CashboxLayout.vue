@@ -8,7 +8,7 @@
           {{ route.meta.viewName || 'Jardines Santa Ana' }}
         </q-toolbar-title>
 
-        <q-btn flat dense round icon="search" aria-label="Buscar" @click="showSectionBusqueda = !showSectionBusqueda" />
+        <q-btn flat dense round icon="search" aria-label="Buscar" @click="searchBar.toggleOpen()" />
 
         <div v-if="appStore.cajaSeleccionada?.id" class="flex items-center">
           <div v-for="moneda in appStore.monedas?.filter(moneda => !parseInt(moneda.es_principal))" :key="moneda.id" class="flex items-center text-caption q-mr-sm">
@@ -34,7 +34,6 @@
       </div>
       <q-separator />
       <q-list>
-
         <MenuLink v-for="link in essentialLinks" :key="link.title" v-bind="link" />
         <q-separator />
         <q-item clickable @click="$q.dark.set(false)" v-if="$q.dark.isActive">
@@ -59,7 +58,7 @@
     </q-drawer>
 
     <q-page-container>
-      <SearchBar v-if="showSectionBusqueda" @close="showSectionBusqueda = false" />
+      <SearchBar ref="searchBar" />
       <q-page class="q-pa-lg">
         <q-breadcrumbs class="q-mb-lg">
           <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer" v-if="router.options.history.state.back !== '/auth/login'"/>
@@ -207,6 +206,17 @@
 .card-busqueda .q-markup-table .q-badge,
 .card-busqueda .q-markup-table .badge-contrato {
   font-size: 0.7rem;
+  margin-bottom: 2px;
+  margin-right: 2px;
+}
+
+.card-busqueda .q-markup-table .q-badge:last-child,
+.card-busqueda .q-markup-table .badge-contrato:last-child {
+  margin-right: 0;
+}
+
+.card-busqueda .q-markup-table .q-badge {
+  padding: 2px 3px;
 }
 
 .q-menu {
@@ -220,6 +230,10 @@
 
 .section-busqueda-open .q-page-container {
   padding-top: 230px !important;
+}
+
+.section-busqueda-open .q-layout.layout-auth .q-page-container {
+  padding-top: inherit !important;
 }
 
 .q-body--prevent-scroll .card-busqueda {
@@ -326,6 +340,8 @@ import SearchBar from 'src/components/SearchBar.vue';
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const searchBar = ref(null)
 
 const showSectionBusqueda = ref(false)
 const busqueda = ref('')
@@ -439,12 +455,12 @@ onMounted(() => {
   }
 })
 
-watch(showSectionBusqueda, () => {
+/*watch(showSectionBusqueda, () => {
   if (showSectionBusqueda.value) {
     document.body.classList.add('section-busqueda-open');
   } else {
     document.body.classList.remove('section-busqueda-open');
   }
-});
+});*/
 
 </script>

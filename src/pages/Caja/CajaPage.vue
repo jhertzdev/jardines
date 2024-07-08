@@ -40,8 +40,11 @@
                     <q-btn color="primary" label="Abrir caja" icon="lock_open"
                       @click="showModalAbrirCaja = true; selectedCaja = caja;" />
 
-                    <q-btn color="primary" label="Ver último reporte" icon="description"
-                      @click="handleDescargarReporteIngresos(caja.id)" />
+                    <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')">
+                      <q-btn color="primary" label="Ver último reporte" icon="description"
+                        @click="handleDescargarReporteIngresos(caja.id, authStore.user.role_perms.find((role) => role == 'cajas.*'))" />
+                    </template>
+
                   </template>
                 </q-banner>
               </template>
@@ -75,7 +78,7 @@
             </div>
           </div>
 
-          <q-table :rows="transacciones" :columns="transaccionesColumnas" row-key="name" :class="!$q.screen.lt.md && 'text-wrap'"
+          <q-table dense :rows="transacciones" :columns="transaccionesColumnas" row-key="name" :class="!$q.screen.lt.md && 'text-wrap'"
             ref="transaccionesTableRef" v-model:pagination="transaccionesTablePagination" :loading="transaccionesTableLoading"
             :filter="transaccionesTableFilter" @request="transaccionesTableRequest">
             <template v-slot:top-right>
@@ -86,7 +89,7 @@
               </q-input>
             </template>
             <template v-slot:body-cell-estatus="props">
-              <q-td :props="props">
+              <q-td :props="props" style="padding-right: 0;">
                 <!-- lowercase and replace spaces with hyphens -->
                 <q-badge :class="'badge-status-' + props.row.estatus.toLowerCase().replace(/\s/g, '-')">
                   {{ props.row.estatus }}
@@ -94,7 +97,7 @@
               </q-td>
             </template>
             <template v-slot:body-cell-acciones="props">
-              <q-td :props="props" class="q-gutter-sm">
+              <q-td :props="props" class="q-gutter-x-sm">
                 <q-btn color="primary" size="sm" dense icon="print" @click="handleDownloadPdf(props.row.id)" :disable="props.row.estatus !== 'Pagado'" />
                 <q-btn color="primary" size="sm" dense icon="credit_card" @click="openDialogAgregarPago(props.row.id)" />
               </q-td>
@@ -276,10 +279,13 @@
   import { useRouter } from "vue-router";
   import { $dinero, qNotify } from 'src/boot/jardines';
   import { useAppStore } from "src/stores/app.store";
+  import { useAuthStore } from "src/stores/auth.store";
   import { format } from "date-fns";
 
   const appStore = useAppStore();
   const router = useRouter()
+
+  const authStore = useAuthStore();
 
   const tipoTransaccion = ref('Pendiente')
 
@@ -409,7 +415,7 @@
         if (response.data) {
           selectedCaja.value.esta_abierta = false
           qNotify('Caja cerrada correctamente', 'positive')
-          handleDescargarReporteIngresos(postData.caja_id)
+          handleDescargarReporteIngresos(postData.caja_id, true)
           appStore.seleccionarCaja({})
         }
       })
@@ -420,8 +426,14 @@
       })
   }
 
-  const handleDescargarReporteIngresos = (caja_id) => {
-    api.get(`caja/reportes/ingresos?caja_id=${caja_id}&tipo=ultimo&print=1`, { responseType: "blob" })
+  const handleDescargarReporteIngresos = (caja_id, porUsuario = false) => {
+
+    let endpoint = `caja/reportes/ingresos?caja_id=${caja_id}&tipo=ultimo&print=1`
+    if (porUsuario) {
+      endpoint += '&por_usuario=1'
+    }
+
+    api.get(endpoint, { responseType: "blob" })
     .then((response) => {
       console.log(response);
       window.open(URL.createObjectURL(response.data));
@@ -452,6 +464,7 @@
   /* TRANSACCIONES */
   const transaccionesColumnas = [
     { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
+    { name: 'acciones', label: '', align: 'left' },
     { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => format(new Date(val), 'dd/MM/yyyy HH:mm') },
     { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true },
     { name: 'ident_cliente', label: 'Número identidad', align: 'left', field: 'ident_cliente', sortable: true },
@@ -460,7 +473,6 @@
     { name: 'num_transaccion', label: 'N° recibo', align: 'left', field: 'num_transaccion', sortable: true },
     { name: 'total', label: 'Total', align: 'left', field: 'total', format: (val) => $dinero(val), sortable: true },
     { name: 'balance', label: 'Balance', align: 'left', field: 'balance', format: (val) => $dinero(val), sortable: true },
-    { name: 'acciones', label: '', align: 'left' },
   ]
 
   const transacciones = ref([])

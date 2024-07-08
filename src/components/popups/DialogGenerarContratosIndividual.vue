@@ -1,6 +1,6 @@
 <template>
   <!-- Crear cliente -->
-  <q-dialog v-model="dialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog">
     <q-card class="q-pa-md">
       <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'">
         <q-card-section>
@@ -9,12 +9,12 @@
 
         <q-card-section class="q-gutter-md">
           <QSelectCliente dense outlined required clearable
-            v-model="propietarioId" 
+            v-model="propietarioId"
             label="Selecciona un propietario (comprador)"
             hint="Busca por nombre o número de documento."
             rule="El campo es requerido." />
           <QSelectEmpresa dense outlined required clearable
-            v-model="empresaId" 
+            v-model="empresaId"
             label="Selecciona una empresa (vendedor)"
             rule="El campo es requerido." />
           <q-separator class="q-mt-xl q-mb-lg"/>

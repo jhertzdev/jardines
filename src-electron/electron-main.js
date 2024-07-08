@@ -31,6 +31,7 @@ function createWindow () {
 
   mainWindow.setMenuBarVisibility(false)
   mainWindow.loadURL(process.env.APP_URL)
+  mainWindow.maximize()
 
   if (process.env.DEBUGGING) {
     // if on DEV or Production with debug enabled

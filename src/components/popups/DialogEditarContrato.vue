@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialog" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md scroll">
       <q-form ref="editarContratosForm" @submit="handleSubmitEditarContratos" @validation-error="onValidationError">
         <q-card-section>
@@ -161,7 +161,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="dialogAgregarProductos" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogAgregarProductos" class="j-dialog">
 
     <q-card class="q-pa-md scroll">
       <q-form>
@@ -192,7 +192,7 @@
 
   </q-dialog>
 
-  <q-dialog v-model="dialogActualizarFechas" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogActualizarFechas" class="j-dialog">
     <q-card class="q-pa-md scroll">
       <q-form ref="actualizarFechasForm" @submit="handleSubmitActualizarFechas">
         <q-card-section>
