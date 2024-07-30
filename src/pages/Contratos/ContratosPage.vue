@@ -97,9 +97,9 @@
           <template v-slot:body-cell-parcelas="props">
             <q-td :props="props" class="q-gutter-xs">
               <!--<q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
-                @click="router.push('/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>-->
+                @click="router.push('/app/parcelas/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>-->
               <!--<q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
-                @click="router.push('/parcelas?search=' + parcela.codigo_parcela)">{{ parcela.codigo_parcela }}</q-btn>-->
+                @click="router.push('/app/parcelas?search=' + parcela.codigo_parcela)">{{ parcela.codigo_parcela }}</q-btn>-->
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
                 @click="editarParcelaDialog.openDialog(parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
             </q-td>
@@ -153,6 +153,12 @@ const openDialogGenerarContratos = (tipo = null) => {
 const handleGenerarContratos = (data) => {
   console.log('Contratos Generados', data);
   contratosTableRef.value.requestServerInteraction()
+
+  console.log('Contratos Generados', data, Array.isArray(data), data[0]);
+
+  if (Array.isArray(data)) {
+    verContratosDialog.value.openDialog(data[0].num_contrato, data[0].tipo_parcela)
+  }
 }
 
 const handleEditarParcela = (data) => {
@@ -197,7 +203,12 @@ const contratosTableRequest = (props) => {
   );
 
   if (contratosTableFilter.value) {
-    searchParams.append('q', contratosTableFilter.value)
+
+    if (contratosTableFilter.value.toLocaleUpperCase().includes('OLIVARES')) {
+      searchParams.append('f[notas]', 'GRUPO OLIVARES')
+    } else {
+      searchParams.append('q', contratosTableFilter.value)
+    }
     router.replace({ query: { search: contratosTableFilter.value } })
   }
 

@@ -43,7 +43,7 @@
                     <br/>
                     ({{ `${cliente.doc_identidad}-${cliente.doc_numero}` }}) <q-badge>{{ cliente.tipo_cliente }}</q-badge></td>
                   <td>
-                    <btn-link :label="`${parcela.codigo_seccion}-${parcela.num_parcela}`" :to="`parcelas/${parcela.id}`" v-for="parcela in cliente.parcelas" />
+                    <btn-link :label="`${parcela.codigo_seccion}-${parcela.num_parcela}`" :to="`/app/ubicaciones/${parcela.id}`" v-for="parcela in cliente.parcelas" />
                     <br/>
                   </td>
                 </tr>
@@ -71,7 +71,7 @@
               <tbody>
                 <tr v-for="parcela in searchResults.parcelas">
                   <td>
-                    <router-link :to="`parcelas/${parcela.id}`">
+                    <router-link :to="`/app/ubicaciones/${parcela.id}`">
                       {{ `${parcela.codigo_seccion}-${parcela.num_parcela}` }}
                     </router-link>
                   </td>
@@ -186,14 +186,14 @@ watch(searchQuery, query => {
 const dashboardOptions = ref([
   {
     name: "Clientes",
-    path: "/clientes",
+    path: "/app/clientes",
     key: "clientes",
     icon: "people",
     count: 0,
   },
   {
     name: "Parcelas",
-    path: "/parcelas",
+    path: "/app/parcelas",
     key: "parcelas",
     icon: "yard",
     count: 0,

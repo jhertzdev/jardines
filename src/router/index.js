@@ -29,15 +29,15 @@ export default route(function (/* { store, ssrContext } */) {
 
   Router.beforeEach(async (to) => {
     // redirect to login page if not logged in and trying to access a restricted page
-    const publicPages = ['/auth/login', '/auth/logout'];
+    const publicPages = ['/', '/auth/login', '/auth/logout'];
     const authRequired = !publicPages.includes(to.path);
-    const auth = useAuthStore();    
-  
+    const auth = useAuthStore();
+
     if (authRequired && !auth.user) {
       console.log('Autenticación requerida para entrar en ' + to.path);
       auth.returnUrl = to.fullPath;
       return '/auth/login';
-    }    
+    }
   });
 
   return Router

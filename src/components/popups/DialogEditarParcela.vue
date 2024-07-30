@@ -245,7 +245,7 @@
             <q-tab-panel name="contratos">
               <div class="full-width q-pa-lg text-center" v-if="!parcelaData.contratos?.length">
                 <p>No hay contratos asociados a esta parcela.</p>
-                <q-btn color="primary" label="Generar contratos" to="/contratos" />
+                <q-btn color="primary" label="Generar contratos" to="/app/contratos" />
                 <!--<q-btn color="primary" label="Generar contratos" @click="openDialogGenerarContratos" />-->
               </div>
               <q-card class="q-pa-md" v-else>
@@ -515,12 +515,14 @@ const handleCreatedCliente = (data, targetId) => {
     agregarOcupanteData.value.ocupante_id = data.id
   }
   //getData();
+  emit('updated', data)
 }
 
 const handleUpdatedCliente = (data, targetId) => {
   console.log('UPDATED', data, targetId)
   console.log('Updated', data, targetId)
   getData();
+  emit('updated', data)
 }
 
 /**
@@ -577,6 +579,7 @@ const handleSubmitDetalles = () => {
       if (response.data) {
         getData();
         $q.notify({ message: "Guardado exitosamente.", color: "positive" });
+        emit('updated', response.data)
       }
     })
     .catch((error) =>
@@ -599,6 +602,7 @@ const handleOcuparPuesto = () => {
           message: "Fallecido asignado exitosamente.",
           color: "positive",
         });
+        emit('updated', response.data)
       }
     })
     .catch((error) => qNotify(error, "error", { callback: handleOcuparPuesto }))
@@ -619,6 +623,7 @@ const handleModificarPuesto = () => {
           message: "Puesto modificado exitosamente.",
           color: "positive",
         });
+        emit('updated', response.data)
       }
     })
     .catch((error) => qNotify(error, "error", { callback: handleOcuparPuesto }))
@@ -637,6 +642,7 @@ const handleSubmitLiberarParcela = () => {
           message: "Parcela liberada exitosamente.",
           color: "positive",
         });
+        emit('updated', response.data)
       }
     })
     .catch((error) =>
@@ -774,6 +780,7 @@ const handleSubmitExhumarPuesto = () => {
           message: "Puesto liberado exitosamente.",
           color: "positive",
         });
+        emit('updated', response.data)
       }
     })
     .catch((error) =>
@@ -826,4 +833,6 @@ const handleDownloadPdf = (contratoId) => {
 };
 
 onMounted(() => getData());
+const emit = defineEmits(['updated'])
+
 </script>

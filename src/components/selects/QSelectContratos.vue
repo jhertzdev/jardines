@@ -77,7 +77,7 @@ watch(() => props.modelValue, async (val) => {
     if (response.data) {
       emit('selected', response.data)
       options.value.push({
-        label: `${response.data.codigo_contrato}-${response.data.num_contrato}`,
+        label: `${response.data.codigo_contrato}${response.data.num_contrato}${parseInt(response.data.num_serie) ? '-' + response.data.num_serie : ''}`,
         value: response.data.id,
       })
     }
@@ -117,6 +117,10 @@ async function getOptions(params = null) {
     Object.keys(props.filters).forEach(key => {
       searchParams.append(`f[${key}]`, props.filters[key])
     });
+
+    if (!props.filters.estatus) {
+      searchParams.append('f[estatus]', 'Activo')
+    }
   }
 
   endpoint += '?' + searchParams.toString();
@@ -133,7 +137,7 @@ async function getOptions(params = null) {
 
       response.data.data.forEach(row => {
         options.value.push({
-          label: `${row.codigo_contrato}-${row.num_contrato}`,
+          label: `${row.codigo_contrato}${row.num_contrato}${parseInt(row.num_serie) ? '-' + row.num_serie : ''}`,
           value: row.id,
         })
       })
@@ -148,7 +152,7 @@ async function getOptions(params = null) {
           response2.data.data.forEach(row => {
             fullData.value.push(row);
             options.value.push({
-              label: `${row.codigo_contrato}-${row.num_contrato}`,
+              label: `${row.codigo_contrato}${row.num_contrato}${parseInt(row.num_serie) ? '-' + row.num_serie : ''}`,
               value: row.id,
             })
           })

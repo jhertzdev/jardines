@@ -20,29 +20,49 @@
                   :model-value="contratoData.vigente_hasta ? format(contratoData.vigente_hasta, 'yyyy-MM-dd') : null"
                   label="Vigente hasta" readonly />
               </div>
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <q-input type="date" dense stack-label outlined
                   :model-value="contratoData.fecha_emision ? format(contratoData.fecha_emision, 'yyyy-MM-dd') : null"
                   label="Fecha de emisión" readonly />
               </div>
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <q-input type="date" dense stack-label outlined
                   :model-value="contratoData.fecha_vencimiento ? format(contratoData.fecha_vencimiento, 'yyyy-MM-dd') : null"
                   label="Fecha de vencimiento" readonly />
               </div>
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-md-4">
                 <q-input type="number" min="1" dense stack-label outlined v-model="contratoData.periodos_renovacion" label="Años a renovar"
                   @update:model-value="handleChangePeriodosRenovacion"></q-input>
               </div>
-              <div class="col-12 col-md">
+              <div class="col-12 col-md-4">
                 <q-input type="date" dense stack-label outlined
                   :model-value="contratoData.nueva_fecha_emision"
-                  label="Nueva fecha de emisión" readonly />
+                  label="Nueva fec. emisión" readonly />
               </div>
-              <div class="col-12 col-md">
+              <div class="col-12 col-md-4">
                 <q-input type="date" dense stack-label outlined
                   :model-value="contratoData.nueva_fecha_vencimiento"
-                  label="Nueva fecha de vencimiento" readonly />
+                  label="Nueva fec. vencimiento" readonly />
+              </div>
+              <div class="col-12 col-md-4">
+                <q-input type="number" step="0.01" dense stack-label outlined
+                  v-model="contratoData.nuevo_valor_total"
+                  label="Valor total" required />
+              </div>
+              <div class="col-md-4">
+                <q-input type="number" step="1" dense stack-label outlined
+                  v-model="contratoData.nuevo_numero_cuotas"
+                  label="Núm. cuotas" required readonly />
+              </div>
+              <div class="col-md-4">
+                <q-input type="number" step="0.01" dense stack-label outlined
+                  v-model="contratoData.nuevo_valor_cuota_inicial"
+                  label="Cuota inicial" required readonly />
+              </div>
+              <div class="col-md-4">
+                <q-input type="number" step="0.01" dense stack-label outlined
+                  v-model="contratoData.nuevo_valor_cuota_mensual"
+                  label="Cuota mensual" required readonly />
               </div>
 
             </div>
@@ -51,7 +71,7 @@
           <q-card-actions align="right">
             <q-btn flat label="Cancelar" v-close-popup />
             <q-btn color="primary" label="Renovar contrato" icon="description" :loading="isLoadingSubmit"
-              @click="renovarContratosForm.submit()" />
+              @click="renovarContratosForm.submit()" :disable="!contratoData.nuevo_valor_total" />
           </q-card-actions>
         </template>
         <q-card-section v-else>
@@ -175,6 +195,11 @@ const handleSubmitRenovarContratos = () => {
     periodos_renovacion: contratoData.value.periodos_renovacion,
     nueva_fecha_emision: contratoData.value.nueva_fecha_emision,
     nueva_fecha_vencimiento: contratoData.value.nueva_fecha_vencimiento,
+    nuevo_valor_total: contratoData.value.nuevo_valor_total,
+    valor_total: contratoData.value.valor_total,
+    numero_cuotas: contratoData.value.nuevo_numero_cuotas,
+    valor_cuota_inicial: contratoData.value.nuevo_valor_cuota_inicial,
+    valor_cuota_mensual: contratoData.value.nuevo_valor_cuota_mensual,
   }
 
   api.post('contratos/' + contratoData.value.id + '/renovar', postData)
@@ -208,6 +233,10 @@ const openDialog = (id) => {
         }) || []
         contratoData.value.autocalcular_total = false
         contratoData.value.autogenerar_serie = true
+        contratoData.value.nuevo_valor_total = contratoData.value.valor_total
+        contratoData.value.nuevo_numero_cuotas = 1
+        contratoData.value.nuevo_valor_cuota_inicial = 0
+        contratoData.value.nuevo_valor_cuota_mensual = 0
       }
     })
     .finally(() => isLoadingContrato.value = false)
@@ -215,7 +244,7 @@ const openDialog = (id) => {
 }
 
 defineExpose({ openDialog })
-const emit = defineEmits(['created'])
+const emit = defineEmits(['done', 'created', 'updated'])
 
 const contratosParams = ref(null)
 const siguienteNumContrato = ref('');

@@ -30,7 +30,7 @@ export const useAuthStore = defineStore({
           api.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
 
           // redirect to previous url or default to Dashboard
-          this.router.push(this.returnUrl || '/');
+          this.router.push(this.returnUrl || '/app');
           return true
 
         } else {

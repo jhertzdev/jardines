@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="{ 'page-dashboard': $route.path == '/' }">
+  <q-layout view="lHh Lpr lFf" :class="{ 'page-dashboard': $route.path == '/app' }">
     <q-header elevated>
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
@@ -337,12 +337,12 @@ const linksList = [
   {
     title: 'Dashboard',
     icon: 'dashboard',
-    to: '/',
+    to: '/app',
   },
   {
     title: 'Clientes',
     icon: 'people',
-    to: '/clientes',
+    to: '/app/clientes',
     perms: 'clientes',
   },
   {
@@ -351,30 +351,30 @@ const linksList = [
       {
         title: 'Parcelas',
         icon: 'yard',
-        to: '/parcelas',
+        to: '/app/parcelas',
       },
       {
         title: 'Nichos',
         icon: 'takeout_dining',
-        to: '/nichos',
+        to: '/app/nichos',
       },
       {
         title: 'Columbarios',
         icon: 'inventory',
-        to: '/columbarios',
+        to: '/app/columbarios',
       },
     ]
   },
   {
     title: 'Contratos',
     icon: 'description',
-    to: '/contratos',
+    to: '/app/contratos',
     perms: 'contratos',
   },
   {
     title: 'Usuarios',
     icon: 'groups',
-    to: '/usuarios',
+    to: '/app/usuarios',
     perms: 'usuarios',
   },
   {
@@ -385,13 +385,13 @@ const linksList = [
   {
     title: 'Configuración',
     icon: 'settings',
-    to: '/configuracion',
+    to: '/app/configuracion',
     perms: 'configuracion',
   },
   {
     title: 'Auditoría',
     icon: 'manage_history',
-    to: '/auditoria',
+    to: '/app/auditoria',
     perms: 'configuracion',
   },
   {

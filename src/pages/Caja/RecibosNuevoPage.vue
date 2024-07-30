@@ -204,7 +204,7 @@
               </template>
               <template v-else>
                 <QSelectContratos :multiple="false" dense outlined v-model="reciboData.contrato_id" clearable label="Número de contrato"
-                  @selected="handleSelectContrato" @clear="handleSelectContrato(null)" :filters="{ vendedor_id: reciboData.empresa_id, comprador_id: reciboData.cliente_id }" :rule="[val => val && val.length > 0 || '']" />
+                  @selected="handleSelectContrato" @clear="handleSelectContrato(null)" :filters="{ vendedor_id: reciboData.empresa_id, comprador_id: reciboData.cliente_id, tipo_actividad: appStore.cajaSeleccionada.tipo_actividad }" :rule="[val => val && val.length > 0 || '']" />
               </template>
             </div>
             <div class="col-md-4">

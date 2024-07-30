@@ -103,6 +103,17 @@
                       </div>
 
                     </div>
+
+                    <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
+                      <div class="col-md-4">
+                        <q-select dense :options="['Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
+                          v-model="contratosData[codigo].etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" />
+                      </div>
+                      <div class="col-md-8">
+                        <q-input dense type="textarea" class="no-resize" outlined v-model="contratosData[codigo].notas" rows="2" label="Notas" clearable autogrow />
+                      </div>
+                    </template>
+
                     <div class="col-12">
 
                       <div class="row q-col-gutter-md">
@@ -116,32 +127,12 @@
                           </div>
 
                           <QSelectParcelas @selected="val => contratosData[codigo].ubicaciones = val" dense v-model="contratosData[codigo].parcelas" outlined
-                            :label="`Selecciona las ubicaciones a asignar`" required
+                            :label="`Selecciona las ubicaciones a asignar`" :required="!contratosData[codigo].sin_parcelas"
                             :rule="`Debes seleccionar al menos una ubicación`"/>
 
                           <div class="row q-col-gutter-sm">
                             <div class="col-12">
                               <div class="text-h6 text-center">Información del contrato</div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].parcelas.length"
-                                label="Cant. parcelas" step="1" readonly />
-                            </div>
-                            <div class="col-12 col-md-8">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_venta"
-                                label="Valor de venta" step="0.01" />
-                            </div>
-                            <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].numero_cuotas"
-                                label="Núm. cuotas" step="1" />
-                            </div>
-                            <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_inicial"
-                                label="Cuota inicial" step="0.01" />
-                            </div>
-                            <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_mensual"
-                                label="Cuota mensual" step="0.01" />
                             </div>
                             <div class="col-12 col-md-6">
                               <q-input type="date" dense stack-label outlined
@@ -159,6 +150,26 @@
                               <q-input type="date" dense stack-label outlined
                                 v-model="contratosData[codigo].fecha_vencimiento" label="Fecha de vencimiento" :readonly="contratosData[codigo].tipo_actividad == 'venta_parcelas'" />
                             </div>
+                            <div class="col-12 col-md-4">
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].parcelas.length"
+                                label="Cant. parcelas" step="1" readonly />
+                            </div>
+                            <div class="col-12 col-md-8">
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_venta" @update:model-value="val => contratosData[codigo].valor_total = val"
+                                label="Valor de venta" step="0.01" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].numero_cuotas"
+                                label="Núm. cuotas" step="1" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_inicial"
+                                label="Cuota inicial" step="0.01" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_mensual"
+                                label="Cuota mensual" step="0.01" />
+                            </div>
                             <div class="col-12 col-md-8">
                               <q-input dense outlined v-model="contratosData[codigo].direccion_pago" label="Dirección de pago" />
                             </div>
@@ -174,6 +185,10 @@
                                 </q-tooltip>
                               </q-icon>
                             </div>-->
+
+                            <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
+                              <q-checkbox v-model="contratosData[codigo].sin_parcelas" true-value="1" false-value="0" label="El contrato no tiene ubicaciones asociadas" v-if="!contratosData[codigo].ubicaciones?.length" />
+                            </template>
 
                           </div>
                         </div>
@@ -227,6 +242,7 @@ import { useRoute } from 'vue-router';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { add } from "date-fns";
+import { useAuthStore } from 'stores/auth.store'
 
 // Components
 import QSelectTiposContratos from 'src/components/selects/QSelectTiposContratos.vue'
@@ -241,6 +257,7 @@ const $q = useQuasar()
 const dialog = ref(false)
 const step = ref(0)
 const route = useRoute()
+const authStore = useAuthStore()
 
 const agregarClienteDialog = ref(null)
 const generarContratosForm = ref(null)
@@ -380,6 +397,15 @@ watch(contratosData, (value) => {
       contratosData.value[codigo].parcelas = defaultParams.value.parcelas
       contratosData.value[codigo].ubicaciones = defaultParams.value.ubicaciones
     }
+
+    if (authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')) {
+      if (defaultParams.value.etiqueta) {
+        contratosData.value[codigo].etiqueta = defaultParams.value.etiqueta
+      }
+      if (defaultParams.value.notas) {
+        contratosData.value[codigo].notas = defaultParams.value.notas
+      }
+    }
   });
 
 }, { deep: true })
@@ -409,6 +435,19 @@ const handleSelectTipoContrato = (opciones) => {
       fecha_emision: currentDate.toISOString().substr(0, 10),
       fecha_vencimiento: tipoContrato?.tipo_actividad == 'mantenimiento_parcelas' ? nextYearDate.toISOString().substr(0, 10) : currentDate.toISOString().substr(0, 10),
       visible: true,
+      sin_parcelas: "0"
+    }
+
+    if (defaultParams.value.fecha_emision) {
+      let fechaEmision = new Date(defaultParams.value.fecha_emision)
+      let fechaEmisionDMY = fechaEmision.toISOString().substr(0, 10)
+      contratosData.value[opcion].fecha_emision = fechaEmisionDMY
+    }
+
+    if (defaultParams.value.fecha_vencimiento) {
+      let fechaVencimiento = new Date(defaultParams.value.fecha_vencimiento)
+      let fechaVencimientoDMY = fechaVencimiento.toISOString().substr(0, 10)
+      contratosData.value[opcion].fecha_vencimiento = fechaVencimientoDMY
     }
 
     api.get('contratos/tipos/' + opcion)
@@ -540,6 +579,8 @@ const isLoadingSubmit = ref(false)
 const defaultParams = ref(null)
 
 const openDialog = (tipo = null, params = null) => {
+
+  contratosData.value = {}
 
   defaultParams.value = params;
 

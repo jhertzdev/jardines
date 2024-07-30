@@ -66,7 +66,7 @@
           <q-btn-dropdown label="Ver mapa" icon="yard" color="primary">
             <q-list>
               <q-item clickable v-close-popup v-for="seccion in secciones"
-                :to="`/ubicaciones/${seccion.codigo_seccion}/mapa`">
+                :to="`/app/ubicaciones/${seccion.codigo_seccion}/mapa`">
                 <q-item-section>
                   <q-item-label>{{ seccion.nombre }}</q-item-label>
                 </q-item-section>
@@ -102,9 +102,9 @@
           <template v-slot:body-cell-actions="props">
             <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
               <q-btn outline icon="visibility" size="sm" color="blue" dense
-                @click="router.push('/ubicaciones/' + props.row.id)" />
+                @click="router.push('/app/ubicaciones/' + props.row.id)" />
               <q-btn outline icon="delete" size="sm" color="negative" dense
-                @click="openDialogEliminarParcela(props.row.id)" />
+                @click="handleEliminarParcela(props.row.id)" />
             </q-td>
           </template>
           <template v-slot:body-cell="props">
@@ -392,12 +392,43 @@ const selectedParcela = ref(null)
 const dialogEliminarParcela = ref(false)
 const isLoadingEliminarParcela = ref(false)
 
-const openDialogEliminarParcela = (id) => {
-  selectedParcela.value = parcelas.value.find(row => row.id == id)
-  dialogEliminarParcela.value = true
+const handleEliminarParcela = (id, confirm = false) => {
+  if (!confirm) {
+    $q.dialog({
+      title: 'Eliminar ubicación',
+      message: '¿Estás seguro de que quieres eliminar esta ubicación?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Eliminar',
+        color: 'primary',
+        flat: true,
+        icon: 'delete'
+      },
+      cancel: {
+        label: 'Cancelar',
+        color: 'primary',
+        flat: true,
+        icon: 'cancel'
+      }
+    }).onOk(() => {
+      handleEliminarParcela(id, true)
+    })
+  } else {
+    isLoadingEliminarParcela.value = true
+    api.delete('parcelas/' + id)
+      .then(response => {
+        if (response.data) {
+          $q.notify({ message: 'Eliminado exitosamente.', color: 'positive' })
+          parcelas.value = parcelas.value.filter(parcela => parcela.id !== id)
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarParcela(id) }))
+      .finally(() => isLoadingEliminarParcela.value = false)
+  }
 }
 
-const handleEliminarParcela = (id) => {
+/*const handleEliminarParcela = (id) => {
   isLoadingEliminarParcela.value = true
   api.delete('parcelas/' + id)
     .then(response => {
@@ -409,7 +440,7 @@ const handleEliminarParcela = (id) => {
     })
     .catch(error => qNotify(error, 'error', { callback: () => handleEliminarParcela(id) }))
     .finally(() => isLoadingEliminarParcela.value = false)
-}
+}*/
 
 const stats = ref({});
 

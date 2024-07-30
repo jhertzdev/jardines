@@ -48,6 +48,6 @@ const updateValue = (value) => {
   emit('update:modelValue', value)
 }
 
-const options = ref(['Activo', 'Renovado', 'Expirado', 'Inactivo']);
+const options = ref(['Activo', 'Inactivo']);
 
 </script>

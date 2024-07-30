@@ -351,7 +351,7 @@ const permisos = authStore.user.role_perms;
 const linksList = [
   {
     title: 'Volver al inicio',
-    to: '/',
+    to: '/app',
     icon: 'arrow_back',
   },
   {

@@ -246,7 +246,7 @@
         <q-tab-panel name="contratos">
           <div class="full-width q-pa-lg text-center" v-if="!parcelaData.contratos?.length">
             <p>No hay contratos asociados a esta parcela.</p>
-            <q-btn color="primary" label="Generar contratos" to="/contratos" />
+            <q-btn color="primary" label="Generar contratos" to="/app/contratos" />
             <!--<q-btn color="primary" label="Generar contratos" @click="openDialogGenerarContratos" />-->
           </div>
           <q-card class="q-pa-md" v-else>

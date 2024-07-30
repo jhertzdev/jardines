@@ -1,5 +1,5 @@
 <template>
-  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xl">
     <q-card class="q-pa-md scroll">
       <q-form ref="editarContratosForm" @submit="handleSubmitEditarContratos" @validation-error="onValidationError">
         <q-card-section>
@@ -10,55 +10,128 @@
         </div>
         <template v-else-if="contratoData?.num_contrato">
           <q-card-section class="q-py-none">
-            <div class="row q-col-gutter-md">
-              <div class="col-12 col-md-8">
-                <q-input class="input-num-parcela" dense stack-label v-model="contratoData.num_contrato" outlined
-                  label="Número de contrato" lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space
-                  readonly>
-                  <template v-slot:prepend>
-                    <span>{{ contratoData.codigo_contrato }}</span>
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-12 col-md-4">
-                <QSelectEstatusContrato label="Estatus" dense outlined required v-model="contratoData.estatus" />
-              </div>
-              <div class="col-12">
-                <QSelectEmpresa dense outlined required clearable
-                  v-model="contratoData.vendedor_id"
-                  label="Selecciona una empresa (vendedor)"
-                  rule="El campo es requerido."
-                  :filters="{ contrato: contratoData.codigo_contrato }"
-                  />
-              </div>
-              <div class="col-12">
-                <div class="text-h6 text-center">Información del cliente</div>
-              </div>
-              <div class="col-12">
-                <QSelectCliente dense v-model="contratoData.comprador_id" outlined clearable label="Cliente relacionado"
-                  required @update:model-value="val => handleRellenarCamposDeCliente(val)" />
-              </div>
-              <div class="col-12 text-right text-caption text-grey-6">
-                <template v-if="parseInt(contratoData.comprador_id)">
-                  <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit" color="primary" @click="(e) =>
-                    agregarClienteDialog.openDialog(contratoData.comprador_id, e)"/>
-                </template>
-                <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
-                  color="primary" @click="agregarClienteDialog.openDialog()" />
-              </div>
-              <div class="col-12">
-                <div class="text-h6 text-center">
-                  {{ (contratoData.tipo_parcela || 'Producto').concat('s') }}
+            <div class="row q-col-gutter-xl">
+              <div class="col-md-6">
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-5">
+
+                    <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
+                      <q-input class="input-num-parcela" dense stack-label v-model="contratoData.num_contrato" outlined
+                      label="Núm. ctto" lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space>
+                      <template v-slot:prepend>
+                        <span>{{ contratoData.codigo_contrato }}</span>
+                      </template>
+                      <template v-slot:after>
+                        <q-input label="Serie" dense stack-label v-model="contratoData.num_serie" outlined style="width: 50px;"></q-input>
+                      </template>
+                    </q-input>
+                    </template>
+                    <template v-else>
+                      <q-input class="input-num-parcela" dense stack-label v-model="contratoData.num_contrato" outlined
+                        label="Núm. ctto" lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly>
+                        <template v-slot:prepend>
+                          <span>{{ contratoData.codigo_contrato }}</span>
+                        </template>
+                        <template v-slot:after v-if="contratoData.num_serie">
+                          <q-input label="Serie" dense stack-label v-model="contratoData.num_serie" outlined style="width: 50px;"></q-input>
+                        </template>
+                      </q-input>
+                    </template>
+                  </div>
+                  <div class="col-12 col-md-3">
+                    <QSelectEstatusContrato label="Estatus" dense outlined required v-model="contratoData.estatus" />
+                  </div>
+                  <div class="col-4">
+                    <q-select dense :options="['Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
+                      v-model="contratoData.etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" />
+                  </div>
+
+                  <div class="col-12">
+                    <QSelectEmpresa dense outlined required clearable
+                      v-model="contratoData.vendedor_id"
+                      label="Selecciona una empresa (vendedor)"
+                      rule="El campo es requerido."
+                      :filters="{ contrato: contratoData.codigo_contrato }"
+                      hide-bottom-space
+                      />
+                  </div>
+                  <div class="col-12">
+                    <q-input dense type="textarea" class="no-resize" outlined v-model="contratoData.notas" rows="2" label="Notas" clearable autogrow />
+                  </div>
+                  <div class="col-12">
+                    <QSelectCliente dense v-model="contratoData.comprador_id" outlined clearable label="Cliente relacionado"
+                      required @update:model-value="val => handleRellenarCamposDeCliente(val)" hide-bottom-space />
+                  </div>
+                  <div class="col-12 text-right text-caption text-grey-6 q-mt-sm">
+                    <template v-if="parseInt(contratoData.comprador_id)">
+                      <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit" color="primary" @click="(e) =>
+                        agregarClienteDialog.openDialog(contratoData.comprador_id, e)"/>
+                    </template>
+                    <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
+                      color="primary" @click="agregarClienteDialog.openDialog()" />
+                  </div>
+
+
+
+
                 </div>
               </div>
-              <div class="col-12">
-                <q-table class="q-mb-lg" :columns="[
+              <div class="col-md-6">
+                <div class="row q-col-gutter-md">
+                  <div class="col-12 col-md-4">
+                    <q-input dense type="number" outlined v-model="contratoData.parcelas.length" label="Cant. parcelas"
+                      step="1" readonly />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input dense type="number" outlined v-model="contratoData.valor_venta" label="Valor de venta" @update:model-value="val => contratoData.valor_total = val"
+                      step="0.01" />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input dense type="number" outlined v-model="contratoData.numero_cuotas" label="Núm. cuotas" step="1" />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input dense type="number" outlined v-model="contratoData.valor_cuota_inicial" label="Cuota inicial"
+                      step="0.01" />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input dense type="number" outlined v-model="contratoData.valor_cuota_mensual" label="Cuota mensual"
+                      step="0.01" />
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <q-input dense outlined v-model="contratoData.valor_total" label="Valor total" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <QSelectDatetime dense stack-label outlined v-model="contratoData.fecha_emision" label="Fecha de emisión" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <QSelectDatetime dense stack-label outlined v-model="contratoData.fecha_vencimiento" label="Fecha de vencimiento" />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <QSelectDatetime dense stack-label outlined v-model="contratoData.vigente_hasta" label="Vigente hasta" readonly />
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <q-input dense outlined v-model="contratoData.direccion_pago" label="Dirección de pago" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <div class="text-h6 text-center q-my-sm">
+              {{ (contratoData.tipo_parcela || 'Producto').concat('s') }}
+            </div>
+
+            <div class="row">
+              <div class="col-md-8 offset-md-2">
+
+
+                <q-table :columns="[
                   { name: 'codigo_parcela', label: 'Cód. parcela', field: 'codigo_parcela', sortable: false, align: 'center' },
                   { name: 'estatus', label: 'Estatus', field: 'estatus', sortable: false, align: 'center' },
                   { name: 'pagado_hasta', label: 'Pagado hasta', field: 'pagado_hasta', sortable: false, align: 'center' },
                 ]" :rows="contratoData.parcelas" row-key="id" separator="cell" selection="multiple"
                   v-model:selected="selectedProducts"
-                  :pagination="{rowsPerPage: -1}"
+                  :pagination="{rowsPerPage: -1}" hide-bottom
                 >
                   <template v-slot:body-cell-pagado_hasta="props">
                     <q-td :props="props">
@@ -71,83 +144,34 @@
                     </q-td>
                   </template>
                 </q-table>
-                <div class="text-center q-gutter-sm flex justify-center q-mb-sm">
-                  <div>
-                    <q-btn color="primary" label="Agregar" icon="add" @click="dialogAgregarProductos = true" />
-                  </div>
-                  <div>
-                    <q-btn color="primary" label="Actualizar fecha" icon="event" @click="dialogActualizarFechas = true" :disable="selectedProducts.length < 1" />
-                  </div>
-                </div>
-                <div class="text-center q-gutter-sm flex justify-center">
-                  <div>
-                    <q-btn color="primary" label="Liberar" icon="lock_open" @click="handleLiberarProductos()" :disable="selectedProducts.length < 1" />
-                    <q-tooltip anchor="top middle" self="bottom middle" max-width="240px"
-                      v-if="selectedProducts.length < 1">
-                      Debes selecciona 1 o más {{ (contratoData.tipo_parcela || 'Producto').concat('s') }} para liberar.
-                    </q-tooltip>
-                  </div>
-                  <div>
-                    <q-btn color="primary" label="Desligar" icon="eject" @click="handleDesligarProductos()" :disable="selectedProducts.length < 1" />
-                    <q-tooltip anchor="top middle" self="bottom middle" max-width="240px"
-                      v-if="selectedProducts.length < 1">
-                      Debes selecciona 1 o más {{ (contratoData.tipo_parcela || 'Producto').concat('s') }} para desligar.
-                    </q-tooltip>
-                  </div>
-                </div>
               </div>
-              <div class="col-12">
-                <div class="text-h6 text-center">Información del contrato</div>
-              </div>
-              <div class="col-12 col-md-4">
-                <q-input dense type="number" outlined v-model="contratoData.parcelas.length" label="Cant. parcelas"
-                  step="1" readonly />
-              </div>
-              <div class="col-12 col-md-8">
-                <q-input dense type="number" outlined v-model="contratoData.valor_venta" label="Valor de venta"
-                  step="0.01" />
-              </div>
-              <div class="col-12 col-md-4">
-                <q-input dense type="number" outlined v-model="contratoData.numero_cuotas" label="Núm. cuotas" step="1" />
-              </div>
-              <div class="col-12 col-md-4">
-                <q-input dense type="number" outlined v-model="contratoData.valor_cuota_inicial" label="Cuota inicial"
-                  step="0.01" />
-              </div>
-              <div class="col-12 col-md-4">
-                <q-input dense type="number" outlined v-model="contratoData.valor_cuota_mensual" label="Cuota mensual"
-                  step="0.01" />
-              </div>
-              <div class="col-12 col-md-4">
-                <QSelectDatetime dense stack-label outlined v-model="contratoData.fecha_emision" label="Fecha de emisión" readonly />
-              </div>
-              <div class="col-12 col-md-4">
-                <QSelectDatetime dense stack-label outlined v-model="contratoData.fecha_vencimiento" label="Fecha de vencimiento" readonly />
-              </div>
-              <div class="col-12 col-md-4">
-                <QSelectDatetime dense stack-label outlined v-model="contratoData.vigente_hasta" label="Vigente hasta" readonly />
-              </div>
-              <div class="col-12 col-md-8">
-                <q-input dense outlined v-model="contratoData.direccion_pago" label="Dirección de pago" />
-              </div>
-              <div class="col-12 col-md-4">
-                <q-input dense outlined v-model="contratoData.valor_total" label="Valor total" readonly />
-              </div>
-              <div class="col-12 text-right">
-                <q-checkbox v-model="contratoData.autocalcular_total" label="Autocalcular total" />
-                <q-icon name="help_outline" class="q-ml-xs">
-                  <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                    Al marcar esta opción, se multiplicará el número de parcelas por el valor de la venta y el monto de
-                    las cuotas inicial y mensual.
+
+              <div class="col-md-12 text-center q-gutter-sm q-mt-sm q-mb-lg">
+                <q-btn color="primary" label="Agregar" icon="add" @click="dialogAgregarProductos = true" />
+                <q-btn color="primary" label="Actualizar fecha" icon="event" @click="dialogActualizarFechas = true" :disable="selectedProducts.length < 1" />
+                <q-btn color="primary" label="Liberar" icon="lock_open" @click="handleLiberarProductos()" :disable="selectedProducts.length < 1">
+                  <q-tooltip anchor="top middle" self="bottom middle" max-width="240px"
+                    v-if="selectedProducts.length < 1">
+                    Debes selecciona 1 o más {{ (contratoData.tipo_parcela || 'Producto').concat('s') }} para liberar.
                   </q-tooltip>
-                </q-icon>
+                </q-btn>
+                <q-btn color="primary" label="Desligar" icon="eject" @click="handleDesligarProductos()" :disable="selectedProducts.length < 1">
+                  <q-tooltip anchor="top middle" self="bottom middle" max-width="240px"
+                    v-if="selectedProducts.length < 1">
+                    Debes selecciona 1 o más {{ (contratoData.tipo_parcela || 'Producto').concat('s') }} para desligar.
+                  </q-tooltip>
+                </q-btn>
+              </div>
+
+              <div class="col-12">
+
+
               </div>
             </div>
-
           </q-card-section>
           <q-card-actions align="right">
             <q-btn flat label="Cancelar" v-close-popup />
-            <q-btn color="primary" label="Editar contratos" icon="description" :loading="isLoadingSubmit"
+            <q-btn color="primary" label="Guardar" icon="description" :loading="isLoadingSubmit"
               @click="editarContratosForm.submit()" />
           </q-card-actions>
         </template>
@@ -234,6 +258,7 @@ import { useRoute } from 'vue-router';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { format } from 'date-fns';
+import { useAuthStore } from 'stores/auth.store'
 
 // Components
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue'
@@ -249,6 +274,7 @@ const dialogAgregarProductos = ref(false)
 const dialogActualizarFechas = ref(false)
 const step = ref(0)
 const route = useRoute()
+const authStore = useAuthStore()
 
 const agregarClienteDialog = ref(null)
 const editarContratosForm = ref(null)
@@ -325,6 +351,10 @@ const handleRellenarCamposDeCliente = (value, codigo) => {
 
 const handleSubmitEditarContratos = () => {
   isLoadingSubmit.value = true
+
+  if (!parseInt(contratoData.value?.num_serie)) {
+    contratoData.value.num_serie = null
+  }
 
   api.put('contratos/' + contratoData.value.id, contratoData.value)
     .then(response => {
@@ -441,7 +471,7 @@ const handleLiberarProductos = (confirm = false) => {
       cancel: true,
       persistent: true,
       ok: {
-        label: 'Desligar ubicaciones',
+        label: 'Liberar ubicaciones',
         color: 'primary',
         flat: true,
         icon: 'eject'
@@ -453,7 +483,7 @@ const handleLiberarProductos = (confirm = false) => {
         icon: 'cancel'
       }
     }).onOk(() => {
-      handleDesligarProductos(true)
+      handleLiberarProductos(true)
     })
   } else {
 
@@ -509,7 +539,7 @@ const openDialog = (id) => {
 }
 
 defineExpose({ openDialog })
-const emit = defineEmits(['created'])
+const emit = defineEmits(['created', 'updated'])
 
 const contratosParams = ref(null)
 const siguienteNumContrato = ref('');

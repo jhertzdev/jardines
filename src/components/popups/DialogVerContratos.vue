@@ -27,8 +27,7 @@
         <q-card-section class="q-px-none">
           <q-table dense flat :rows="contratos" :columns="columnas" v-model:pagination="tablePagination" hide-bottom row-key="name">
             <template v-slot:body-cell-actions="props">
-              <q-td :props="props" class="q-gutter-xs">
-
+              <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
                 <q-btn-dropdown dense size="sm" color="primary" flat icon="more_horiz">
                   <q-list>
                     <q-item clickable @click="editarContratoDialog.openDialog(props.row.id)" v-close-popup>
@@ -37,19 +36,36 @@
                       </q-item-section>
                       <q-item-section>Editar</q-item-section>
                     </q-item>
-                    <q-item clickable @click="handleCrearRecibo( { contrato_id: props.row.id, tipo_actividad: props.row.tipo_actividad, cliente_id: props.row.comprador_id } )" v-close-popup>
+                    <q-item clickable @click="handleCrearRecibo( { contrato_id: props.row.id, tipo_actividad: props.row.tipo_actividad, cliente_id: props.row.comprador_id } )" v-close-popup v-if="!EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="receipt" />
                       </q-item-section>
                       <q-item-section>Crear recibo</q-item-section>
                     </q-item>
-                    <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup>
+                    <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup v-if="props.row.tipo_actividad != 'venta_parcelas' && !EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="rotate_right" />
                       </q-item-section>
                       <q-item-section>Renovar</q-item-section>
                     </q-item>
-                    <q-item v-if="props.row.tipo_actividad == 'venta_parcelas'" clickable @click="generarContratoDialog.openDialog(props.row.tipo_parcela, {
+                    <q-item v-if="props.row.tipo_actividad == 'mantenimiento_parcelas'" clickable @click="generarContratoDialog.openDialog(props.row.tipo_parcela, {
+                      tipo_actividad: 'venta_parcelas',
+                      tipo_parcela: props.row.tipo_parcela,
+                      num_contrato: props.row.num_contrato,
+                      comprador_id: props.row.cliente?.id,
+                      parcelas: props.row.parcelas.map(parcela => parcela.id),
+                      ubicaciones: props.row.parcelas,
+                      fecha_emision: props.row.fecha_emision,
+                      fecha_vencimiento: props.row.fecha_emision,
+                      etiqueta: props.row.etiqueta,
+                      notas: props.row.notas,
+                    })" v-close-popup>
+                      <q-item-section side>
+                        <q-icon color="black" name="add" />
+                      </q-item-section>
+                      <q-item-section>Contrato de venta</q-item-section>
+                    </q-item>
+                    <q-item v-if="props.row.tipo_actividad == 'venta_parcelas' && !EstadosDesactivados.includes(props.row.estatus)" clickable @click="generarContratoDialog.openDialog(props.row.tipo_parcela, {
                       tipo_actividad: 'mantenimiento_parcelas',
                       tipo_parcela: props.row.tipo_parcela,
                       num_contrato: props.row.num_contrato,
@@ -62,7 +78,7 @@
                       </q-item-section>
                       <q-item-section>Contrato de mant.</q-item-section>
                     </q-item>
-                    <q-item :clickable="props.row.esta_vigente" @click="handleDownloadPdf(props.row.id)" v-close-popup :disable="!props.row.esta_vigente">
+                    <q-item :clickable="props.row.esta_vigente" @click="handleDownloadPdf(props.row.id)" v-close-popup :disable="!props.row.esta_vigente" v-if="!EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="print" />
                       </q-item-section>
@@ -80,18 +96,51 @@
                 </q-btn-dropdown>
               </q-td>
             </template>
+            <template v-slot:body-cell-estatus="props">
+              <q-td :props="props" style="line-height: 1.15;" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                {{ props.row.estatus }}
+                <template v-if="props.row.etiqueta">
+                 <br/> <span style="font-size:.75rem">({{ props.row.etiqueta }})</span>
+                </template>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-notas="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                <div style="font-size:.65rem; max-width: 150px; text-wrap: wrap;">{{ props.row.notas }}</div>
+              </q-td>
+            </template>
             <template v-slot:body-cell-cliente="props">
-              <q-td :props="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
                 <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
                 <span v-else>-</span>
               </q-td>
             </template>
             <template v-slot:body-cell-parcelas="props">
-            <q-td :props="props" class="q-gutter-xs">
+            <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
                 @click="editarParcelaDialog.openDialog(parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
             </q-td>
-          </template>
+            </template>
+            <template v-slot:body-cell-num_contrato="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                <a href="javascript:void(0)" @click="editarContratoDialog.openDialog(props.row.id)">{{ props.row.codnum_contrato || '-' }}</a>
+              </q-td>
+            </template>
+            <template v-slot:body-cell-fecha_emision="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
+              </q-td>
+            </template>
+            <template v-slot:body-cell-fecha_vencimiento="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
+              </q-td>
+            </template>
+            <template v-slot:body-cell-vigente_hasta="props">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+                {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
+              </q-td>
+            </template>
           </q-table>
         </q-card-section>
       </template>
@@ -105,12 +154,11 @@
 
   </q-dialog>
 
-  <DialogEditarContrato ref="editarContratoDialog"></DialogEditarContrato>
-  <DialogRenovarContrato ref="renovarContratoDialog"></DialogRenovarContrato>
-  <DialogEditarParcela ref="editarParcelaDialog"></DialogEditarParcela>
-  <DialogGenerarContrato ref="generarContratoDialog"></DialogGenerarContrato>
-  <DialogEditarParcela ref="editarParcelaDialog"></DialogEditarParcela>
-  <DialogAgregarCliente ref="verClienteDialog"/>
+  <DialogEditarContrato ref="editarContratoDialog" @updated="getData()"></DialogEditarContrato>
+  <DialogRenovarContrato ref="renovarContratoDialog" @updated="getData()" @done="getData()"></DialogRenovarContrato>
+  <DialogEditarParcela ref="editarParcelaDialog" @updated="getData()"></DialogEditarParcela>
+  <DialogGenerarContrato ref="generarContratoDialog" @updated="getData()" @created="getData()"></DialogGenerarContrato>
+  <DialogAgregarCliente ref="verClienteDialog" @updated="getData()"/>
 
   <q-dialog allow-focus-outside v-model="eliminarContratoDialog" class="j-dialog">
     <q-card class="q-pa-md text-center">
@@ -165,15 +213,18 @@ const generarContratoDialog = ref(null)
 const verClienteDialog = ref(null)
 const editarParcelaDialog = ref(null)
 
+const EstadosDesactivados = ['Inactivo', 'Expirado']
+
 const columnas = [
   { name: 'actions', label: '', field: 'actions' },
   { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'codnum_contrato', sortable: true },
-  { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
-  { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
-  { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
-  { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
+  { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false },
+  { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false },
+  { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: false },
+  { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', sortable: true },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
   { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
+  { name: 'notas', label: 'Notas', align: 'left', field: 'notas', sortable: false },
 ]
 
 const handleEditarContrato = (data) => {
@@ -239,7 +290,7 @@ const handleEliminarContrato = (id) => {
     .finally(() => isLoadingEliminarContrato.value = false)
 }
 
-const tablePagination = ref({ rowsPerPage: 0 })
+const tablePagination = ref({ rowsPerPage: 0, sortBy: 'estatus', descending: false })
 
 const defaultParams = ref({})
 

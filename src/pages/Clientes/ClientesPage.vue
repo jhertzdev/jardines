@@ -168,7 +168,7 @@
         <template v-slot:body-cell-parcelas="props">
           <q-td :props="props" class="q-gutter-xs" style="white-space: break-spaces;">
             <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
-              @click="router.push('/ubicaciones/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
+              @click="router.push('/app/ubicaciones/' + parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
           </q-td>
         </template>
 

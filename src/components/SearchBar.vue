@@ -51,13 +51,22 @@
                     </thead>
                     <tbody>
                       <tr v-for="row in resultados.clientes" :key="row.id">
-                        <td><a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(row.id)" class="text-dark">{{ row.nombre }} {{ row.apellido }}</a></td>
+                        <td><a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(row.id)">{{ row.nombre }} {{ row.apellido }}</a></td>
                         <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
-                        <td>
-                          <q-badge class="q-px-xs q-mr-xs" v-if="row.estado_cliente">
+                        <td class="text-center">
+                          <q-badge class="q-px-xs q-mr-xs" v-if="row.estado_cliente" :class="{
+                              'bg-primary': row.estado_cliente == 'Activo',
+                              'bg-red-9 text-white': row.estado_cliente == 'Suspendido',
+                              'bg-black': row.estado_cliente == 'Fallecido',
+                              'bg-grey-4 text-black': row.estado_cliente == 'Inactivo'
+                            }">
                             {{ row.estado_cliente }}
                           </q-badge>
-                          <q-badge class="q-px-xs" v-if="row.estado_cuenta">
+                          <q-badge class="q-px-xs" v-if="row.estado_cuenta && !['Inactivo', 'Fallecido'].includes(row.estado_cliente)" :class="{
+                            'bg-primary': row.estado_cuenta == 'Activo',
+                            'bg-red-9 text-white': row.estado_cuenta == 'En mora',
+                            'bg-grey-5 text-black': row.estado_cuenta == 'Inactivo'
+                          }">
                             {{ row.estado_cuenta }}
                           </q-badge>
                         </td>
@@ -71,7 +80,10 @@
                         <td>
                           <template v-for="contrato in row.contratos || []">
                             <div class="badge-contrato">
-                              <span>
+                              <span :style="{
+                                'background-color': contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828',
+                                'border-color': contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828',
+                              }">
                                 <a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-white">
                                   {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
                                   <template v-if="contrato.num_serie">
@@ -111,7 +123,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="row in resultados.fallecidos" :key="row.id">
-                        <td><a href="javascript:void(0)" @click="agregarDifuntoDialog.openDialog(row.id)" class="text-dark">{{ row.nombre }} {{ row.apellido }}</a></td>
+                        <td><a href="javascript:void(0)" @click="agregarDifuntoDialog.openDialog(row.id)">{{ row.nombre }} {{ row.apellido }}</a></td>
                         <td>{{ row.doc_identidad }}-{{ row.doc_numero }}</td>
 
 
@@ -141,7 +153,7 @@
 
                         <td class="text-center">
                           <template v-if="row.ubicacion?.length">
-                            <a href="javascript:void(0)" class="text-dark" @click="agregarClienteDialog.openDialog(row.ubicacion[0].propietario_id)">{{ row.ubicacion[0].propietario_nombre }}</a> <br />
+                            <a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(row.ubicacion[0].propietario_id)">{{ row.ubicacion[0].propietario_nombre }}</a> <br />
                             ({{ row.ubicacion[0].propietario_identidad }})
                             <q-badge class="q-px-xs q-mr-xs" v-if="row.ubicacion[0].estado_cliente">
                               {{ row.ubicacion[0].estado_cliente }}
@@ -174,12 +186,35 @@
                           </q-badge>
                         </td>-->
                         <td style="font-size:.7rem; letter-spacing: -0.2px;">
+                          <template v-if="row.contratos?.length">
+                            <div style="font-size:.6rem; letter-spacing: -0.2px;">
+                              Contratos: <template v-for="contrato in row.contratos">
+                                <q-badge class="q-px-xs q-mr-xs" :class="{
+                                    'bg-primary': contrato.estatus == 'Activo',
+                                    'bg-red-9 text-white': contrato.estatus != 'Activo'
+                                  }">
+                                  <a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-white">
+                                    <span style="font-size:.6rem;">
+                                      {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                                      <template v-if="contrato.num_serie">
+                                        <span>
+                                          -{{ contrato.num_serie }}
+                                        </span>
+                                      </template>
+                                    </span>
+                                  </a>
+                                </q-badge>
+                              </template>
+                            </div>
+                            <q-separator class="q-mt-xs q-mb-sm" color="grey-3"/>
+                          </template>
                           <template v-if="row.ubicacion?.length && row.ubicacion[0].propietario_notas">
                             <div class="q-mb-xs"><span class="text-italic">Nota del cliente:</span> {{ row.ubicacion[0].propietario_notas }}</div>
                           </template>
                           <template v-if="row.notas">
                             <div class="q-mb-xs"><span class="text-italic">Nota del difunto:</span> {{ row.notas }}</div>
                           </template>
+
                         </td>
                       </tr>
                     </tbody>
@@ -203,11 +238,15 @@
                       </thead>
                       <tbody>
                         <tr v-for="contrato in resultados.contratos" :key="contrato.id">
-                          <td><a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-dark">
-                            {{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</a></td>
+                          <td>
+                            <q-badge>
+                              <a class="text-white" href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)">
+                              {{ contrato.codigo_contrato }}-{{ contrato.num_contrato }}</a>
+                            </q-badge>
+                          </td>
                           <td>
                             <template v-if="contrato.comprador_id">
-                              <a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(contrato.comprador_id)" class="text-dark">{{ contrato.nombre_completo }} ({{  contrato.documento_ident }})</a>
+                              <a href="javascript:void(0)" @click="agregarClienteDialog.openDialog(contrato.comprador_id)">{{ contrato.nombre_completo }} ({{  contrato.documento_ident }})</a>
 
                             </template>
                             <template v-else>
@@ -236,7 +275,13 @@
                       </thead>
                       <tbody>
                         <tr v-for="ubicacion in resultados.ubicaciones" :key="ubicacion.id">
-                          <td>{{ ubicacion.codigo_seccion }}-{{ ubicacion.num_parcela }}</td>
+                          <td>
+                            <q-badge>
+                              <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(ubicacion.id)" class="text-white">
+                                {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                              </a>
+                            </q-badge>
+                          </td>
                           <td>
                             <template v-if="ubicacion.propietario_id">
                               {{ ubicacion.nombre_completo }} ({{  ubicacion.documento_ident }})

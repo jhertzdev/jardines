@@ -68,7 +68,7 @@ watch(() => props.modelValue, async (val) => {
     const response = await api.get('clientes/' + selectedId.value)
     if (response.data) {
       options.value.push({
-        label: `${response.data.nombre_completo} (${response.data.num_identidad})`,
+        label: `${response.data.nombre_completo} (${response.data.num_identidad ? response.data.num_identidad : 'ID#' + response.data.id})`,
         value: response.data.id,
       })
     }
@@ -92,7 +92,7 @@ async function getOptions(params = null) {
     const response = await api.get('clientes/' + selectedId.value + '?with[]=data');
     if (response.data) {
       initOptions.push({
-        label: `${response.data.nombre_completo} (${response.data.num_identidad})`,
+        label: `${response.data.nombre_completo} (${response.data.num_identidad ? response.data.num_identidad : 'ID#' + response.data.id})`,
         value: response.data.id,
       })
     }
@@ -129,7 +129,7 @@ async function getOptions(params = null) {
       options.value = []
       response.data.data.forEach(row => {
         options.value.push({
-          label: `${row.nombre_completo} (${row.num_identidad})`,
+          label: `${row.nombre_completo} (${row.num_identidad ? row.num_identidad : 'ID#' + row.id})`,
           value: row.id,
         })
       })
@@ -139,7 +139,7 @@ async function getOptions(params = null) {
         const response2 = await api.get('clientes/' + selectedId.value)
         if (response2.data) {
           options.value.push({
-            label: `${response2.data.nombre_completo} (${response2.data.num_identidad})`,
+            label: `${response2.data.nombre_completo} (${response2.data.num_identidad ? response2.data.num_identidad : 'ID#' + response2.data.id})`,
             value: response2.data.id,
           })
         }

@@ -167,7 +167,7 @@
               <div>La caja está cerrada.</div>
             </div>
             <div class="col-md-auto">
-              <q-btn color="primary" label="Abrir caja" icon="login" to="caja" />
+              <q-btn color="primary" label="Abrir caja" icon="login" to="/caja" />
             </div>
           </div>
           <template v-slot:action>

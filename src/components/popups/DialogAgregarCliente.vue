@@ -4,7 +4,7 @@
     <q-card class="q-pa-md">
       <q-form @submit="handleSubmit" class="no-bottoms" :class="isLoadingSubmit && 'form-disabled'">
         <q-card-section>
-          <div class="text-h6">{{ data.id ? 'Editar' : 'Agregar' }} {{ props.difunto ? 'difunto' : 'cliente' }}</div>
+          <div class="text-h6">{{ data.id ? 'Editar' : 'Agregar' }} {{ props.difunto ? 'difunto' : (props.relacionado ? 'relacionado' : 'cliente') }}</div>
         </q-card-section>
 
         <q-card-section>
@@ -26,7 +26,7 @@
                     </div>
                     <div class="col-sm-5 col-4">
                       <q-select dense outlined v-model="data.doc_identidad" :options="tiposDocIdentidad" label="Documento" clearable
-                        @clear="data.doc_numero = null" :rules="[val => val && val.length > 0 || '']" />
+                        @clear="data.doc_numero = null" :rules="[val => props.relacionado || (val && val.length > 0 || '')]" />
                     </div>
                     <div class="col-sm-7 col-8">
                       <q-input dense outlined v-model="data.doc_numero" label="Núm. identidad" lazy-rules
@@ -198,59 +198,62 @@
             </div>
           </div>
 
-          <q-separator class="q-my-lg" />
+          <template v-if="!relacionado">
+            <q-separator class="q-my-lg" />
 
-          <div class="row">
-            <div class="col-12">
-              <q-card flat bordered class="q-pa-sm" style="max-width: 100%">
-                <p class="text-primary text-h6">
-                  <q-icon name="family_restroom" size="sm"></q-icon> Relaciones y parentesco </p>
+            <div class="row">
+              <div class="col-12">
+                <q-card flat bordered class="q-pa-sm" style="max-width: 100%">
+                  <p class="text-primary text-h6">
+                    <q-icon name="family_restroom" size="sm"></q-icon> Relaciones y parentesco </p>
 
-                  <table class="full-width text-center j-table" v-if="data.relaciones.length">
-                    <thead>
-                      <tr>
-                        <th style="width: 35%">Es...</th>
-                        <th style="width: 20%">(relación)</th>
-                        <th style="width: 35%">...de</th>
-                        <th style="width: 10%"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(contacto, index) in data.relaciones">
-                        <td>{{ contacto.relacion.nombre_completo }}
-                          <template v-if="contacto.relacion.num_identidad">
-                            <br /> ({{ contacto.relacion.num_identidad }})
-                          </template>
-                          <br />
-                        </td>
-                        <td>
-                          <q-badge color="primary">{{ contacto.tipo_relacion }}</q-badge>
-                        </td>
-                        <td>{{ contacto.cliente.nombre_completo }}
-                          <template v-if="contacto.cliente.num_identidad">
-                            <br /> ({{ contacto.cliente.num_identidad }})
-                          </template>
-                          <br />
-                        </td>
-                        <td>
-                          <q-btn dense size="sm" class="btn-eliminar-item" icon="delete" outline color="negative"
-                            @click="handleEliminarRelacion(index)" :loading="isLoadingEliminarRelacion" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                    <table class="full-width text-center j-table" v-if="data.relaciones.length">
+                      <thead>
+                        <tr>
+                          <th style="width: 35%">Es...</th>
+                          <th style="width: 20%">(relación)</th>
+                          <th style="width: 35%">...de</th>
+                          <th style="width: 10%"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(contacto, index) in data.relaciones">
+                          <td><a href="javascript:void(0)" @click="agregarRelacionadoDialog.openDialog(contacto.relacion.id)">{{ contacto.relacion.nombre_completo }}</a>
+                            <template v-if="contacto.relacion.num_identidad">
+                              <br /> ({{ contacto.relacion.num_identidad }})
+                            </template>
+                            <br />
+                          </td>
+                          <td>
+                            <q-badge color="primary">{{ contacto.tipo_relacion }}</q-badge>
+                          </td>
+                          <td><a href="javascript:void(0)" @click="agregarRelacionadoDialog.openDialog(contacto.cliente.id)">{{ contacto.cliente.nombre_completo }}</a>
+                            <template v-if="contacto.cliente.num_identidad">
+                              <br /> ({{ contacto.cliente.num_identidad }})
+                            </template>
+                            <br />
+                          </td>
+                          <td>
+                            <q-btn dense size="sm" class="btn-eliminar-item" icon="delete" outline color="negative"
+                              @click="handleEliminarRelacion(index)" :loading="isLoadingEliminarRelacion" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
 
-                  <p v-else class="text-center q-pt-lg text-grey">No hay relaciones registradas.</p>
+                    <p v-else class="text-center q-pt-lg text-grey">No hay relaciones registradas.</p>
 
-                  <div class="text-center q-pa-lg">
-                    <q-btn icon="add" label="Agregar relación" color="primary" @click="dialogAgregarRelacion = true" />
-                  </div>
+                    <div class="text-center q-pa-lg">
+                      <q-btn icon="add" label="Agregar relación" color="primary" @click="dialogAgregarRelacion = true" />
+                    </div>
 
-              </q-card>
+                </q-card>
 
 
+              </div>
             </div>
-          </div>
+          </template>
+
 
         </q-card-section>
 
@@ -262,49 +265,58 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog allow-focus-outside v-model="dialogAgregarRelacion" class="j-dialog">
-    <q-card class="q-pa-md">
-      <q-form @submit="handleAgregarRelacion" :class="isLoadingSubmitRelacion && 'form-disabled'">
-        <q-card-section>
-          <div class="text-h6">Agregar relación</div>
-        </q-card-section>
-        <q-card-section class="q-gutter-sm">
-          <QSelectCliente dense outlined v-model="relacionData.relacion_id" clearable label="Cliente relacionado" rule="Este campo es requerido." />
-          <q-select dense outlined v-model="relacionData.tipo_relacion" :options="opcionesParentesco" label="Tipo de relación"
-            clearable use-input @filter="filterFn" new-value-mode="add-unique" input-debounce="200"
-            :rules="[val => !!val || 'Este campo es requerido']">
-            <template v-slot:option="scope">
-              <q-item-label header v-if="scope.opt.group" v-bind="scope.itemProps" class="bg-primary text-white"
-                :key="scope.opt.group">
-                <q-icon name="arrow_forward_ios" /> {{ scope.opt.group }}
-              </q-item-label>
-              <q-item v-else v-bind="scope.itemProps" v-on="scope" :key="scope.opt">
-                <q-item-section>
-                  <q-item-label>{{ scope.opt }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-            <template v-slot:no-option>
-              <q-item>
-                <q-item-section class="text-italic text-grey">
-                  <span>Pulsa <q-badge color="primary"><q-icon name="keyboard_return" />Enter</q-badge> para agregar esta
-                    opción.</span>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-        </q-card-section>
-        <q-card-actions class="justify-end">
-          <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn type="submit" label="Agregar" color="primary" :loading="isLoadingSubmit" />
-        </q-card-actions>
-      </q-form>
-    </q-card>
+  <template v-if="!relacionado">
+    <q-dialog allow-focus-outside v-model="dialogAgregarRelacion" class="j-dialog">
+      <q-card class="q-pa-md">
+        <q-form @submit="handleAgregarRelacion" :class="isLoadingSubmitRelacion && 'form-disabled'">
+          <q-card-section>
+            <div class="text-h6">Agregar relación</div>
+          </q-card-section>
+          <q-card-section class="q-gutter-sm">
+            <QSelectCliente dense outlined v-model="relacionData.relacion_id" clearable label="Cliente relacionado" rule="Este campo es requerido." :hide-bottom-space="true" />
+            <div class="col-12 text-right text-caption text-grey-6">
+              <template v-if="parseInt(relacionData.relacion_id)">
+                <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit" color="primary" @click="(e) =>
+                  agregarRelacionadoDialog.openDialog(relacionData.relacion_id, e)"/>
+              </template>
+              <span>¿La persona relacionada no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
+                color="primary" @click="agregarRelacionadoDialog.openDialog()" />
+            </div>
+            <q-select dense outlined v-model="relacionData.tipo_relacion" :options="opcionesParentesco" label="Tipo de relación"
+              clearable use-input @filter="filterFn" new-value-mode="add-unique" input-debounce="200"
+              :rules="[val => !!val || 'Este campo es requerido']">
+              <template v-slot:option="scope">
+                <q-item-label header v-if="scope.opt.group" v-bind="scope.itemProps" class="bg-primary text-white"
+                  :key="scope.opt.group">
+                  <q-icon name="arrow_forward_ios" /> {{ scope.opt.group }}
+                </q-item-label>
+                <q-item v-else v-bind="scope.itemProps" v-on="scope" :key="scope.opt">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:no-option>
+                <q-item>
+                  <q-item-section class="text-italic text-grey">
+                    <span>Pulsa <q-badge color="primary"><q-icon name="keyboard_return" />Enter</q-badge> para agregar esta
+                      opción.</span>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+          </q-card-section>
+          <q-card-actions class="justify-end">
+            <q-btn flat label="Cancelar" v-close-popup />
+            <q-btn type="submit" label="Agregar" color="primary" :loading="isLoadingSubmit" />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
 
+    <DialogAgregarRelacionado ref="agregarRelacionadoDialog" :relacionado="true" @created="(cliente) => relacionData.relacion_id = cliente.id" />
+  </template>
 
-
-
-  </q-dialog>
 </template>
 
 <style lang="scss">
@@ -336,6 +348,7 @@ import { qNotify } from 'src/boot/jardines';
 import { useAuthStore } from 'src/stores/auth.store';
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue';
 import QSelectDatetime from 'src/components/selects/QSelectDatetime.vue';
+import DialogAgregarRelacionado from './DialogAgregarCliente.vue';
 
 const $q = useQuasar()
 const dialog = ref(false)
@@ -347,10 +360,15 @@ const props = defineProps({
   difunto: {
     type: Boolean,
     default: false
+  },
+  relacionado: {
+    type: Boolean,
+    default: false,
   }
 })
 
 const customParams = ref({})
+const agregarRelacionadoDialog = ref(null)
 
 let stringOpcionesParentesco = [
   {
@@ -471,6 +489,8 @@ const handleSubmit = () => {
 
   if (props.difunto) postData.difunto
 
+  if (props.relacionado) postData.relacionado
+
   if (data.id) {
 
     api.put('clientes/' + data.id, postData)
@@ -528,6 +548,7 @@ const handleAgregarRelacion = () => {
           Object.keys(relacionData).forEach((i) => relacionData[i] = null)
           data.relaciones.push(response.data)
           $q.notify({ message: 'Relación agregada.', color: 'positive' })
+          dialogAgregarRelacion.value = false
         }
       })
       .catch(error => qNotify(error, 'error', { callback: handleAgregarRelacion }))

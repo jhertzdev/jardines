@@ -1,7 +1,7 @@
 <template>
   <q-select v-model="props.modelValue" :dense="props.dense" :outlined="props.outlined" :options="options" :label="props.label || ''" :hint="props.hint || ''"
-    :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]" :style="!props.rule && 'margin-bottom: -20px;'"
-    :clearable="clearable" use-input input-debounce="500" emit-value map-options @update:model-value="updateValue"/>
+    :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]" :style="(!props.rule || props.hideBottomSpace) && 'margin-bottom: -20px;'"
+    :clearable="clearable" use-input input-debounce="500" emit-value map-options @update:model-value="updateValue" :hide-bottom-space="props.hideBottomSpace"/>
 </template>
 
 <script setup>
@@ -44,6 +44,10 @@ const props = defineProps({
   },
   modelValue: {
     type: String
+  },
+  hideBottomSpace: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -86,9 +90,9 @@ async function getOptions(params = null) {
         })
       })
       return true
-    }    
+    }
   } catch (error) {
-    return false;    
+    return false;
   }
 }
 

@@ -48,3 +48,31 @@ input[type=number] {
   width: 100%;
   overflow: hidden;
 }
+
+a {
+  color: #0a1109;
+  -webkit-text-decoration-color: #0a110966;
+  text-decoration-color: #0a110966;
+  transition: 0.2s;
+}
+
+a:hover {
+  -webkit-text-decoration-color: #0a1109;
+  text-decoration-color: #0a1109;
+}
+
+.body--dark .q-page-container a,
+.body--dark .q-dialog a {
+  color: #F2F7A1;
+  -webkit-text-decoration-color: #F2F7A166;
+  text-decoration-color: #F2F7A166;
+}
+
+.body--dark {
+  --q-primary: #5c7959;
+ }
+
+.highlighted {
+  background-color: #ffebee !important;
+  color: #58111A;
+}
