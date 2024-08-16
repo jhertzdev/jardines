@@ -76,10 +76,19 @@ watch(() => props.modelValue, async (val) => {
 
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'selected'])
+
+const fullData = ref([])
 
 const updateValue = (value) => {
   emit('update:modelValue', value)
+
+  if (fullData.value.length) {
+    let itemData = fullData.value.find(item => value === item.id);
+    if (itemData) {
+      emit('selected', itemData)
+    }
+  }
 }
 
 const options = ref([]);
@@ -127,6 +136,9 @@ async function getOptions(params = null) {
 
       //console.log(response.data);
       options.value = []
+
+      fullData.value = response.data.data;
+
       response.data.data.forEach(row => {
         options.value.push({
           label: `${row.nombre_completo} (${row.num_identidad ? row.num_identidad : 'ID#' + row.id})`,
@@ -138,6 +150,7 @@ async function getOptions(params = null) {
       if (props?.modelValue && !options.value.map(val => val.id).includes(selectedId.value)) {
         const response2 = await api.get('clientes/' + selectedId.value)
         if (response2.data) {
+          fullData.value.push(response2.data);
           options.value.push({
             label: `${response2.data.nombre_completo} (${response2.data.num_identidad ? response2.data.num_identidad : 'ID#' + response2.data.id})`,
             value: response2.data.id,

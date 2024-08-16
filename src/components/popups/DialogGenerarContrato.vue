@@ -106,8 +106,17 @@
 
                     <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
                       <div class="col-md-4">
-                        <q-select dense :options="['Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
-                          v-model="contratosData[codigo].etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" />
+                        <q-select dense :options="['Donado', 'Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
+                          v-model="contratosData[codigo].etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" @update:model-value="val => {
+                            if (val == 'Donado') {
+                              contratosData[codigo].valor_cuota_inicial = 0
+                              contratosData[codigo].valor_cuota_mensual = 0
+                              contratosData[codigo].numero_cuotas = 1
+                              contratosData[codigo].valor_total = 0
+                              contratosData[codigo].valor_venta = 0
+                              contratosData[codigo].fecha_vencimiento = null
+                            }
+                          }"/>
                       </div>
                       <div class="col-md-8">
                         <q-input dense type="textarea" class="no-resize" outlined v-model="contratosData[codigo].notas" rows="2" label="Notas" clearable autogrow />
@@ -137,7 +146,9 @@
                             <div class="col-12 col-md-6">
                               <q-input type="date" dense stack-label outlined
                                 v-model="contratosData[codigo].fecha_emision" label="Fecha de emisión" @update:model-value="val => {
-                                  if (contratosData[codigo].tipo_actividad == 'venta_parcelas') {
+                                  if (contratosData[codigo].etiqueta == 'Donado') {
+                                    contratosData[codigo].fecha_vencimiento = null
+                                  } else if (contratosData[codigo].tipo_parcela == 'Cremacion' || contratosData[codigo].tipo_actividad == 'venta_parcelas') {
                                     contratosData[codigo].fecha_vencimiento = val
                                   } else {
                                     let currentDate = new Date(val + ' 00:00:00')
@@ -148,7 +159,9 @@
                             </div>
                             <div class="col-12 col-md-6">
                               <q-input type="date" dense stack-label outlined
-                                v-model="contratosData[codigo].fecha_vencimiento" label="Fecha de vencimiento" :readonly="contratosData[codigo].tipo_actividad == 'venta_parcelas'" />
+                                v-model="contratosData[codigo].fecha_vencimiento" label="Fecha de vencimiento"
+                                :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <div class="col-12 col-md-4">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].parcelas.length"
@@ -156,26 +169,26 @@
                             </div>
                             <div class="col-12 col-md-8">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].valor_venta" @update:model-value="val => contratosData[codigo].valor_total = val"
-                                label="Valor de venta" step="0.01" />
+                                label="Valor de venta" step="0.01" :readonly="contratosData[codigo].etiqueta == 'Donado'" :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <div class="col-12 col-md-4">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].numero_cuotas"
-                                label="Núm. cuotas" step="1" />
+                                label="Núm. cuotas" step="1" :readonly="contratosData[codigo].etiqueta == 'Donado'" :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <div class="col-12 col-md-4">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_inicial"
-                                label="Cuota inicial" step="0.01" />
+                                label="Cuota inicial" step="0.01" :readonly="contratosData[codigo].etiqueta == 'Donado'" :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <div class="col-12 col-md-4">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_mensual"
-                                label="Cuota mensual" step="0.01" />
+                                label="Cuota mensual" step="0.01" :readonly="contratosData[codigo].etiqueta == 'Donado'" :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <div class="col-12 col-md-8">
                               <q-input dense outlined v-model="contratosData[codigo].direccion_pago" label="Dirección de pago" />
                             </div>
                             <div class="col-12 col-md-4">
                               <q-input dense type="number" outlined v-model="contratosData[codigo].valor_total"
-                                label="Valor total" step="0.01" />
+                                label="Valor total" step="0.01" :readonly="contratosData[codigo].etiqueta == 'Donado'" :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
                             <!--<div class="col-12 text-right">
                               <q-checkbox v-model="contratosData[codigo].autocalcular_total" label="Autocalcular total" />
@@ -398,6 +411,10 @@ watch(contratosData, (value) => {
       contratosData.value[codigo].ubicaciones = defaultParams.value.ubicaciones
     }
 
+    if (defaultParams.value.etiqueta) {
+      contratosData.value[codigo].etiqueta = defaultParams.value.etiqueta
+    }
+
     if (authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')) {
       if (defaultParams.value.etiqueta) {
         contratosData.value[codigo].etiqueta = defaultParams.value.etiqueta
@@ -438,7 +455,14 @@ const handleSelectTipoContrato = (opciones) => {
       sin_parcelas: "0"
     }
 
-    if (defaultParams.value.fecha_emision) {
+    if (defaultParams.value.etiqueta == 'Donado') {
+      contratosData.value[opcion].fecha_vencimiento = null
+      contratosData.value[opcion].valor_venta = 0
+      contratosData.value[opcion].numero_cuotas = 1
+      contratosData.value[opcion].valor_cuota_inicial = 0
+      contratosData.value[opcion].valor_cuota_mensual = 0
+      contratosData.value[opcion].valor_total = 0
+    } else if (defaultParams.value.fecha_emision) {
       let fechaEmision = new Date(defaultParams.value.fecha_emision)
       let fechaEmisionDMY = fechaEmision.toISOString().substr(0, 10)
       contratosData.value[opcion].fecha_emision = fechaEmisionDMY

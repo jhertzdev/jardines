@@ -66,18 +66,18 @@
                       color="primary" @click="agregarClienteDialog.openDialog()" />
                   </div>
                   <div class="col-12">
-                    <div class="text-h6 text-center">{{ (contratosData[codigo].tipo_parcela || 'Producto').concat('s') }}
+                    <div class="text-h6 text-center">Ubicaciones
                       <q-icon name="help_outline" class="q-ml-xs">
                         <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                          Al asignar las {{ (contratosData[codigo].tipo_parcela || 'Producto').concat('s') }}, su estatus cambiará a "Vendido", y se asignará al comprador como propietario.
+                          Al asignar las ubicaciones, su estatus cambiará a "Vendido", y se asignará al comprador como propietario.
                         </q-tooltip>
                       </q-icon>
                     </div>
                   </div>
                   <div class="col-12">
                     <QSelectParcelas dense v-model="contratosData[codigo].parcelas" outlined clearable
-                      :label="`Selecciona los ${(contratosData[codigo].tipo_parcela || 'Producto').concat('s')} a asignar`" required
-                      :rule="`Debes seleccionar al menos un ${(contratosData[codigo].tipo_parcela || 'Producto')}`"/>
+                      :label="`Selecciona las ubicaciones a asignar`" required
+                      :rule="`Debes seleccionar al menos una ubicación`"/>
                   </div>
                   <div class="col-12">
                     <div class="text-h6 text-center">Información del contrato</div>

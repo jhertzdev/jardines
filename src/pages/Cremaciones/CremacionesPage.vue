@@ -23,36 +23,10 @@
     <div class="col-12">
       <div class="q-mb-md">
 
-        <div class="flex justify-between q-mb-md">
-
-          <q-btn-toggle v-model="tipoContrato" toggle-color="primary" :options="[
-            { label: 'Parcelas', value: 'Parcela' },
-            { label: 'Nichos', value: 'Nicho' },
-            { label: 'Columbarios', value: 'Columbario' },
-          ]" />
+        <div class="flex justify-end q-mb-md">
 
           <div class="q-gutter-sm">
-            <q-btn-dropdown color="primary" icon="description" label="Nuevo contrato">
-              <q-list>
-                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Parcela')">
-                  <q-item-section>
-                    <q-item-label>Parcelas</q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Nicho')">
-                  <q-item-section>
-                    <q-item-label>Nichos</q-item-label>
-                  </q-item-section>
-                </q-item>
-
-                <q-item clickable v-close-popup @click="openDialogGenerarContratos('Columbario')">
-                  <q-item-section>
-                    <q-item-label>Columbarios</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
+            <q-btn color="primary" icon="description" label="Nuevo contrato" @click="openDialogGenerarContratos('Cremacion')" />
 
             <!--<q-btn color="primary" label="Traspaso" icon="swap_horiz" @click="traspasarContratosDialog.openDialog()"/>-->
           </div>
@@ -85,11 +59,26 @@
               {{ props.value || '-' }}
             </q-td>
           </template>
+
           <template v-slot:body-cell-cliente="props">
             <q-td :props="props">
               <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
               <span v-else>-</span>
             </q-td>
+          </template>
+
+          <template v-slot:body-cell-cremaciones="props">
+            <q-td :props="props">
+              <ul style="padding-left: 0; line-height: 1.15;">
+                <li v-for="cremacion in props.row.cremaciones">
+                  <a href="javascript:void(0)" @click="(e) => handleVerCremacionPdf(cremacion.id)">
+                    <span class="text-bold text-primary">{{ cremacion.num_cremacion }}</span> -
+                    <span class="text-italic">{{ cremacion.difunto_nombre }}</span>
+                  </a>
+                </li>
+              </ul>
+            </q-td>
+
           </template>
 
 
@@ -134,16 +123,10 @@ import { format } from "date-fns";
 const router = useRouter()
 const $q = useQuasar()
 
-const tipoContrato = ref('Parcela');
-
 const generarContratosDialog = ref(null)
 const verContratosDialog = ref(null)
 const editarParcelaDialog = ref(null)
 const verClienteDialog = ref(null);
-
-watch(tipoContrato, (value) => {
-  contratosTableRef.value.requestServerInteraction()
-})
 
 const openDialogGenerarContratos = (tipo = null) => {
   generarContratosDialog.value.openDialog(tipo)
@@ -167,15 +150,29 @@ const handleEditarParcela = (data) => {
 
 const stats = ref({});
 
+const handleVerCremacionPdf = (cremacionId) => {
+  api
+    .get("cremaciones/" + cremacionId + "/pdf", { responseType: "blob" })
+    .then((response) => {
+      console.log(response);
+      window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async (error) => {
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, "error", {
+        callback: () => handleVerCremacionPdf(cremacionId),
+      });
+    });
+};
+
 const contratos = ref([])
 const contratosColumnas = [
   { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'num_contrato', sortable: true },
   { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
   { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
-  { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: false, format: (val) => val ? format(val, 'dd/MM/yyyy') : '-' },
   { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
-  { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
+  { name: 'cremaciones', label: 'Cremaciones', align: 'left', field: 'cremaciones', sortable: false },
 ]
 
 /**
@@ -215,9 +212,11 @@ const contratosTableRequest = (props) => {
     searchParams.append('order', descending ? 'DESC' : 'ASC')
   }
 
-  if (tipoContrato.value) {
-    searchParams.append('f[tipo_parcela]', tipoContrato.value)
-  }
+
+  searchParams.append('f[tipo_parcela]', 'Cremacion')
+
+  console.log('searchParams', searchParams);
+
 
   if (searchParams) {
     endpoint += '?' + searchParams.toString();
@@ -227,6 +226,9 @@ const contratosTableRequest = (props) => {
 
   api.get(endpoint)
     .then(response => {
+
+      console.log('response', response);
+
       if (response.data) {
         contratos.value = response.data.data
         contratosTablePagination.value.page = response.data.pager.currentPage

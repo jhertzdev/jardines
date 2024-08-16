@@ -58,7 +58,7 @@ const props = defineProps({
 
 console.log('parcelprops', props.modelValue);
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'selected'])
 
 const fullData = ref([])
 

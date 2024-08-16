@@ -519,7 +519,10 @@ const handleSubmit = () => {
           dialog.value = false
           $q.notify({ message: 'Agregado exitosamente.', color: 'positive' })
 
+          console.log('Created!!', response.data, customParams.value.onCreate || 'nada');
+
           if (customParams.value.onCreate) {
+            console.log('Created!!', response.data);
             customParams.value.onCreate(response.data)
           }
 
@@ -670,6 +673,8 @@ const buttonTargetId = ref(null)
 
 const openDialog = (id, event = null, params = {}) => {
 
+  console.log('openDialog', id, event, params);
+
   buttonTargetId.value = event?.target?.closest('.q-btn, .q-item--clickable')?.id || null;
 
   Object.keys(data).forEach((i) => {
@@ -701,6 +706,8 @@ const openDialog = (id, event = null, params = {}) => {
   } else {
     dialog.value = true
   }
+
+  console.log('openDialogParams', params)
 
   customParams.value = params;
 

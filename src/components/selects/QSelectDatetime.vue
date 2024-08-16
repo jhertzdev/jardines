@@ -39,7 +39,7 @@
 import { ref, toRef, watch, onMounted } from 'vue'
 import { date as dateUtils } from 'quasar'
 
-const model = ref('hey')
+const model = ref('')
 
 const date = ref(null)
 
@@ -144,6 +144,13 @@ function dateYMDtoDMY(datestring) {
 
   return outputDateString;
 }
+
+const setDateValue = (value) => {
+  console.log('setDateValue', value);
+  model.value = dateYMDtoDMY(value)
+}
+
+defineExpose({ setDateValue })
 
 onMounted(() => {
 

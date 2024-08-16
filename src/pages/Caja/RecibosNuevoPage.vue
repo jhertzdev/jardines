@@ -679,6 +679,15 @@
       parcelasSelected.value = value?.parcelas || []
       contratoSelected.value = value
       reciboData.tipo_ubicacion = value.tipo_parcela
+
+      if (new Date(value.fecha_emision) == 'Invalid Date') {
+        contratoSelected.value.fecha_emision = new Date(null).toISOString().substr(0, 10)
+      }
+
+      if (new Date(value.fecha_vencimiento) == 'Invalid Date') {
+        contratoSelected.value.fecha_vencimiento = new Date(null).toISOString().substr(0, 10)
+      }
+
     } else {
       parcelasSelected.value = []
       reciboData.tipo_ubicacion = null
@@ -1148,6 +1157,10 @@
     if (reciboData.empresa_id) {
       let dataFiltered = servicios.value.filter(servicio => servicio.empresa_id === reciboData.empresa_id)
 
+      if (contratoSelected.value?.etiqueta == 'Donado') {
+        dataFiltered = dataFiltered.filter(servicio => servicio.tipo_producto != 'Mantenimiento')
+      }
+
       // Si reciboData.tipo_ubicacion tiene valor, devolver todos los servicios con servicio.tipo_ubicacion tanto NULL como con el valor de reciboData.tipo_ubicacion
       if (reciboData.tipo_ubicacion) {
         return dataFiltered.filter(servicio => !servicio.tipo_ubicacion || servicio.tipo_ubicacion === reciboData.tipo_ubicacion)
@@ -1437,7 +1450,10 @@
           ubicacion.cuotas = cantidadCuotas;
         }
 
-        const ultimoPagadoHasta = new Date(ubicacion.pagado_hasta || contratoSelected.value.fecha_emision);
+        let ultimoPagadoHasta = new Date(ubicacion.pagado_hasta || contratoSelected.value.fecha_emision);
+        if (ultimoPagadoHasta == 'Invalid Date') {
+          ultimoPagadoHasta = new Date(contratoSelected.value.fecha_emision || null);
+        }
 
         if (row.pago_por_cuotas) {
           ubicacion.nuevo_pagado_hasta = agregarPorFechaCorte(ultimoPagadoHasta, new Date(contratoSelected.value.fecha_emision), parseInt(ubicacion.cuotas))

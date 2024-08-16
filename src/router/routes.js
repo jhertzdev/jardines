@@ -27,6 +27,11 @@ const routes = [
         meta: { viewName: 'Auditoría', viewIcon: 'manage_history' }
       },
       {
+        path: 'cremaciones',
+        component: () => import('src/pages/Cremaciones/CremacionesPage.vue'),
+        meta: { viewName: 'Cremaciones', viewIcon: 'local_hospital' }
+      },
+      {
         path: 'usuarios',
         component: () => import('src/pages/Usuarios/UsuariosPage.vue'),
         meta: { viewName: 'Usuarios', viewIcon: 'groups' }

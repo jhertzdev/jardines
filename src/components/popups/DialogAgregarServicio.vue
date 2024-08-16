@@ -178,7 +178,8 @@ const tiposProductos = [
   'Costos de apertura / cierre',
   'Propiedad / Venta',
   'Mantenimiento',
-  'Servicio general'
+  'Servicio general',
+  'Cremación',
 ]
 
 defineExpose({ openDialog })

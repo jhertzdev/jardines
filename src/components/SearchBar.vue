@@ -341,6 +341,7 @@
   import { useAppStore } from "src/stores/app.store";
   import { useRouter } from "vue-router";
   import { api } from "src/boot/axios";
+  import { qNotify } from "src/boot/jardines";
 
   import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
   import DialogAgregarDifunto from "src/components/popups/DialogAgregarCliente.vue";

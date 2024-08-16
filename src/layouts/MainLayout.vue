@@ -389,6 +389,11 @@ const linksList = [
     perms: 'configuracion',
   },
   {
+    title: 'Cremación',
+    icon: 'local_hospital',
+    to: '/app/cremaciones',
+  },
+  {
     title: 'Auditoría',
     icon: 'manage_history',
     to: '/app/auditoria',

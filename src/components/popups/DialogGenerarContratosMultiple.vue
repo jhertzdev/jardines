@@ -24,7 +24,7 @@
 
         <template v-if="clienteId && !Object.keys(contratosData).length">
           <div class="text-center q-mb-md" v-if="!selectGenerarContratos.length">
-            <q-btn v-for="tipo in filteredTiposContratos?.filter(tipo => tipo.tipo_actividad == 'venta_parcelas') ?? []" :key="tipo.codigo_contrato" icon="add"
+            <q-btn v-for="tipo in filteredTiposContratos?.filter(tipo => tipo.tipo_parcela == 'Cremacion' || tipo.tipo_actividad == 'venta_parcelas') ?? []" :key="tipo.codigo_contrato" icon="add"
               :label="`${tipo.nombre} (${tipo.codigo_contrato})`" color="primary" @click="agregarTipoContrato(tipo)" />
           </div>
         </template>
@@ -114,8 +114,17 @@
 
                     <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
                       <div class="col-md-4">
-                        <q-select dense :options="['Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
-                          v-model="contratosData[codigo].etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" />
+                        <q-select dense :options="['Donado', 'Entregado', 'Suspendido', 'Anulado', 'Traspasado', 'Removido', 'Unificado', 'Cambio por cremación']" outlined
+                          v-model="contratosData[codigo].etiqueta" label="Etiqueta" clearable new-value-mode="add-unique" @update:model-value="val => {
+                            if (val == 'Donado') {
+                              contratosData[codigo].valor_cuota_inicial = 0
+                              contratosData[codigo].valor_cuota_mensual = 0
+                              contratosData[codigo].numero_cuotas = 1
+                              contratosData[codigo].valor_total = 0
+                              contratosData[codigo].valor_venta = 0
+                              contratosData[codigo].fecha_vencimiento = null
+                            }
+                          }"/>
                       </div>
                       <div class="col-md-8">
                         <q-input dense type="textarea" class="no-resize" outlined v-model="contratosData[codigo].notas" rows="2" label="Notas" clearable autogrow />
@@ -127,17 +136,22 @@
 
                       <div class="row q-col-gutter-md">
                         <div class="col-md-6">
-                          <div class="text-h6 text-center">Ubicaciones
-                            <q-icon name="help_outline" class="q-ml-xs">
-                              <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                                Al asignar las ubicaciones, su estatus cambiará a "Vendido", y se asignará al comprador como propietario.
-                              </q-tooltip>
-                            </q-icon>
-                          </div>
 
-                          <QSelectParcelas @selected="val => contratosData[codigo].ubicaciones = val" dense v-model="contratosData[codigo].parcelas" outlined
-                            :label="`Selecciona las ubicaciones a asignar`" :required="!contratosData[codigo].sin_parcelas"
-                            :rule="`Debes seleccionar al menos una ubicación`" />
+                          <div v-show="contratosData[codigo].tipo_parcela != 'Cremacion'">
+
+                            <div class="text-h6 text-center">Ubicaciones
+                              <q-icon name="help_outline" class="q-ml-xs">
+                                <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
+                                  Al asignar las ubicaciones, su estatus cambiará a "Vendido", y se asignará al comprador como propietario.
+                                </q-tooltip>
+                              </q-icon>
+                            </div>
+
+                            <QSelectParcelas @selected="val => contratosData[codigo].ubicaciones = val" dense v-model="contratosData[codigo].parcelas" outlined
+                              :label="`Selecciona las ubicaciones a asignar`" :required="!contratosData[codigo].sin_parcelas"
+                              :rule="`Debes seleccionar al menos una ubicación`" />
+
+                          </div>
 
                           <div class="row q-col-gutter-sm">
                             <div class="col-12">
@@ -146,7 +160,9 @@
                             <div class="col-12 col-md-6">
                               <q-input type="date" dense stack-label outlined
                                 v-model="contratosData[codigo].fecha_emision" label="Fecha de emisión" @update:model-value="val => {
-                                  if (contratosData[codigo].tipo_actividad == 'venta_parcelas') {
+                                  if (contratosData[codigo].etiqueta == 'Donado') {
+                                    contratosData[codigo].fecha_vencimiento = null
+                                  } else if (contratosData[codigo].tipo_parcela == 'Cremacion' || contratosData[codigo].tipo_actividad == 'venta_parcelas') {
                                     contratosData[codigo].fecha_vencimiento = val
                                   } else {
                                     let currentDate = new Date(val + ' 00:00:00')
@@ -157,33 +173,60 @@
                             </div>
                             <div class="col-12 col-md-6">
                               <q-input type="date" dense stack-label outlined
-                                v-model="contratosData[codigo].fecha_vencimiento" label="Fecha de vencimiento" :readonly="contratosData[codigo].tipo_actividad == 'venta_parcelas'" />
+                                v-model="contratosData[codigo].fecha_vencimiento" label="Fecha de vencimiento"
+                                :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'" />
                             </div>
-                            <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].parcelas.length"
-                                label="Cant. parcelas" step="1" readonly />
-                            </div>
+                            <template v-if="contratosData[codigo].tipo_parcela == 'Cremacion'">
+                              <div class="col-12 col-md-4">
+                                <q-input dense outlined v-model="contratosData[codigo].plan_codigo" label="Plan contratado" clearable @change="val => {
+                                  if (val && val.startsWith('P-')) {
+                                    contratosData[codigo].plan_descripcion = contratosData[codigo].plan_descripcion = 'PROMOCIONES DE CREMACIONES ' + val
+                                    contratosData[codigo].plan_cantidad = 1
+                                  }
+                                }" />
+                              </div>
+                              <div class="col-12 col-md-8">
+                                <q-input dense outlined v-model="contratosData[codigo].plan_descripcion"
+                                  label="Descripción del plan"/>
+                              </div>
+                              <div class="col-12 col-md-4">
+                                <q-input dense type="number" outlined v-model="contratosData[codigo].plan_cantidad"
+                                  label="Cant. cremaciones" step="1" min="1" />
+                              </div>
+                            </template>
+                            <template v-else>
+                              <div class="col-12 col-md-4">
+                                <q-input dense type="number" outlined v-model="contratosData[codigo].parcelas.length"
+                                  label="Cant. parcelas" step="1" readonly />
+                              </div>
+                            </template>
                             <div class="col-12 col-md-8">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_venta" @update:model-value="val => contratosData[codigo].valor_total = val"
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_venta" :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'" @update:model-value="val => contratosData[codigo].valor_total = val"
                                 label="Valor de venta" step="0.01" />
                             </div>
                             <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].numero_cuotas"
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].numero_cuotas" :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'"
                                 label="Núm. cuotas" step="1" />
                             </div>
                             <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_inicial"
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_inicial" :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'"
                                 label="Cuota inicial" step="0.01" />
                             </div>
                             <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_mensual"
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_cuota_mensual" :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'"
                                 label="Cuota mensual" step="0.01" />
                             </div>
                             <div class="col-12 col-md-8">
                               <q-input dense outlined v-model="contratosData[codigo].direccion_pago" label="Dirección de pago" />
                             </div>
                             <div class="col-12 col-md-4">
-                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_total"
+                              <q-input dense type="number" outlined v-model="contratosData[codigo].valor_total" :readonly="contratosData[codigo].etiqueta == 'Donado'"
+                                :disable="contratosData[codigo].etiqueta == 'Donado'"
                                 label="Valor total" step="0.01" />
                             </div>
                             <!--<div class="col-12 text-right">
@@ -319,7 +362,7 @@ const agregarTipoContrato = (tipo) => {
     comprador_id: clienteId.value,
     tipo_parcela: tipo.tipo_parcela,
     fecha_emision: currentDate.toISOString().substr(0, 10),
-    fecha_vencimiento: tipo.tipo_actividad == 'mantenimiento_parcelas' ? nextYearDate.toISOString().substr(0, 10) : currentDate.toISOString().substr(0, 10),
+    fecha_vencimiento: tipo.tipo_actividad == 'mantenimiento_parcelas' && tipo.tipo_parcela != 'Cremacion' ? nextYearDate.toISOString().substr(0, 10) : currentDate.toISOString().substr(0, 10),
     visible: true,
     tipo_contrato: tipo,
   }
@@ -333,8 +376,12 @@ const recalcularContrato = (contrato, data) => {
   let tipoContrato = tiposContratos.value.find(tipo => tipo.codigo_contrato === contrato.codigo_contrato)
   let total = 0;
 
+  console.log('Recalculando...')
+
   data.lineas.forEach(linea => {
-    if (tipoContrato.tipo_actividad == 'mantenimiento_parcelas' && linea.tipo?.tipo_producto == 'Mantenimiento') {
+
+    console.log(tipoContrato.tipo_actividad, linea.tipo?.tipo_producto, tipoContrato.tipo_actividad == 'mantenimiento_parcelas' && ['Mantenimiento', 'Cremación'].includes(linea.tipo?.tipo_producto))
+    if (tipoContrato.tipo_actividad == 'mantenimiento_parcelas' && ['Mantenimiento', 'Cremación'].includes(linea.tipo?.tipo_producto)) {
       total += linea.total
     }
     if (tipoContrato.tipo_actividad == 'venta_parcelas' && linea.tipo?.tipo_producto == 'Propiedad / Venta') {

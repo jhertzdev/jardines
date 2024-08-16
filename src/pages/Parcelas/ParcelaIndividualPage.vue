@@ -192,9 +192,8 @@
                       </template>
                     </div>
                     <div class="col-12 col-md">
-                      <QSelectDatetime readonly dense outlined stack-label label="Fecha de inhumación"
-                        v-model="puestosData[puesto.id].fecha_inhumacion"
-                        v-if="parseInt(puestosData[puesto.id].ocupado)" />
+                      <q-input type="datetime-local" readonly dense outlined stack-label label="Fecha de inhumación"
+                        v-model="puestosData[puesto.id].fecha_inhumacion" v-if="parseInt(puestosData[puesto.id].ocupado)" />
                     </div>
                     <div class="col-12 col-md-auto flex flex-column items-center">
                       <q-btn-dropdown dense size="sm" color="primary" :loading="isLoadingPuestos"

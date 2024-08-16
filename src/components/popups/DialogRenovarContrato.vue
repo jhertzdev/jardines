@@ -1,7 +1,7 @@
 <template>
   <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md scroll">
-      <q-form ref="renovarContratosForm" @submit="handleSubmitRenovarContratos" @validation-error="onValidationError">
+      <q-form ref="renovarContratosForm" @submit="handleSubmitRenovarContratos" @validation-error="onValidationError" @keyup.enter="handleSubmitRenovarContratos">
         <q-card-section>
           <div class="text-h6">Renovar contrato</div>
         </q-card-section>
@@ -158,7 +158,6 @@ watch(contratoData, (value) => {
 
   // Autogenerar código de contrato
   if (contratoData.value.autogenerar_serie) {
-    console.log(contratoData.value);
     contratoData.value.num_serie = contratoData.value.siguiente_num_serie
   }
 
@@ -233,13 +232,34 @@ const openDialog = (id) => {
         }) || []
         contratoData.value.autocalcular_total = false
         contratoData.value.autogenerar_serie = true
-        contratoData.value.nuevo_valor_total = contratoData.value.valor_total
+        //contratoData.value.nuevo_valor_total = contratoData.value.valor_total
         contratoData.value.nuevo_numero_cuotas = 1
         contratoData.value.nuevo_valor_cuota_inicial = 0
         contratoData.value.nuevo_valor_cuota_mensual = 0
       }
+
+      api.get('servicios')
+        .then(response => {
+          if (response.data) {
+            let servicios = response.data.filter(s => s.tipo_producto == 'Mantenimiento' && s.tipo_ubicacion == contratoData.value.tipo_parcela)
+            let precioMantenimiento = servicios.length ? parseFloat(servicios[0].precio_ref) : 0
+            let tasaBolivares = 0;
+
+            api.get('caja/monedas')
+              .then(response => {
+                if (response.data) {
+                  tasaBolivares = parseFloat(response.data.find(m => m.simbolo.startsWith('Bs'))?.tasa || 0)
+                }
+
+                contratoData.value.nuevo_valor_total = precioMantenimiento * tasaBolivares * (contratoData.value.parcelas?.length || 1)
+              })
+
+          }
+        })
+
     })
     .finally(() => isLoadingContrato.value = false)
+
   dialog.value = true
 }
 

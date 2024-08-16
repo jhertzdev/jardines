@@ -25,9 +25,9 @@
 
         </q-card-section>
         <q-card-section class="q-px-none">
-          <q-table dense flat :rows="contratos" :columns="columnas" v-model:pagination="tablePagination" hide-bottom row-key="name">
+          <q-table dense flat :rows="contratos" :columns="columnas" :visible-columns="columnasVisibles" v-model:pagination="tablePagination" hide-bottom row-key="name">
             <template v-slot:body-cell-actions="props">
-              <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 <q-btn-dropdown dense size="sm" color="primary" flat icon="more_horiz">
                   <q-list>
                     <q-item clickable @click="editarContratoDialog.openDialog(props.row.id)" v-close-popup>
@@ -42,13 +42,13 @@
                       </q-item-section>
                       <q-item-section>Crear recibo</q-item-section>
                     </q-item>
-                    <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup v-if="props.row.tipo_actividad != 'venta_parcelas' && !EstadosDesactivados.includes(props.row.estatus)">
+                    <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup v-if="props.row.tipo_actividad != 'venta_parcelas' && props.row.tipo_parcela != 'Cremacion' && !EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="rotate_right" />
                       </q-item-section>
                       <q-item-section>Renovar</q-item-section>
                     </q-item>
-                    <q-item v-if="props.row.tipo_actividad == 'mantenimiento_parcelas'" clickable @click="generarContratoDialog.openDialog(props.row.tipo_parcela, {
+                    <q-item v-if="props.row.tipo_actividad == 'mantenimiento_parcelas' && props.row.tipo_parcela != 'Cremacion'" clickable @click="generarContratoDialog.openDialog(props.row.tipo_parcela, {
                       tipo_actividad: 'venta_parcelas',
                       tipo_parcela: props.row.tipo_parcela,
                       num_contrato: props.row.num_contrato,
@@ -71,19 +71,20 @@
                       num_contrato: props.row.num_contrato,
                       comprador_id: props.row.cliente?.id,
                       parcelas: props.row.parcelas.map(parcela => parcela.id),
-                      ubicaciones: props.row.parcelas
+                      ubicaciones: props.row.parcelas,
+                      etiqueta: props.row.etiqueta,
                     })" v-close-popup>
                       <q-item-section side>
                         <q-icon color="black" name="add" />
                       </q-item-section>
                       <q-item-section>Contrato de mant.</q-item-section>
                     </q-item>
-                    <q-item :clickable="props.row.esta_vigente" @click="handleDownloadPdf(props.row.id)" v-close-popup :disable="!props.row.esta_vigente" v-if="!EstadosDesactivados.includes(props.row.estatus)">
+                    <q-item :clickable="props.row.esta_vigente || !props.row.fecha_vencimiento" @click="handleDownloadPdf(props.row.id)" v-close-popup :disable="!props.row.esta_vigente && !!props.row.fecha_vencimiento" v-if="!EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="print" />
                       </q-item-section>
                       <q-item-section>Imprimir
-                        <q-tooltip v-if="!props.row.esta_vigente" max-width="200px" class="text-center bg-black">El contrato debe estar vigente para poder imprimir.</q-tooltip>
+                        <q-tooltip v-if="!props.row.esta_vigente && !!props.row.fecha_vencimiento" max-width="200px" class="text-center bg-black">El contrato debe estar vigente para poder imprimir.</q-tooltip>
                       </q-item-section>
                     </q-item>
                     <q-item clickable @click="openDialogEliminarContrato(props.row.id)" v-close-popup>
@@ -97,7 +98,7 @@
               </q-td>
             </template>
             <template v-slot:body-cell-estatus="props">
-              <q-td :props="props" style="line-height: 1.15;" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" style="line-height: 1.15;" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 {{ props.row.estatus }}
                 <template v-if="props.row.etiqueta">
                  <br/> <span style="font-size:.75rem">({{ props.row.etiqueta }})</span>
@@ -105,40 +106,72 @@
               </q-td>
             </template>
             <template v-slot:body-cell-notas="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
-                <div style="font-size:.65rem; max-width: 150px; text-wrap: wrap;">{{ props.row.notas }}</div>
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="font-size:.65rem; max-width: 150px; white-space: normal;">
+                {{ props.row.notas }}
               </q-td>
             </template>
             <template v-slot:body-cell-cliente="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
                 <span v-else>-</span>
               </q-td>
             </template>
             <template v-slot:body-cell-parcelas="props">
-            <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+            <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
                 @click="editarParcelaDialog.openDialog(parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
             </q-td>
             </template>
+
+            <template v-slot:body-cell-cremaciones="props">
+              <q-td :props="props">
+                <ul style="padding-left: 0; line-height: 1.15;">
+                  <li v-for="cremacion in props.row.cremaciones">
+                    <a href="javascript:void(0)" @click="(e) => handleVerCremacionPdf(cremacion.id)">
+                      <span class="text-bold text-primary">{{ cremacion.num_cremacion }}</span> -
+                      <span class="text-italic">{{ cremacion.difunto_nombre }}</span>
+                    </a>
+                  </li>
+                </ul>
+              </q-td>
+            </template>
+
             <template v-slot:body-cell-num_contrato="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 <a href="javascript:void(0)" @click="editarContratoDialog.openDialog(props.row.id)">{{ props.row.codnum_contrato || '-' }}</a>
               </q-td>
             </template>
             <template v-slot:body-cell-fecha_emision="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
               </q-td>
             </template>
             <template v-slot:body-cell-fecha_vencimiento="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
                 {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
               </q-td>
             </template>
             <template v-slot:body-cell-vigente_hasta="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus)}">
-                {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+                <template v-if="props.row.etiqueta != 'Donado' && props.row.tipo_actividad == 'mantenimiento_parcelas' && props.row.tipo_parcela != 'Cremacion'">
+                  <a href="javascript:void(0)" @click="(e) => actualizarFechasDialog.openDialog({
+                    contrato_id: props.row.id,
+                    rows: props.row.parcelas,
+                  })">
+                    <template v-if="props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date')">
+                      {{ format(props.row[props.col.name], 'dd/MM/yyyy') }}
+                    </template>
+                    <template v-else-if="props.row.estatus != 'Inactivo'">
+                      <q-badge color="primary" dense>
+                        <q-icon name="event" size="xs" class="q-mr-xs"/>
+                        Agregar
+                      </q-badge>
+                    </template>
+                  </a>
+                </template>
+                <template v-else>
+                  <span class="text-italic text-grey-6">{{ props.row.fecha_vencimiento && new Date(props.row.fecha_vencimiento) != 'Invalid Date' ? format(props.row.fecha_vencimiento, 'dd/MM/yyyy') : '-' }}</span>
+                </template>
               </q-td>
             </template>
           </q-table>
@@ -159,6 +192,7 @@
   <DialogEditarParcela ref="editarParcelaDialog" @updated="getData()"></DialogEditarParcela>
   <DialogGenerarContrato ref="generarContratoDialog" @updated="getData()" @created="getData()"></DialogGenerarContrato>
   <DialogAgregarCliente ref="verClienteDialog" @updated="getData()"/>
+  <DialogActualizarFechas ref="actualizarFechasDialog" @updated="getData()"/>
 
   <q-dialog allow-focus-outside v-model="eliminarContratoDialog" class="j-dialog">
     <q-card class="q-pa-md text-center">
@@ -195,6 +229,7 @@ import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.v
 import DialogGenerarContrato from "src/components/popups/DialogGenerarContrato.vue";
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
+import DialogActualizarFechas from "src/components/popups/DialogActualizarFechas.vue";
 
 import { useAppStore } from "src/stores/app.store";
 
@@ -212,9 +247,11 @@ const renovarContratoDialog = ref(null)
 const generarContratoDialog = ref(null)
 const verClienteDialog = ref(null)
 const editarParcelaDialog = ref(null)
+const actualizarFechasDialog = ref(null)
 
 const EstadosDesactivados = ['Inactivo', 'Expirado']
 
+const columnasVisibles = ref([])
 const columnas = [
   { name: 'actions', label: '', field: 'actions' },
   { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'codnum_contrato', sortable: true },
@@ -224,6 +261,7 @@ const columnas = [
   { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', sortable: true },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
   { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
+  { name: 'cremaciones', label: 'Cremaciones', align: 'left', field: 'cremaciones', sortable: false },
   { name: 'notas', label: 'Notas', align: 'left', field: 'notas', sortable: false },
 ]
 
@@ -231,6 +269,21 @@ const handleEditarContrato = (data) => {
   getData();
   emit('updated', data)
 }
+
+const handleVerCremacionPdf = (cremacionId) => {
+  api
+    .get("cremaciones/" + cremacionId + "/pdf", { responseType: "blob" })
+    .then((response) => {
+      console.log(response);
+      window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async (error) => {
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, "error", {
+        callback: () => handleVerCremacionPdf(cremacionId),
+      });
+    });
+};
 
 const handleCrearRecibo = (data) => {
 
@@ -298,6 +351,12 @@ const openDialog = (numContrato, tipoContrato) => {
   defaultParams.value = {
     num_contrato: numContrato,
     tipo_contrato: tipoContrato
+  }
+
+  if (tipoContrato == 'Cremacion') {
+    columnasVisibles.value = ['actions', 'num_contrato', 'fecha_emision', 'fecha_vencimiento', 'estatus', 'cliente', 'cremaciones', 'notas']
+  } else {
+    columnasVisibles.value = ['actions', 'num_contrato', 'fecha_emision', 'fecha_vencimiento', 'vigente_hasta', 'estatus', 'cliente', 'parcelas', 'notas']
   }
 
   getData();
