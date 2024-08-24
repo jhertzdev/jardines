@@ -9,8 +9,8 @@ import { AxiosError } from 'axios';
 // "export default () => {}" function below (which runs individually
 // for each client)
 
-//const api = axios.create({ baseURL: 'http://jardines-backend.test/api' })
-const api = axios.create({ baseURL: 'http://192.168.94.1/jardines-backend/public/api' })
+//const api = axios.create({ baseURL: 'http://jardines-backend.test/api', timeout: 15000 })
+const api = axios.create({ baseURL: 'http://192.168.94.1/jardines-backend/public/api', timeout: 15000 })
 
 if (localStorage.getItem('token')) {
   api.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
@@ -22,6 +22,8 @@ export default boot(({ app, router }) => {
     //console.log('Intercepting request...', config);
     return config;
   }, function (error) {
+
+    console.log('Request error...', error);
     // Do something with request error
     // console.log('Request error...', error);
     return Promise.reject(error);
@@ -39,11 +41,18 @@ export default boot(({ app, router }) => {
     return response;
   }, async (error: AxiosError) => {
 
-    //+++console.log(error.response);
+    console.log('Axios error...', error);
 
     // Eliminar token
     if (error?.response?.data?.error === 'OTP_TOKEN_REQUIRED') {
       delete api.defaults.headers.common['OTP-Token']
+    } else {
+
+      axios.get(api.defaults.baseURL + '/auth/check', { timeout: 3000 })
+        .catch(error => {
+          router.push('/auth/logout')
+        })
+
     }
 
     const publicPages = ['/auth/login', '/auth/logout'];

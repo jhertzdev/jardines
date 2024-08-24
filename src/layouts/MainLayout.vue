@@ -18,7 +18,7 @@
         <div class="text-h6">{{ authStore.user.username }}</div>
       </div>
       <q-separator />
-      <q-list>
+      <q-list class="drawer-menu-list">
         <MenuLink v-for="link in essentialLinks" :key="link.title" v-bind="link" />
         <q-separator />
         <q-item clickable @click="$q.dark.set(false)" v-if="$q.dark.isActive">
@@ -346,6 +346,17 @@ const linksList = [
     perms: 'clientes',
   },
   {
+    title: 'Mantenimiento',
+    /*perms: 'mantenimiento',*/
+    children: [
+      {
+        title: 'Órdenes de trabajo',
+        icon: 'handyman',
+        to: '/app/mantenimiento/ordenes',
+      }
+    ]
+  },
+  {
     title: 'Ubicaciones',
     children: [
       {
@@ -381,6 +392,7 @@ const linksList = [
     title: 'Caja',
     icon: 'point_of_sale',
     to: '/caja',
+    perms: 'cajas'
   },
   {
     title: 'Configuración',

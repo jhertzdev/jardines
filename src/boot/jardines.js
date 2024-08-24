@@ -27,6 +27,8 @@ const qNotify = (content, type = 'positive', params = {}) => {
       message = Object.values(content.response.data.messages).join(' ')
     } else if (content?.response?.data?.error) {
       message = content?.response?.data?.error
+    } else if (content?.response?.data?.message) {
+      message = content?.response?.data?.message
     }
 
     let error = content?.response?.data?.error;

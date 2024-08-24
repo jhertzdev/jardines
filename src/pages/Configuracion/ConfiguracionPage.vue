@@ -276,10 +276,6 @@
   white-space: break-spaces !important;
 }
 
-.q-table__container thead {
-  background-color: $light-primary;
-}
-
 .parcela-item-actions {
   padding-bottom: 20px;
 }

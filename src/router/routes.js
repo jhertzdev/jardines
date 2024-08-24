@@ -79,6 +79,17 @@ const routes = [
     ]
   },
   {
+    path: '/app/mantenimiento',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: 'ordenes',
+        component: () => import('src/pages/Mantenimiento/OrdenesTrabajo.vue'),
+        meta: { viewName: 'Órdenes de trabajo', viewIcon: 'handyman' }
+      },
+    ]
+  },
+  {
     path: '/auth/',
     component: () => import('layouts/AuthLayout.vue'),
     children: [

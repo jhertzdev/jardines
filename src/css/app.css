@@ -81,3 +81,33 @@ a:hover {
   background-color: #f2e5f2 !important;
   color: #800080;
 }
+
+.q-list.drawer-menu-list .q-item {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  min-height: 36px;
+  transition: 0.2s;
+  font-weight: 600;
+}
+
+.q-item.q-router-link--active .q-focus-helper, .q-item--active .q-focus-helper {
+  background-color: currentColor;
+  opacity: 0.15;
+}
+
+.body--dark .q-list.drawer-menu-list .q-item:not(.q-router-link--active):not(:hover) {
+  opacity: 0.2;
+}
+
+.q-list.drawer-menu-list .q-item:not(.q-router-link--active):not(:hover) {
+  opacity: 0.4;
+  font-weight: 400;
+}
+
+.q-list.drawer-menu-list .q-item .q-item__section--avatar {
+  min-width: 2.5rem;
+}
+
+.q-list.drawer-menu-list .q-item i.q-icon {
+  font-size: 1.25rem;
+}

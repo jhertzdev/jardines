@@ -36,12 +36,14 @@
                       </q-item-section>
                       <q-item-section>Editar</q-item-section>
                     </q-item>
-                    <q-item clickable @click="handleCrearRecibo( { contrato_id: props.row.id, tipo_actividad: props.row.tipo_actividad, cliente_id: props.row.comprador_id } )" v-close-popup v-if="!EstadosDesactivados.includes(props.row.estatus)">
-                      <q-item-section side>
-                        <q-icon color="black" name="receipt" />
-                      </q-item-section>
-                      <q-item-section>Crear recibo</q-item-section>
-                    </q-item>
+                    <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.*' || role == 'cajas.abrir')">
+                      <q-item clickable @click="handleCrearRecibo( { contrato_id: props.row.id, tipo_actividad: props.row.tipo_actividad, cliente_id: props.row.comprador_id } )" v-close-popup v-if="!EstadosDesactivados.includes(props.row.estatus)">
+                        <q-item-section side>
+                          <q-icon color="black" name="receipt" />
+                        </q-item-section>
+                        <q-item-section>Crear recibo</q-item-section>
+                      </q-item>
+                    </template>
                     <q-item clickable @click="renovarContratoDialog.openDialog(props.row.id)" v-close-popup v-if="props.row.tipo_actividad != 'venta_parcelas' && props.row.tipo_parcela != 'Cremacion' && !EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="rotate_right" />
@@ -223,6 +225,7 @@ import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { format } from 'date-fns';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/stores/auth.store';
 
 import DialogEditarContrato from "src/components/popups/DialogEditarContrato.vue";
 import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
@@ -238,6 +241,7 @@ const dialog = ref(false)
 const isLoading = ref(false)
 
 const appStore = useAppStore();
+const authStore = useAuthStore()
 
 const contratos = ref([])
 const router = useRouter()
