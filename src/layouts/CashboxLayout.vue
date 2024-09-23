@@ -265,8 +265,14 @@
 }
 
 .section-busqueda-open .results-wrapper {
-  height: 100%;
+  height: calc(100% - 64px);
   overflow-y: scroll;
+}
+
+@media (min-width: 1024px) {
+  .section-busqueda-open .results-wrapper {
+    height: 100%;
+  }
 }
 
 .results-table .q-table thead tr,

@@ -250,8 +250,14 @@
 }
 
 .section-busqueda-open .results-wrapper {
-  height: 100%;
+  height: calc(100% - 64px);
   overflow-y: scroll;
+}
+
+@media (min-width: 1024px) {
+  .section-busqueda-open .results-wrapper {
+    height: 100%;
+  }
 }
 
 .results-table .q-table thead tr,
@@ -347,14 +353,9 @@ const linksList = [
   },
   {
     title: 'Mantenimiento',
+    icon: 'handyman',
+    to: '/app/mantenimiento/ordenes',
     /*perms: 'mantenimiento',*/
-    children: [
-      {
-        title: 'Órdenes de trabajo',
-        icon: 'handyman',
-        to: '/app/mantenimiento/ordenes',
-      }
-    ]
   },
   {
     title: 'Ubicaciones',
