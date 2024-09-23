@@ -67,6 +67,11 @@ const routes = [
         meta: { viewName: 'Contratos', viewIcon: 'description' }
       },
       {
+        path: 'grabado-marmol',
+        component: () => import('src/pages/Parcelas/GrabadoMarmolPage.vue'),
+        meta: { viewName: 'Grabado de mármol', viewIcon: 'table_rows' }
+      },
+      {
         path: 'ubicaciones/:id',
         component: () => import('src/pages/Parcelas/ParcelaIndividualPage.vue'),
         meta: { viewName: 'Parcelas', viewIcon: 'yard' }

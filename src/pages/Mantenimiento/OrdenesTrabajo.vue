@@ -1,17 +1,22 @@
 <template>
-  <div class="text-right q-mb-sm">
-    <q-btn size="sm" label="Asignar mantenimientos" icon="handyman" color="primary" @click="agregarUbicacionesMantenimientoDialog.openDialog()" />
+  <div class="text-right q-mb-sm q-gutter-xs">
+    <q-btn size="sm" :label="`Imprimir (${selectedRows.length})`" icon="print" color="primary" v-if="selectedRows.length" @click="imprimirMantenimientoDialog.openDialog();" />
+    <q-btn size="sm" :label="`Editar (${selectedRows.length})`" icon="edit" color="primary" v-if="selectedRows.length" @click="editarLoteOrdenesTrabajoDialog.openDialog(selectedRows.map(r => r.id));" />
+      <q-btn size="sm" :label="`Borrar (${selectedRows.length})`" icon="delete" color="negative" v-if="selectedRows.length" @click="handleEliminarOrdenesMantenimientoLote(selectedRows.map(r => r.id));" />
+    <q-btn size="sm" label="Asignar mantenimientos" icon="handyman" color="primary" @click="agregarUbicacionesMantenimientoDialog.openDialog();" />
   </div>
   <q-table dense :rows="tableData" flat :columns="tableColumns" row-key="id"
     :class="!$q.screen.lt.md && 'text-wrap'" ref="tableRef"
     v-model:pagination="tablePagination" :loading="tableLoading" :filter="tableFilter"
-    @request="tableRequest">
+    @request="tableRequest" selection="multiple" v-model:selected="selectedRows">
     <template v-slot:top-left>
       <q-btn-toggle v-model="estatusOrdenes" toggle-color="primary" :options="[
-        { label: 'Completadas', value: '1' },
-        { label: 'Pendientes', value: '0' },
-      ]" />
-      <q-input class="q-ml-sm" label="Filtrar por mes" dense outlined v-model="filterDate" mask="####-##" :hide-bottom-space="true" style="max-width: 150px;" readonly clearable>
+        { label: 'Todas', value: '' },
+        { label: 'Completadas', value: 'Completado' },
+        { label: 'Por entregar', value: 'Por entregar' },
+        { label: 'Por ejecutar', value: 'Por ejecutar' },
+      ]" @click="selectedRows = []" />
+      <!--<q-input class="q-ml-sm" label="Filtrar por mes" dense outlined v-model="filterDate" mask="####-##" :hide-bottom-space="true" style="max-width: 150px;" readonly clearable>
         <template v-slot:append>
           <q-icon v-if="filterDate" name="close" class="cursor-pointer" @click="filterDate = ''"></q-icon>
           <q-icon name="event" class="cursor-pointer">
@@ -25,7 +30,14 @@
             </q-popup-proxy>
           </q-icon>
         </template>
-      </q-input>
+      </q-input>-->
+      <q-btn icon="filter_alt" label="Filtrar por fecha" color="primary" class="q-ml-sm" @click="showDialogFilterDate = true"></q-btn>
+      <div class="q-my-sm" style="width: 100%" v-if="filterDate.field?.value && (filterDate.desde || filterDate.hasta)">
+        <q-btn icon="delete" color="negative" dense size="sm" @click="filterDate.desde = ''; filterDate.hasta = ''; filterDateClosePopup = true" />
+        Filtrado por {{ filterDate.field.label.toLowerCase() }}
+        <template v-if="filterDate.desde"> desde el: {{ filterDate.desde }}</template>
+        <template v-if="filterDate.hasta"> hasta el: {{ filterDate.hasta }}</template>
+      </div>
     </template>
     <template v-slot:top-right>
       <q-input dense debounce="300" v-model="tableFilter" placeholder="Buscar...">
@@ -35,14 +47,20 @@
       </q-input>
     </template>
     <template v-slot:body-cell-acciones="props">
-      <q-td :props="props" class="q-gutter-xs">
-        <q-btn size="sm" dense color="primary" icon="handyman" @click="editarOrdenTrabajoDialog.openDialog(props.row.id)" />
-        <q-btn size="sm" dense color="negative" icon="delete" @click="handleEliminarOrdenMantenimiento(props.row.id)" />
+      <q-td :props="props">
+        <div class="q-gutter-sm">
+          <q-btn color="primary" dense flat size="sm" icon="edit" @click="editarOrdenTrabajoDialog.openDialog(props.row.id)" />
+        </div>
       </q-td>
     </template>
     <template v-slot:body-cell-ubicacion="props">
-      <q-td :props="props">
-        {{ props.row.ubicacion.codigo_parcela }}
+      <q-td :props="props" style="width: 1px">
+        <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.ubicacion_id)">{{ props.row.ubicacion.codigo_parcela }}</a>
+        <q-icon name="info" class="q-ml-xs text-red-4" v-if="props.row?.notas?.length">
+          <q-tooltip anchor="top middle" self="bottom middle" max-width="240px" style="background: #000 !important; border: 1px solid #fff">
+            <div>{{ props.row.notas }}</div>
+          </q-tooltip>
+        </q-icon>
       </q-td>
     </template>
     <template v-slot:body-cell-cliente="props">
@@ -51,9 +69,9 @@
       </q-td>
     </template>
     <template v-slot:body-cell-difuntos="props">
-      <q-td :props="props">
+      <q-td :props="props" style="max-width: 150px; white-space: break-spaces;">
         <ol class="q-my-none q-pl-sm" style="font-size: .75rem; letter-spacing: -0.25px;">
-          <li v-for="puesto in props.row.ubicacion?.puestos?.filter(p => !!parseInt(p.ocupado))">
+          <li v-for="puesto in props.row.ubicacion?.puestos?.filter(p => !!parseInt(p.ocupado))" style="white-space: break-spaces;">
             {{ puesto.ocupante_nombre }}
           </li>
         </ol>
@@ -62,7 +80,7 @@
     <template v-slot:body-cell-fecha_vencimiento="props">
       <q-td :props="props">
         <template v-if="props.row.fecha_vencimiento && new Date(props.row.fecha_vencimiento) != 'Invalid Date'">
-          {{ format(props.row.fecha_vencimiento, 'dd/MM/yyyy') }}
+          {{ format(props.row.fecha_vencimiento, 'yyyy-MM') }}
         </template>
         <template v-else>
           <span>-</span>
@@ -79,8 +97,18 @@
         </template>
       </q-td>
     </template>
-    <template v-slot:body-cell-vigente_hasta="props">
+    <template v-slot:body-cell-fecha_asignado="props">
       <q-td :props="props">
+        <template v-if="props.row.fecha_asignado && new Date(props.row.fecha_asignado) != 'Invalid Date'">
+          {{ format(props.row.fecha_asignado, 'dd/MM/yyyy') }}
+        </template>
+        <template v-else>
+          <span>-</span>
+        </template>
+      </q-td>
+    </template>
+    <template v-slot:body-cell-vigente_hasta="props">
+      <q-td :props="props" style="max-width: 150px;">
         <template v-if="props.row.ubicacion?.vigente_hasta && new Date(props.row.ubicacion.vigente_hasta) != 'Invalid Date'">
           {{ format(props.row.ubicacion.vigente_hasta, 'dd/MM/yyyy') }}
         </template>
@@ -89,15 +117,87 @@
         </template>
       </q-td>
     </template>
+    <template v-slot:body-cell-fecha_ultimo_recibo="props">
+      <q-td :props="props">
+        <template v-if="props.row.fecha_ultimo_recibo && new Date(props.row.fecha_ultimo_recibo) != 'Invalid Date'">
+          {{ format(props.row.fecha_ultimo_recibo, 'dd/MM/yyyy') }}
+        </template>
+        <template v-else>
+          <span>-</span>
+        </template>
+      </q-td>
+    </template>
     <template v-slot:body-cell-estatus="props">
       <q-td :props="props">
-        <q-badge :color="props.row.estatus == 'Completado' ? 'primary' : (props.row.estatus == 'Vencido' ? 'negative' : 'secondary')" :label="props.row.estatus" />
-        <q-linear-progress stripe :value="props.row.avance / 100" :color="props.row.estatus == 'Completado' ? 'primary' : (props.row.estatus == 'Vencido' ? 'negative' : 'secondary')"  />
+        <q-badge :color="classEstatus[props.row.estatus]" :label="props.row.estatus" />
+        <q-linear-progress stripe :value="props.row.avance / 100" :color="classEstatus[props.row.estatus]"  />
+      </q-td>
+    </template>
+    <template v-slot:body-cell-notas="props">
+      <q-td :props="props" style="width: 100px; max-width: 100px; font-size: .65rem; letter-spacing: -0.25px;">
+        {{ props.row.notas }}
       </q-td>
     </template>
   </q-table>
+  <q-dialog v-model="showDialogFilterDate" class="j-dialog j-dialog-lg">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Filtrar por fecha</div>
+      </q-card-section>
+      <q-card-section>
+        <div class="row q-col-gutter-sm q-mb-sm">
+          <div class="col-5">
+            <q-select dense outlined v-model="filterDate.field" :options="[
+              { label: 'Asignado', value: 'fecha_asignado' },
+              { label: 'Último recibo', value: 'fecha_ultimo_recibo' },
+              { label: 'Completado', value: 'fecha_completado' },
+            ]" label="Filtrar por fecha" clearable />
+          </div>
+          <div class="col">
+            <q-input type="date" dense outlined v-model="filterDate.desde" label="Desde" clearable />
+          </div>
+          <div class="col">
+            <q-input type="date" dense outlined v-model="filterDate.hasta" label="Hasta" clearable />
+          </div>
+        </div>
+
+        <div class="row q-col-gutter-sm">
+          <div class="col-12">
+            <q-input label="Mes asignado" dense outlined v-model="filterDate.mes" mask="####-##" :hide-bottom-space="true" readonly clearable>
+              <template v-slot:append>
+                <q-icon v-if="filterDate.mes" name="close" class="cursor-pointer" @click="filterDate.mes = ''"></q-icon>
+                <q-icon name="event" class="cursor-pointer">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="filterDate.mes" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                      @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Close" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+          </div>
+
+        </div>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn label="Cerrar" flat @click="showDialogFilterDate = false" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   <DialogEditarOrdenTrabajo ref="editarOrdenTrabajoDialog" @updated="tableRequest(tablePagination)" />
   <DialogAgregarUbicacionesMantenimiento ref="agregarUbicacionesMantenimientoDialog" @created="tableRequest(tablePagination)" />
+  <DialogEditarLoteOrdenesTrabajo ref="editarLoteOrdenesTrabajoDialog" @updated="val => {
+      if (!val?.mantener_marcados) {
+        selectedRows = [];
+      }
+      tableRequest(tablePagination)
+    }" />
+  <DialogImprimirMantenimento ref="imprimirMantenimientoDialog" :completado="estatusOrdenes" :ids="selectedRows" :mes="filterDate" />
+  <DialogEditarParcela ref="editarParcelaDialog" />
+
 </template>
 
 <script setup>
@@ -108,18 +208,43 @@
   import { useQuasar } from 'quasar';
   import { qNotify } from 'src/boot/jardines';
   import DialogEditarOrdenTrabajo from 'src/components/popups/DialogEditarOrdenTrabajo.vue';
+  import DialogEditarLoteOrdenesTrabajo from "src/components/popups/DialogEditarLoteOrdenesTrabajo.vue";
   import DialogAgregarUbicacionesMantenimiento from "src/components/popups/DialogAgregarUbicacionesMantenimiento.vue";
+  import DialogImprimirMantenimento from "src/components/popups/DialogImprimirMantenimento.vue";
+  import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
 
   import { format } from 'date-fns'
 
   const editarOrdenTrabajoDialog = ref(null)
-  const editarCaracteristicasUbicacionDialog = ref(null)
+  const editarLoteOrdenesTrabajoDialog = ref(null)
   const agregarUbicacionesMantenimientoDialog = ref(null)
+  const imprimirMantenimientoDialog = ref(null)
+  const editarParcelaDialog = ref(null)
 
-  const estatusOrdenes = ref('0')
+  const estatusOrdenes = ref('Por entregar')
+
+  const filterDateClosePopup = ref(false)
+
+  const classEstatus = {
+    'Por entregar': 'primary',
+    'Por ejecutar': 'blue',
+    'Completado': 'positive',
+    'Vencido': 'negative',
+  }
+
   const $q = useQuasar()
 
-  const filterDate = ref(format(new Date(), 'yyyy-MM'))
+  const showDialogFilterDate = ref(false)
+
+  const filterDate = ref({
+    field: '',
+    desde: '',
+    hasta: ''
+  })
+
+  /* const filterDate = ref(format(new Date(), 'yyyy-MM')) */
+
+  const selectedRows = ref([])
 
   watch(estatusOrdenes, () => {
     tableRef.value.requestServerInteraction()
@@ -127,24 +252,31 @@
 
   watch(filterDate, () => {
     tableRef.value.requestServerInteraction()
-  })
+  }, { deep: true })
+
+  /* watch(filterDate, () => {
+    tableRef.value.requestServerInteraction()
+  }) */
 
   const tableData = ref([])
 
   const tableColumns = [
     { name: 'acciones', label: '', align: 'left' },
     { name: 'cliente', label: 'Cliente', align: 'left' },
-    { name: 'ubicacion', label: 'Ubicación', align: 'left' },
-    { name: 'contrato', label: 'Contrato', align: 'left', field: row => [
+    { name: 'ubicacion', label: 'Ubicación', field: 'ubicacion', align: 'left', sortable: true },
+    { name: 'contrato', label: 'Contrato', align: 'left', style: 'width: 1px', field: row => [
       ...new Set(row.ubicacion.contratos
         .filter(c => c.estatus == 'Activo')
         .map(c => c.num_contrato))
       ].join(', ') },
     { name: 'difuntos', label: 'Difuntos', align: 'left' },
-    { name: 'fecha_vencimiento', label: 'Vencimiento', align: 'left', field: 'fecha_vencimiento' },
-    { name: 'fecha_completado', label: 'Completado el', align: 'left', field: 'fecha_completado' },
-    { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta' },
+    { name: 'fecha_vencimiento', label: 'Mes', align: 'left', field: 'fecha_vencimiento', sortable: true },
+    { name: 'fecha_asignado', label: 'Asignado el', align: 'left', field: 'fecha_asignado', sortable: true },
+    { name: 'fecha_completado', label: 'Completado el', align: 'left', field: 'fecha_completado', sortable: true },
+    { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: true },
+    { name: 'fecha_ultimo_recibo', label: 'Último recibo', align: 'left', field: 'fecha_ultimo_recibo', sortable: true },
     { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', headerStyle: 'width: 100px' },
+    { name: 'notas', label: 'Notas', align: 'left', field: 'notas', headerStyle: 'width: 100px' },
   ]
 
   const tableRef = ref(null)
@@ -153,9 +285,46 @@
   const tablePagination = ref({
     page: 1,
     rowsPerPage: 10,
-    sortBy: 'fecha_completado',
+    sortBy: 'fecha_asignado',
     descending: true,
   })
+
+  const handleEliminarOrdenesMantenimientoLote = (ids, confirm = false) => {
+    if (!confirm) {
+      $q.dialog({
+        title: 'Eliminar ordenes de mantenimiento',
+        message: '¿Estás seguro de que quieres eliminar estas ordenes de mantenimiento?',
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Eliminar',
+          color: 'primary',
+          flat: true,
+          icon: 'delete'
+        },
+        cancel: {
+          label: 'Cancelar',
+          color: 'primary',
+          flat: true,
+          icon: 'cancel'
+        }
+      }).onOk(() => {
+        handleEliminarOrdenesMantenimientoLote(ids, true)
+      })
+    } else {
+      tableLoading.value = true
+      ids.forEach(id => {
+        api.delete('mantenimiento/' + id)
+          .catch(error => qNotify(error, 'error'))
+        selectedRows.value = []
+      });
+
+      setTimeout(() => {
+        tableRef.value.requestServerInteraction()
+      }, 1000)
+    }
+
+  }
 
   const handleEliminarOrdenMantenimiento = (id, confirm = false) => {
   if (!confirm) {
@@ -220,14 +389,20 @@
     }
 
     if (estatusOrdenes.value) {
-      endpoint += '&completado=' + estatusOrdenes.value;
+      endpoint += '&f[estatus]=' + estatusOrdenes.value;
     }
 
-    if (filterDate.value) {
-      endpoint += '&mes=' + filterDate.value;
+    if (filterDate.value.field?.value) {
+      endpoint += '&datefield=' + filterDate.value.field.value;
+      endpoint += filterDate.value.desde ? `&from=${filterDate.value.desde}` : '';
+      endpoint += filterDate.value.hasta ? `&to=${filterDate.value.hasta}` : '';
     }
 
-    //endpoint += '&with[]=data';
+    if (filterDate.value.mes) {
+      endpoint += '&mes=' + filterDate.value.mes.substr(0, 7);
+    }
+
+    console.log('endpoint', endpoint);
 
     api.get(endpoint)
       .then(response => {

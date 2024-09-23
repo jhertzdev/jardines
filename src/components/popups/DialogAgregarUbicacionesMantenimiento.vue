@@ -2,7 +2,7 @@
   <!-- Crear cliente -->
   <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
     <q-card class="q-pa-md">
-      <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'" class="no-bottoms">
+      <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'" class="no-bottoms" @keydown.enter.prevent="">
         <q-card-section>
           <div class="text-h6">Asignar mantenimientos</div>
         </q-card-section>
@@ -11,8 +11,6 @@
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-md">
-
-
               <q-table dense :rows="parcelas" flat :columns="parcelasColumnas" row-key="id"
                 :class="!$q.screen.lt.md && 'text-wrap'" ref="parcelasTableRef"
                 v-model:pagination="parcelasTablePagination" :loading="parcelasTableLoading" :filter="parcelasTableFilter"
@@ -39,7 +37,7 @@
                 </template>
                 <template v-slot:body-cell-codigo_parcela="props">
                   <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
-                    {{ props.row.codigo_parcela }}
+                    <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.id)">{{ props.row.codigo_parcela }}</a>
                   </q-td>
                 </template>
                 <template v-slot:body-cell-propietario="props">
@@ -68,6 +66,36 @@
                   </q-td>
                 </template>
                 <template v-slot:body-cell-fecha_ultimo_mantenimiento="props">
+                  <q-td :props="props">
+                    <template v-if="props.row.fecha_ultimo_mantenimiento && props.row.fecha_completado_mantenimiento == props.row.fecha_ultimo_mantenimiento">
+                      <div class="badge-contrato">
+                        <span class="bg-primary" style="font-size:.6rem; letter-spacing: -0.2px; width: 55px; justify-content: center">
+                          Completado
+                        </span>
+                        <span>{{ props.row.fecha_completado_mantenimiento && (new Date(props.row.fecha_completado_mantenimiento) != 'Invalid Date') ? format(props.row.fecha_completado_mantenimiento, 'dd/MM/yyyy') : '-' }}</span>
+                      </div>
+                    </template>
+                    <template v-else-if="!props.row.fecha_ultimo_mantenimiento">
+                      <span class="text-grey-5 text-italic">Sin información.</span>
+                    </template>
+                    <template v-else>
+                      <div class="badge-contrato">
+                        <span class="bg-primary" style="font-size:.6rem; letter-spacing: -0.2px; width: 55px; justify-content: center">
+                          Completado
+                        </span>
+                        <span>{{ props.row.fecha_completado_mantenimiento && (new Date(props.row.fecha_completado_mantenimiento) != 'Invalid Date') ? format(props.row.fecha_completado_mantenimiento, 'dd/MM/yyyy') : '-' }}</span>
+                      </div>
+                      <br />
+                      <div class="badge-contrato">
+                        <span class="bg-primary" style="font-size:.6rem; letter-spacing: -0.2px; width: 55px; justify-content: center">
+                          Asignado
+                        </span>
+                        <span>{{ props.row.fecha_ultimo_mantenimiento && (new Date(props.row.fecha_ultimo_mantenimiento) != 'Invalid Date') ? format(props.row.fecha_ultimo_mantenimiento, 'dd/MM/yyyy') : '-' }}</span>
+                      </div>
+                    </template>
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-fecha_ultimo_recibo="props">
                   <q-td :props="props">
                     {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
                   </q-td>
@@ -99,11 +127,29 @@
                 </q-item>
               </q-list>
 
-              <q-input dense class="q-mt-sm" type="date" v-model="data.fecha_vencimiento" outlined :label="data.oculto ? 'Completado el' : 'Fecha de vencimiento'" @update:model-value="handleChangeFechaVencimiento" clearable />
+              <template v-if="data.oculto">
+                <q-input dense class="q-mt-sm" type="date" v-model="data.fecha_vencimiento" outlined label="Completado el" clearable />
+              </template>
 
-              <q-checkbox v-model="data.ultimo_del_mes" label="Vence al fin del mes" color="primary" class="q-mt-sm" />
+              <template v-else>
+                <q-input class="q-mt-sm" label="Mes asignado" dense outlined v-model="data.fecha_vencimiento" mask="####-##" :hide-bottom-space="true" readonly clearable style="width: 220px">
+                  <template v-slot:append>
+                    <q-icon v-if="data.fecha_vencimiento" name="close" class="cursor-pointer" @click="data.fecha_vencimiento = ''"></q-icon>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="data.fecha_vencimiento" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                          @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false">
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Close" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </template>
 
-              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" />
+              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" @update:model-value="data.fecha_vencimiento = new Date().toISOString().substr(0, data.oculto ? 10 : 7)" />
 
             </div>
           </div>
@@ -118,6 +164,7 @@
       </q-form>
     </q-card>
   </q-dialog>
+  <DialogEditarParcela ref="editarParcelaDialog" />
 </template>
 
 <script setup>
@@ -131,9 +178,7 @@ import { qNotify } from 'src/boot/jardines';
 import { format, getDate, getMonth, getYear, lastDayOfMonth } from 'date-fns';
 
 // Components
-import QSelectMoneda from 'src/components/selects/QSelectMoneda.vue'
-import QSelectMetodosPago from 'src/components/selects/QSelectMetodosPago.vue'
-import QSelectUbicacion from 'src/components/selects/QSelectUbicacion.vue';
+import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
 
 const $q = useQuasar()
 const dialog = ref(false)
@@ -142,13 +187,16 @@ const isLoadingSubmit = ref(false)
 const dataFilters = ref(['vigente', 'trimestral'])
 
 const parcelas = ref([])
+const editarParcelaDialog = ref(null)
+const filterDateClosePopup = ref(false)
 
 const parcelasColumnas = [
   { name: 'codigo_parcela', label: 'Ubicación', align: 'left', field: 'num_parcela', sortable: true, headerStyle: "width: 105px" },
   { name: 'propietario', label: 'Propietario', align: 'left', field: 'cliente_nombre', sortable: false },
   { name: 'difuntos', label: 'Difuntos', align: 'left', sortable: false },
   { name: 'vigente_hasta', label: 'Vigente hasta', align: 'left', field: 'vigente_hasta', sortable: true },
-  { name: 'fecha_ultimo_mantenimiento', label: 'Últ. mantenim.', align: 'left', field: 'fecha_ultimo_mantenimiento', sortable: true },
+  { name: 'fecha_ultimo_mantenimiento', label: 'Fecha mantenim.', align: 'left', field: 'fecha_ultimo_mantenimiento', sortable: true },
+  { name: 'fecha_ultimo_recibo', label: 'Últ. recibo', align: 'left', field: 'fecha_ultimo_recibo', sortable: true },
 ]
 
 const parcelasSelected = ref([])
@@ -159,8 +207,8 @@ const parcelasTableFilter = ref('');
 const parcelasTablePagination = ref({
   page: 1,
   rowsPerPage: 10,
-  sortBy: 'codigo_parcela',
-  descending: false,
+  sortBy: 'fecha_ultimo_recibo',
+  descending: true,
 })
 
 watch(dataFilters, () => {
@@ -220,21 +268,28 @@ const parcelasTableRequest = (props) => {
 const data = reactive({
   fecha_vencimiento: null,
   ubicaciones: [],
-  ultimo_del_mes: true,
   oculto: false
 })
 
-const handleChangeFechaVencimiento = (val) => {
-
-  let ultimoDiaDelMes = val ? getDate(lastDayOfMonth(val)) : null;
-  let year = val? getYear(val) : null
-  let month = val ? getMonth(val) + 1 : null
-
-  if (ultimoDiaDelMes && data.ultimo_del_mes) {
-    data.fecha_vencimiento = `${year}-${month.toString().padStart(2, '0')}-${ultimoDiaDelMes}`
-  }
-
+const observacionesPorTipoUbicacion = {
+  Parcela: [
+    { title: 'Observación', value: ''},
+    { title: 'Base', value: ''},
+    { title: 'Placas / Fotos / Letras', value: ''},
+    { title: 'Grama', value: ''}
+  ],
+  Nicho: [
+    { title: 'Observación', value: ''},
+    { title: 'Placas / Nombre', value: ''},
+    { title: 'Foto', value: ''},
+  ],
+  Columbario: [
+    { title: 'Observación', value: ''},
+    { title: 'Placas / Nombre', value: ''},
+    { title: 'Foto', value: ''},
+  ]
 }
+
 
 
 const handleSubmit = () => {
@@ -243,6 +298,7 @@ const handleSubmit = () => {
     ubicaciones: parcelasSelected.value.map(ub => ub.id),
     fecha_vencimiento: data.fecha_vencimiento,
     oculto: data.oculto ? 1 : 0,
+    observacionesPorTipo: observacionesPorTipoUbicacion
   }
 
   if (!postData.ubicaciones.length) {
@@ -250,24 +306,21 @@ const handleSubmit = () => {
     return
   }
 
-  if (!data.fecha_vencimiento) {
+  if (!postData.fecha_vencimiento) {
     qNotify('Debe seleccionar una fecha de vencimiento.', 'error')
     return
+  } else if (postData.fecha_vencimiento.length < 10) {
+    postData.fecha_vencimiento = postData.fecha_vencimiento + '-01'
   }
 
   isLoadingSubmit.value = true
 
-  console.log(postData)
+   console.log(postData)
 
   api.post('mantenimiento/asignar', postData)
     .then(response => {
       if (response.data) {
-        data.value = {
-          fecha_vencimiento: null,
-          ubicaciones: [],
-          ultimo_del_mes: true,
-          oculto: false
-        }
+        data.ubicaciones = []
         dialog.value = false
         $q.notify({ message: 'Asignado exitosamente.', color: 'positive' })
         emit('created', response.data)
@@ -281,7 +334,8 @@ const handleSubmit = () => {
 const openDialog = (id) => {
   dialog.value = true
 
-  data.ultimo_del_mes = true
+  data.fecha_vencimiento = new Date().toISOString().substr(0, 7),
+
   data.ubicaciones = []
   parcelasSelected.value = []
 
