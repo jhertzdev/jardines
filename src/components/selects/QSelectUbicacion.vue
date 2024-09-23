@@ -1,7 +1,17 @@
 <template>
-  <q-select v-model="selectedId" :dense="props.dense" :outlined="props.outlined" :options="options" :label="props.label || ''" :hint="props.hint || ''"
-    :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]" :style="!props.rule && 'margin-bottom: -20px;'"
-    :clearable="clearable" use-input input-debounce="500" @filter="filterFn" emit-value map-options @update:model-value="updateValue"/>
+  <q-select
+    v-bind="$attrs"
+    v-model="selectedId"
+    :options="options"
+    :rules="[val => !props.required || (val && val.length > 0) || props.rule ]"
+    :style="!props.rule && 'margin-bottom: -20px;'"
+    :label="props.label"
+    use-input
+    input-debounce="500"
+    @filter="filterFn"
+    emit-value
+    map-options
+    @update:model-value="updateValue"/>
 </template>
 
 <script setup>
@@ -11,22 +21,6 @@ import { obtenerValoresFaltantes } from 'src/boot/jardines'
 import { ref, onMounted, watch } from 'vue'
 
 const props = defineProps({
-  dense: {
-    type: Boolean,
-    default: false,
-  },
-  outlined: {
-    type: Boolean,
-    default: false,
-  },
-  clearable: {
-    type: Boolean,
-    default: false,
-  },
-  required: {
-    type: Boolean,
-    default: false,
-  },
   label: {
     type: String,
     default: 'Selecciona una opción',
@@ -44,8 +38,11 @@ const props = defineProps({
     default: {}
   },
   modelValue: {
-    type: Array,
-    default: []
+    type: String
+  },
+  required: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -67,7 +64,7 @@ watch(() => props.modelValue, async (val) => {
 
   // If the modelValue is set and it's not in the options, fetch it
   if (selectedId.value && !options.value.find(option => option.value === selectedId.value)) {
-    const response = await api.get('parcelas/' + selectedId.value)
+    const response = await api.get('parcelas/' + selectedId.value + '?with[]=data')
     if (response.data) {
       options.value.push({
         label: `${row.codigo_seccion}-${row.num_parcela} (${row.estatus})`,
@@ -87,12 +84,8 @@ const fullData = ref([])
 const updateValue = (value) => {
   emit('update:modelValue', value)
 
-  if (fullData.value.length) {
-    let itemData = fullData.value.filter(item => value.includes(item.id));
-    if (itemData) {
-      emit('selected', itemData)
-    }
-  }
+  let selectedItem = fullData.value.find(item => value == item.id);
+  emit('selected', selectedItem || null)
 }
 
 const options = ref([]);
@@ -114,7 +107,7 @@ async function getOptions(params = null) {
     });
   }
 
-  endpoint += '?' + searchParams.toString();
+  endpoint += '?' + searchParams.toString() + '&with[]=data';
   console.log(endpoint);
 
   try {
@@ -135,7 +128,7 @@ async function getOptions(params = null) {
 
       // Si falta identificar la ubicación seleccionada
       if (props?.modelValue && !options.value.map(val => val.id).includes(selectedId.value)) {
-        const response2 = await api.get('parcelas/' + selectedId.value)
+        const response2 = await api.get('parcelas/' + selectedId.value + '?with[]=data')
         if (response2.data) {
           fullData.value.push(response2.data);
           options.value.push({

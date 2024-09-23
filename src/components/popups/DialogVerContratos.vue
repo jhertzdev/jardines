@@ -89,6 +89,12 @@
                         <q-tooltip v-if="!props.row.esta_vigente && !!props.row.fecha_vencimiento" max-width="200px" class="text-center bg-black">El contrato debe estar vigente para poder imprimir.</q-tooltip>
                       </q-item-section>
                     </q-item>
+                    <q-item v-if="props.row.tipo_actividad == 'mantenimiento_parcelas' && props.row.tipo_parcela != 'Cremacion'" clickable @click="openDialogCalcularDeuda(props.row.id)" v-close-popup>
+                      <q-item-section side>
+                        <q-icon color="black" name="attach_money" />
+                      </q-item-section>
+                      <q-item-section>Calcular deuda</q-item-section>
+                    </q-item>
                     <q-item clickable @click="openDialogEliminarContrato(props.row.id)" v-close-popup>
                       <q-item-section side>
                         <q-icon color="black" name="delete" />
@@ -108,18 +114,23 @@
               </q-td>
             </template>
             <template v-slot:body-cell-notas="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="font-size:.65rem; max-width: 150px; white-space: normal;">
-                {{ props.row.notas }}
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="font-size:.65rem; max-width: 150px; white-space: normal; line-height: 1.15;">
+                <div>{{ props.row.notas }}</div>
+                <a class="block q-my-xs" href="javascript:void(0)" @click="(e) => editarNotasDialog.openDialog(props.row.id, 'contratos', props.row.notas, 'Contrato #' + props.row.num_contrato)">
+                  <q-badge outline color="primary" :style="props.row.notas && 'font-size: .65rem'">
+                    <q-icon :name="props.row.notas ? 'edit' : 'add'" class="q-mr-xs"></q-icon> {{ props.row.notas ? 'Editar nota' : 'Agregar' }}
+                  </q-badge>
+                </a>
               </q-td>
             </template>
             <template v-slot:body-cell-cliente="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="max-width: 160px; white-space: normal;">
                 <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
                 <span v-else>-</span>
               </q-td>
             </template>
             <template v-slot:body-cell-parcelas="props">
-            <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+            <q-td :props="props" class="q-gutter-xs" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="max-width: 120px; white-space: normal;">
               <q-btn size="sm" dense color="primary" v-for="parcela in props.row.parcelas"
                 @click="editarParcelaDialog.openDialog(parcela.id)">{{ parcela.codigo_parcela }}</q-btn>
             </q-td>
@@ -139,22 +150,22 @@
             </template>
 
             <template v-slot:body-cell-num_contrato="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="width: 90px;">
                 <a href="javascript:void(0)" @click="editarContratoDialog.openDialog(props.row.id)">{{ props.row.codnum_contrato || '-' }}</a>
               </q-td>
             </template>
             <template v-slot:body-cell-fecha_emision="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="width: 90px;">
                 {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
               </q-td>
             </template>
             <template v-slot:body-cell-fecha_vencimiento="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="width: 90px;">
                 {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
               </q-td>
             </template>
             <template v-slot:body-cell-vigente_hasta="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}">
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="width: 90px;">
                 <template v-if="props.row.etiqueta != 'Donado' && props.row.tipo_actividad == 'mantenimiento_parcelas' && props.row.tipo_parcela != 'Cremacion'">
                   <a href="javascript:void(0)" @click="(e) => actualizarFechasDialog.openDialog({
                     contrato_id: props.row.id,
@@ -215,15 +226,103 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog allow-focus-outside v-model="calcularDeudaContratoDialog" class="j-dialog j-dialog-lg">
+    <q-card class="q-pa-md text-center">
+      <q-card-section class="q-pa-none">
+
+
+
+        <q-markup-table flat separator="none" dense>
+          <tbody class="text-left">
+            <tr>
+              <td class="text-bold" width="20%">CONTRATO</td>
+              <td width="20%">{{ calcularDeudaContrato.num_contrato }}</td>
+              <td class="text-bold text-italic text-right">{{ format(new Date().toISOString().slice(0, 10), "d 'de' MMMM 'de' yyyy", { locale: es }) }}</td>
+            </tr>
+            <tr>
+              <td class="text-bold" width="20%">TITULAR</td>
+              <td width="20%">{{ calcularDeudaContrato.cliente?.nombre_completo }}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="text-bold" width="20%">CÉDULA</td>
+              <td width="20%">{{ calcularDeudaContrato.cliente?.num_identidad }}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="text-bold" width="20%">{{ calcularDeudaContrato?.tipo_parcela?.toUpperCase() }}</td>
+              <td width="20%">
+                <q-checkbox v-model="parcela.selected" dense size="sm" color="primary" class="q-mr-xs" v-for="parcela in calcularDeudaContrato.parcelas" :label="parcela.codigo_parcela" @update:model-value="recalcularDeudaContrato()"></q-checkbox>
+              </td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+        <q-markup-table class="q-mt-md deuda-table" flat separator="none" dense>
+          <tbody class="text-left">
+            <tr>
+              <td class="text-bold" colspan="5">MANTENIMIENTO</td>
+            </tr>
+            <tr v-for="(fecha, fechaIndex) in calcularDeudaContrato.fechas" :key="fecha.desde">
+              <td class="text-bold" width="10%">DESDE: </td>
+              <td width="20%">{{ format(fecha.desde, 'dd/MM/yyyy') }}</td>
+              <td class="text-bold" width="10%">HASTA: </td>
+              <td width="20%">{{ format(fecha.hasta, 'dd/MM/yyyy') }}</td>
+              <td>
+                <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="fecha.precio" @update:model-value="handleUpdatePrecio(fecha.precio, fechaIndex)" />
+              </td>
+            </tr>
+            <tr>
+              <td class="text-bold text-right" colspan="4"> <q-checkbox v-model="calcularDeudaContrato.mora" /> TOTAL MORA:</td>
+              <td>
+                <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-bold text-right" colspan="4">TOTAL DEUDA:</td>
+              <td class="text-bold text-right" style="font-size: 1.5rem">${{ ( calcularDeudaContrato?.fechas?.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (calcularDeudaContrato.mora ? parseFloat(calcularDeudaContrato.total_mora) : 0) ).toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+      </q-card-section>
+
+      <template v-if="calcularDeudaContratoSelectedParcelas?.every(parcela => parcela.pagado_hasta === calcularDeudaContratoSelectedParcelas[0].pagado_hasta)">
+        <q-card-actions class="justify-end">
+          <q-btn flat label="Cancelar" v-close-popup />
+          <q-btn label="Imprimir" icon="print" color="primary" @click="handlePrintCalcularDeuda()"
+            :loading="isLoadingCalcularDeuda" />
+        </q-card-actions>
+      </template>
+
+      <template v-else>
+        <q-banner class="bg-red-3 q-pb-md">
+          <template v-slot:avatar>
+            <q-icon class="q-mt-sm" name="warning" color="black" />
+          </template>
+          <div class="text-h6">Las fechas de pago no coinciden.</div>
+        </q-banner>
+      </template>
+
+    </q-card>
+  </q-dialog>
+
+  <DialogEditarNotas ref="editarNotasDialog" @updated="getData()"/>
+
 </template>
+
+<style>
+  .deuda-table .q-field--dense .q-field__control {
+    height: 30px;
+  }
+</style>
 
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
-import { format } from 'date-fns';
+import es from 'date-fns/locale/es';
+import { format, differenceInMonths } from 'date-fns';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.store';
 
@@ -233,6 +332,7 @@ import DialogGenerarContrato from "src/components/popups/DialogGenerarContrato.v
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
 import DialogActualizarFechas from "src/components/popups/DialogActualizarFechas.vue";
+import DialogEditarNotas from "src/components/popups/DialogEditarNotas.vue";
 
 import { useAppStore } from "src/stores/app.store";
 
@@ -250,19 +350,26 @@ const editarContratoDialog = ref(null)
 const renovarContratoDialog = ref(null)
 const generarContratoDialog = ref(null)
 const verClienteDialog = ref(null)
+const editarNotasDialog = ref(null)
 const editarParcelaDialog = ref(null)
 const actualizarFechasDialog = ref(null)
+
+const handleUpdatePrecio = (precio, i) => {
+  for (let index = i; index < calcularDeudaContrato.value.fechas.length; index++) {
+    calcularDeudaContrato.value.fechas[index].precio = precio
+  }
+}
 
 const EstadosDesactivados = ['Inactivo', 'Expirado']
 
 const columnasVisibles = ref([])
 const columnas = [
   { name: 'actions', label: '', field: 'actions' },
-  { name: 'num_contrato', label: 'Núm. contrato', align: 'left', field: 'codnum_contrato', sortable: true },
+  { name: 'num_contrato', label: 'Núm. ctto.', align: 'left', field: 'codnum_contrato', sortable: true },
   { name: 'fecha_emision', label: 'Fecha emisión', align: 'left', field: 'fecha_emision', sortable: false },
-  { name: 'fecha_vencimiento', label: 'Fecha vencimiento', align: 'left', field: 'fecha_vencimiento', sortable: false },
+  { name: 'fecha_vencimiento', label: 'Fecha venc.', align: 'left', field: 'fecha_vencimiento', sortable: false },
   { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: false },
-  { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', sortable: true },
+  { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', sortable: true, headerStyle: 'width: 90px;' },
   { name: 'cliente', label: 'Cliente', align: 'left', field: 'cliente', sortable: false, format: (val) => `${val.nombre_completo} (${val.num_identidad})` },
   { name: 'parcelas', label: 'Ubicaciones', align: 'left', field: 'parcelas', sortable: false },
   { name: 'cremaciones', label: 'Cremaciones', align: 'left', field: 'cremaciones', sortable: false },
@@ -329,6 +436,126 @@ const isLoadingEliminarContrato = ref(false)
 const openDialogEliminarContrato = (contratoId) => {
   eliminarContratoId.value = contratoId
   eliminarContratoDialog.value = true
+}
+
+const calcularDeudaContratoDialog = ref(null)
+const calcularDeudaContratoId = ref(null)
+const calcularDeudaPrecioMantenimiento = ref(0)
+const calcularDeudaContrato = ref({})
+const calcularDeudaContratoSelectedParcelas = computed(() => calcularDeudaContrato.value?.parcelas?.filter(parcela => parcela.selected))
+
+const recalcularDeudaContrato = () => {
+
+  let vigenteHasta = calcularDeudaContratoSelectedParcelas.value[0]?.pagado_hasta
+
+  let fechaInicio = new Date(vigenteHasta) != 'Invalid Date' ? new Date(vigenteHasta) : new Date(calcularDeudaContrato.value.fecha_vencimiento)
+  let diaFechaCorte = new Date(calcularDeudaContrato.value.fecha_emision).getDate()
+  let mesFechaCorte = new Date(calcularDeudaContrato.value.fecha_emision).getMonth()
+
+  let anioHasta = fechaInicio.getMonth() >= mesFechaCorte ? fechaInicio.getFullYear() + 1 : fechaInicio.getFullYear()
+
+  let fechaDesde = null;
+  let fechaHasta = null;
+  let isLast = false;
+
+  calcularDeudaContrato.value.fechas = []
+
+  for (let index = 0; index < 30; index++) {
+    if (fechaDesde == null) {
+      fechaDesde = fechaInicio
+      fechaHasta = new Date(anioHasta, mesFechaCorte, diaFechaCorte)
+    } else {
+      let anioDesde = fechaDesde.getFullYear() == fechaHasta.getFullYear() ? fechaDesde.getFullYear() : fechaDesde.getFullYear() + 1
+      fechaDesde = new Date(anioDesde, mesFechaCorte, diaFechaCorte)
+      fechaHasta = new Date(fechaHasta.getFullYear() + 1, mesFechaCorte, diaFechaCorte)
+    }
+
+    calcularDeudaContrato.value.fechas.push({
+      desde: fechaDesde,
+      hasta: fechaHasta,
+      precio: 0
+    })
+
+    isLast = fechaHasta.getTime() > new Date().getTime();
+
+    if (isLast) break;
+  }
+
+  calcularDeudaContrato.value.mora = calcularDeudaContrato.value.fechas.length >= 4 ? true : false
+  calcularDeudaContrato.value.total_mora = 100
+
+  let precioTotal = (calcularDeudaContratoSelectedParcelas.value?.length || 0) * calcularDeudaPrecioMantenimiento.value
+
+  calcularDeudaContrato.value.fechas.forEach(fecha => {
+    let diff = differenceInMonths(fecha.hasta, fecha.desde)
+    fecha.precio = precioTotal / 12 * diff
+  });
+
+}
+
+const openDialogCalcularDeuda = (contratoId) => {
+  calcularDeudaContratoId.value = contratoId
+  calcularDeudaContratoDialog.value = true
+
+  api.get('contratos/' + contratoId)
+    .then(response => {
+      if (response.data) {
+        calcularDeudaContrato.value = response.data
+
+        calcularDeudaContrato.value.parcelas.forEach(parcela => parcela.selected = true)
+
+        api.get('servicios')
+          .then(response => {
+            if (response.data) {
+              let servicios = response.data.filter(s => s.tipo_producto == 'Mantenimiento' && s.tipo_ubicacion == calcularDeudaContrato.value.tipo_parcela)
+              let precioMantenimiento = servicios.length ? parseFloat(servicios[0].precio_ref) : 0
+              calcularDeudaPrecioMantenimiento.value = precioMantenimiento
+              recalcularDeudaContrato()
+            }
+          })
+
+      }
+    })
+    .catch(error => qNotify(error, 'error', { callback: () => openDialogCalcularDeuda(contratoId) }))
+}
+
+const handlePrintCalcularDeuda = () => {
+  let postData = {
+    data: {
+      num_contrato: calcularDeudaContrato.value.num_contrato,
+      nombre_completo: calcularDeudaContrato.value.cliente?.nombre_completo,
+      num_identidad: calcularDeudaContrato.value.cliente?.num_identidad,
+      ubicaciones: calcularDeudaContratoSelectedParcelas.value.map(parcela => parcela.codigo_parcela).join(', '),
+      tipo_parcela: calcularDeudaContrato.value.tipo_parcela,
+    },
+    fechas: calcularDeudaContrato.value.fechas.map(fecha => {
+      return {
+        desde: format(fecha.desde, 'dd/MM/yyyy'),
+        hasta: format(fecha.hasta, 'dd/MM/yyyy'),
+        precio: parseFloat(fecha.precio),
+      }
+    }),
+  }
+
+  if (calcularDeudaContrato.value.mora) {
+    postData.mora = calcularDeudaContrato.value.total_mora
+  }
+
+  console.log(postData)
+
+
+  api.post('contratos/imprimirDeuda', postData, { responseType: "blob" })
+  .then((response) => {
+    console.log(response);
+    window.open(URL.createObjectURL(response.data));
+  })
+  .catch(async (error) => {
+    error.response.data = JSON.parse(await error.response.data.text());
+    qNotify(error, "error", {
+      callback: () => handlePrintCalcularDeuda(),
+    });
+  });
+
 }
 
 const handleEliminarContrato = (id) => {

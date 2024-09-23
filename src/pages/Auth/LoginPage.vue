@@ -44,13 +44,13 @@
   width: 400px;
   max-width: calc(100% - 30px);
   text-align: center;
-  padding-top: 130px;
+  padding-top: 80px;
 
   .section-header {
     position: absolute;
-    width: 240px;
-    height: 240px;
-    top: -120px;
+    width: 150px;
+    height: 150px;
+    top: -75px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #fff;
@@ -62,6 +62,18 @@
       height: 100%;
       object-fit: contain;
     }
+  }
+}
+
+@media (min-width: 1280px) {
+  .login-card {
+    padding-top: 130px;
+  }
+
+  .login-card .section-header {
+    width: 240px;
+    height: 240px;
+    top: -120px;
   }
 }
 </style>

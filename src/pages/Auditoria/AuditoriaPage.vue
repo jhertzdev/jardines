@@ -77,10 +77,10 @@ import { format } from 'date-fns'
 const isLoading = ref(true)
 const registros = ref([])
 const registrosColumnas = [
-  { name: 'accion', label: 'Acción', align: 'left', field: 'accion', sortable: true },
-  { name: 'detalles', label: 'Detalles', align: 'left', field: 'detalles', sortable: true },
-  { name: 'username', label: 'Responsable', align: 'left', field: 'username', sortable: true },
-  { name: 'created_at', label: 'Fecha', align: 'left', field: 'created_at', sortable: true, format: value => format(value, 'dd/MM/yyyy HH:mm') },
+  { name: 'accion', label: 'Acción', align: 'left', field: 'accion', sortable: true, style: 'width: 100px;' },
+  { name: 'detalles', label: 'Detalles', align: 'left', field: 'detalles', sortable: true, style: 'white-space: break-spaces;' },
+  { name: 'username', label: 'Responsable', align: 'left', field: 'username', sortable: true, style: 'width: 100px;' },
+  { name: 'created_at', label: 'Fecha', align: 'left', field: 'created_at', sortable: true, format: value => format(value, 'dd/MM/yyyy HH:mm'), style: 'width: 100px;' },
 ]
 
 const route = useRoute()
