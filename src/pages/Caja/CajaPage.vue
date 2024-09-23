@@ -68,13 +68,17 @@
 
 
           <div class="flex justify-between q-mb-md">
-            <q-btn-toggle v-model="tipoTransaccion" toggle-color="primary" :options="[
-              { label: 'Pagados', value: 'Pagado' },
-              { label: 'Pendientes', value: 'Pendiente' },
-            ]" />
+            <div class="q-gutter-xs">
+              <q-btn-toggle v-model="tipoTransaccion" toggle-color="primary" :options="[
+                { label: 'Pagados', value: 'Pagado' },
+                { label: 'Pendientes', value: 'Pendiente' },
+              ]" />
+              <q-btn color="negative" :flat="!verAnulados" label="Ver anulados" icon="archive" @click="verAnulados = true; tipoTransaccion = null, transaccionesTableRef.requestServerInteraction()" />
+            </div>
             <div class="q-gutter-sm">
               <q-btn color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" />
               <q-btn color="primary" label="Relación de ingresos" icon="assessment" to="caja/reportes/ingresos" />
+              <q-btn color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')" />
             </div>
           </div>
 
@@ -97,9 +101,37 @@
               </q-td>
             </template>
             <template v-slot:body-cell-acciones="props">
-              <q-td :props="props" class="q-gutter-x-sm">
+              <q-td :props="props" class="q-gutter-x-xs">
                 <q-btn color="primary" size="sm" dense icon="print" @click="handleDownloadPdf(props.row.id)" :disable="props.row.estatus !== 'Pagado'" />
                 <q-btn color="primary" size="sm" dense icon="credit_card" @click="openDialogAgregarPago(props.row.id)" />
+                <q-btn-dropdown dense v-if="authStore.user.role_perms.includes('cajas.*')" color="primary" flat>
+                  <q-list>
+                    <q-item clickable @click="handleEliminarTransaccion(props.row.id)" v-close-popup>
+                      <q-item-section side>
+                        <q-icon color="black" name="archive" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>Archivar</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable @click="handleEditarTransaccion(props.row.id, { estatus: 'Pagado' })" v-close-popup v-if="props.row.estatus != 'Pagado'">
+                      <q-item-section side>
+                        <q-icon color="black" name="check" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>Marcar como pagado</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable @click="handleEditarTransaccion(props.row.id, { estatus: 'Pendiente' })" v-close-popup v-if="props.row.estatus != 'Pendiente'">
+                      <q-item-section side>
+                        <q-icon color="black" name="timer" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>Marcar como pendiente</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
               </q-td>
             </template>
           </q-table>
@@ -145,7 +177,13 @@
               <q-list separator bordered>
                 <q-item v-for="item in transaccionData?.lineas || []">
                   <q-item-section style="display: block">
-                    <span>{{ item.descripcion }}</span> <span class="text-grey text-caption">x {{ item.cantidad }}</span>
+                    <span>
+                      <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')">
+                        <q-btn size="sm" dense icon="edit" color="primary" @click="handleEditLineaRecibo(item)" />
+                      </template>
+                      {{ item.descripcion }}
+                    </span>
+                    <span class="text-grey text-caption">x {{ item.cantidad }}</span>
                   </q-item-section>
                   <q-item-section side class="text-right">
                     <div class="text-body2 text-dark">REF. {{ $dinero(item.total_ref) }}</div>
@@ -157,7 +195,9 @@
                 <template v-slot:body="props">
                   <q-tr :props="props" class="text-right" :class="props.rowIndex + 1 == totalsData.length && 'bg-primary text-white'" v-show="!!props.row.total">
                     <q-td key="tipo" :props="props" class="text-right">
-                      <span class="text-weight-bold" style="font-size: .95rem">{{ props.row.tipo || '-' }}</span>
+                      <span class="text-weight-bold" style="font-size: .95rem">
+                        {{ props.row.tipo || '-' }}
+                      </span>
                     </q-td>
                     <q-td key="total" :props="props" class="text-right">
                       <div class="q-pl-xl" :class="props.rowIndex + 1 == totalsData.length && 'text-h5'">{{ $dinero(props.row.total) }}</div>
@@ -166,6 +206,9 @@
                   </q-tr>
                 </template>
               </q-table>
+              <div class="text-center q-mt-md" v-if="transaccionData.pagos?.length">
+                <q-btn label="Ver pagos" icon="credit_card" color="primary" @click="openDialogVerPagos" />
+              </div>
               <q-separator class="q-my-md" />
               <div class="q-pl-md">
                 <q-input type="textarea" outlined v-model="transaccionData.descripcion" rows="4" label="Descripción del recibo" placeholder="Escribe una descripción para el recibo, que se mostrará en la versión impresa" readonly/>
@@ -198,7 +241,7 @@
                       <q-input dense v-model="props.row['referencia']" label="Referencia" v-if="props.row['tipo_metodo'] != 'Efectivo'"
                         debounce="500" @update:model-value="val => handleVerificarReferencia(props.row, val)" :error="props.row.referencias_usadas?.length > 0 && !props.row['referencia_usada']" hide-bottom-space>
                         <template v-slot:error>
-                          La refencia ya ha sido usada.
+                          La referencia ya ha sido usada.
                         </template>
                       </q-input>
                       <q-checkbox dense class="q-mt-xs" v-if="props.row.referencias_usadas?.length > 0" :model-value="!!props.row['referencia_usada']" @update:model-value="props.row['referencia_usada'] = !props.row['referencia_usada']" label="Utilizar referencia igualmente" />
@@ -263,6 +306,91 @@
         </q-form>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="showModalHistorialIngresos" class="j-dialog j-dialog-xl">
+      <q-card class="q-pa-md">
+        <q-card-section>
+          <div class="text-h6">Historial de ingresos</div>
+        </q-card-section>
+        <q-card-section>
+          <q-markup-table flat>
+            <thead>
+              <tr>
+                <th style="text-align: left">Fecha de cierre</th>
+                <th style="text-align: left">Caja</th>
+                <th style="text-align: left">Cerrado por</th>
+                <th style="text-align: left">Imprimir relación</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="cierre in cajaHistorial" :key="cierre.id">
+                <td>{{ new Date(cierre.created_at).toISOString().slice(0, 10) }}</td>
+                <td>{{ cierre.nombre_caja }}</td>
+                <td style="max-width: 150px; line-height: 1.15; white-space: break-spaces">{{ cierre.nombre_completo }} ({{ cierre.username }})</td>
+                <td class="q-gutter-x-xs">
+                  <q-btn color="primary" size="sm" label="General" icon="print" @click="handleDescargarReportePorCierre(cierre.id)" />
+                  <q-btn color="primary" size="sm" label="Por usuario" icon="print" @click="handleDescargarReportePorCierre(cierre.id, true)" />
+                </td>
+              </tr>
+            </tbody>
+          </q-markup-table>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showModalEditarLineaRecibo" class="j-dialog j-dialog-lg">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Editar línea de recibo</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input type="textarea" outlined autogrow dense v-model="agregarEditarLineaRecibo.descripcion" label="Descripción" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" v-close-popup />
+          <q-btn label="Guardar" icon="credit_card" color="primary" @click="handleSubmitEditarLineaRecibo" :loading="isLoadingEditarLineaRecibo" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showDialogVerPagos" class="j-dialog j-dialog-lg">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Detalle de pagos</div>
+        </q-card-section>
+        <q-card-section>
+          <q-markup-table flat separator="cell" dense>
+            <thead>
+              <tr>
+                <th v-if="authStore.user.role_perms.includes('cajas.*')"></th>
+                <th>Fecha registrado</th>
+                <th>Método de pago</th>
+                <th>Moneda</th>
+                <th>Cantidad</th>
+                <th>Referencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pago in transaccionData.pagos" :key="pago.id">
+                <td v-if="authStore.user.role_perms.includes('cajas.*')">
+                  <q-btn size="sm" dense color="negative" icon="delete" @click="handleEliminarPago(pago.id)" />
+                </td>
+                <td>{{ pago.created_at.substr(0, 10) }}</td>
+                <td>{{ metodosPago.find(m => m.id == pago.metodo_pago_id)?.metodo || pago.metodo_pago_id }}</td>
+                <td>{{ monedas.find(m => m.id == pago.moneda_id)?.simbolo || pago.moneda_id }}</td>
+                <td>{{ pago.monto }}</td>
+                <td>{{ pago.referencia }}</td>
+              </tr>
+              <tr v-if="transaccionData.pagos.length == 0">
+                <td colspan="6">No hay pagos registrados.</td>
+              </tr>
+            </tbody>
+          </q-markup-table>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+
   </q-page>
 </template>
 
@@ -281,6 +409,7 @@
   import { useAppStore } from "src/stores/app.store";
   import { useAuthStore } from "src/stores/auth.store";
   import { format } from "date-fns";
+  import { useQuasar } from 'quasar';
 
   const appStore = useAppStore();
   const router = useRouter()
@@ -288,6 +417,140 @@
   const authStore = useAuthStore();
 
   const tipoTransaccion = ref('Pendiente')
+  const verAnulados = ref(false)
+
+  const showModalEditarLineaRecibo = ref(false)
+  const agregarEditarLineaRecibo = ref({})
+  const isLoadingEditarLineaRecibo = ref(false)
+  const servicios = ref([])
+
+  const $q = useQuasar()
+
+  const handleEditLineaRecibo = (linea) => {
+    console.log(linea)
+    showModalEditarLineaRecibo.value = true
+    agregarEditarLineaRecibo.value = {
+      id: linea.id,
+      transaccion_id: linea.transaccion_id,
+      descripcion: linea.descripcion,
+    }
+  }
+
+  const handleSubmitEditarLineaRecibo = () => {
+    isLoadingEditarLineaRecibo.value = true
+    let postData = agregarEditarLineaRecibo.value
+
+    console.log('postData', postData);
+    api.post('caja/transacciones/editarLineaRecibo', postData)
+      .then(response => {
+        if (response.data) {
+          agregarEditarLineaRecibo.value = {}
+          showModalEditarLineaRecibo.value = false
+          $q.notify({ message: 'Línea de recibo editada exitosamente.', color: 'positive' })
+          openDialogAgregarPago(postData.transaccion_id)
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: handleSubmitEditarLineaRecibo }))
+      .finally(() => isLoadingEditarLineaRecibo.value = false)
+  }
+
+  const isLoadingEliminarTransaccion = ref(false)
+
+  const handleEliminarTransaccion = (id, confirm = false) => {
+    if (!confirm) {
+      $q.dialog({
+        title: 'Eliminar transacción',
+        message: '¿Estás seguro de que quieres anular esta transacción?',
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Eliminar',
+          color: 'primary',
+          flat: true,
+          icon: 'delete'
+        },
+        cancel: {
+          label: 'Cancelar',
+          color: 'primary',
+          flat: true,
+          icon: 'cancel'
+        }
+      }).onOk(() => {
+        handleEliminarTransaccion(id, true)
+      })
+    } else {
+      isLoadingEliminarTransaccion.value = true
+      api.delete('caja/transacciones/' + id)
+        .then(response => {
+          if (response.data) {
+            $q.notify({ message: 'Transacción anulada exitosamente.', color: 'positive' })
+            transaccionesTableRef.value.requestServerInteraction()
+          }
+        })
+        .catch(error => qNotify(error, 'error', { callback: () => handleEliminarTransaccion(id) }))
+        .finally(() => isLoadingEliminarTransaccion.value = false)
+    }
+  }
+
+  const handleEditarTransaccion = (id, data = {}) => {
+    api.post('caja/transacciones/update/' + id, data)
+      .then(response => {
+        if (response.data) {
+          $q.notify({ message: 'Transacción editada exitosamente.', color: 'positive' })
+          transaccionesTableRef.value.requestServerInteraction()
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarTransaccion(id) }))
+      .finally(() => isLoadingEliminarTransaccion.value = false)
+  }
+
+  const showDialogVerPagos = ref(false)
+
+  const openDialogVerPagos = () => {
+    showDialogVerPagos.value = true
+  }
+
+  const handleEliminarPago = (id, confirm = false) => {
+    if (!confirm) {
+      $q.dialog({
+        title: 'Eliminar pago',
+        message: '¿Estás seguro de que quieres eliminar este pago?',
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Eliminar',
+          color: 'primary',
+          flat: true,
+          icon: 'delete'
+        },
+        cancel: {
+          label: 'Cancelar',
+          color: 'primary',
+          flat: true,
+          icon: 'cancel'
+        }
+      }).onOk(() => {
+        handleEliminarPago(id, true)
+      })
+    } else {
+      isLoadingEliminarPago.value = true
+      api.delete('caja/transacciones/eliminarPago/' + id)
+        .then(response => {
+          if (response.data) {
+            $q.notify({ message: 'Pago eliminado exitosamente.', color: 'positive' })
+            if (transaccionData.value?.id) {
+              openDialogAgregarPago(transaccionData.value.id)
+              transaccionesTableRef.value.requestServerInteraction()
+            }
+            showDialogVerPagos.value = false
+          }
+        })
+        .catch(error => qNotify(error, 'error', { callback: () => handleEliminarPago(id) }))
+        .finally(() => isLoadingEliminarPago.value = false)
+    }
+  }
+
+  const isLoadingEliminarPago = ref(false)
 
   const searchQuery = ref('')
 
@@ -385,6 +648,22 @@
 
   const showModalAbrirCaja = ref(false)
   const showModalCerrarCaja = ref(false)
+  const showModalHistorialIngresos = ref(false)
+
+  const cajaHistorial = ref([])
+
+  const openDialogHistorialIngresos = () => {
+    api.get('caja/cajas/historico')
+      .then(response => {
+        if (response.data) {
+          console.log('response.data', response.data);
+          cajaHistorial.value = response.data
+        }
+      })
+      .catch(error => qNotify(error, 'error'))
+
+    showModalHistorialIngresos.value = true
+  }
 
   const handleSubmitAbrirCaja = () => {
     isLoadingSubmit.value = true
@@ -426,6 +705,27 @@
       })
   }
 
+  const handleDescargarReportePorCierre = (cierreId, porUsuario = false) => {
+
+    let endpoint = `caja/reportes/ingresos?cierre_id=${cierreId}&print=1`
+    if (porUsuario) {
+      endpoint += '&por_usuario=1'
+    }
+
+    api.get(endpoint, { responseType: "blob" })
+    .then((response) => {
+      console.log(response);
+      window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async (error) => {
+      console.log(error);
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, "error", {
+        callback: () => handleDescargarReportePorCierre(cierreId, porUsuario),
+      });
+    });
+  };
+
   const handleDescargarReporteIngresos = (caja_id, porUsuario = false) => {
 
     let endpoint = `caja/reportes/ingresos?caja_id=${caja_id}&tipo=ultimo&print=1`
@@ -442,7 +742,7 @@
       console.log(error);
       error.response.data = JSON.parse(await error.response.data.text());
       qNotify(error, "error", {
-        callback: () => handleDescargarReporteIngresos(),
+        callback: () => handleDescargarReporteIngresos(caja_id, porUsuario = false),
       });
     });
   };
@@ -466,8 +766,8 @@
     { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
     { name: 'acciones', label: '', align: 'left' },
     { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => format(new Date(val), 'dd/MM/yyyy HH:mm') },
-    { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true },
-    { name: 'ident_cliente', label: 'Número identidad', align: 'left', field: 'ident_cliente', sortable: true },
+    { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true, style: 'width: 200px; white-space: break-spaces; line-height: 1.15' },
+    { name: 'ident_cliente', label: 'Cédula', align: 'left', field: 'ident_cliente', sortable: true },
     { name: 'contrato', label: 'Contrato', align: 'left', format: (_, row) => `${row.codigo_contrato}-${row.num_contrato}`, sortable: true },
     { name: 'fecha_pagado', label: 'Fecha pagado', align: 'left', format: (_, row) => row?.ultimo_pago?.created_at ? format(new Date(row?.ultimo_pago?.created_at), 'dd/MM/yyyy') : '-', sortable: true },
     { name: 'num_transaccion', label: 'N° recibo', align: 'left', field: 'num_transaccion', sortable: true },
@@ -487,8 +787,9 @@
     descending: true,
   })
 
-  watch(tipoTransaccion, () => {
+  watch(tipoTransaccion, (val) => {
     transaccionesTableRef.value.requestServerInteraction()
+    if (val) verAnulados.value = false
   })
 
   watch(toRef(appStore, 'cajaSeleccionada'), (value, old) => {
@@ -520,6 +821,10 @@
 
     if (tipoTransaccion.value) {
       searchParams.append('f[estatus]', tipoTransaccion.value)
+    }
+
+    if (verAnulados.value) {
+      searchParams.append('archived', 1)
     }
 
     searchParams.append('f[caja_id]', appStore.cajaSeleccionada.id)
@@ -667,6 +972,13 @@
         }
       })
       .catch(e => console.log(e))
+
+    api.get('servicios')
+      .then(response => {
+        if (response.data) {
+          servicios.value = response.data
+        }
+      })
 
     appStore.getMonedas()
   })

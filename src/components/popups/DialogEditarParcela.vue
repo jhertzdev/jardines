@@ -12,6 +12,7 @@
             <q-tab name="detalles" icon="view_timeline" label="Detalles" />
             <q-tab name="puestos" icon="crop_landscape" label="Puestos" />
             <q-tab name="contratos" icon="attach_money" label="Contratos" />
+            <q-tab name="recibos" icon="receipt" label="Recibos" />
           </q-tabs>
         </template>
 
@@ -180,6 +181,9 @@
                           Ocupado
                         </q-badge>
                         <q-badge color="positive" v-else> Disponible </q-badge>
+                        <div class="text-grey-8" style="font-size: 0.6rem">
+                          {{ puesto.puesto_nombre }}
+                        </div>
                       </span>
                     </div>
                     <div class="col-sm col-12">
@@ -330,6 +334,30 @@
                 </q-form>
               </q-card>
             </q-tab-panel>
+            <q-tab-panel name="recibos">
+              <q-markup-table>
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th>Contrato</th>
+                    <th>Fecha</th>
+                    <th>Estatus</th>
+                    <th>Pagado hasta</th>
+                    <th>Descripción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="recibo in parcelaData.recibos" :key="recibo.id" :class="recibo.deleted_at ? 'bg-red-3 text-red-9' : ''">
+                    <td>{{ recibo.num_transaccion }} <q-badge v-if="recibo.deleted_at" class="bg-red-9 text-white" style="font-size: 10px; margin-left: 5px;">ANULADO</q-badge></td>
+                    <td>{{ recibo.num_contrato }}</td>
+                    <td>{{ new Date(recibo.created_at).toLocaleDateString() }}</td>
+                    <td>{{ recibo.estatus }}</td>
+                    <td>{{ recibo.pagado_hasta ? new Date(recibo.pagado_hasta).toLocaleDateString() : '-'}}</td>
+                    <td style="white-space: pre-wrap;">{{ recibo.descripcion }}</td>
+                  </tr>
+                </tbody>
+              </q-markup-table>
+            </q-tab-panel>
           </q-tab-panels>
         </template>
       </q-splitter>
@@ -341,7 +369,6 @@
     <DialogAgregarCliente ref="agregarClienteDialog" @created="handleCreatedCliente" @updated="handleUpdatedCliente" />
     <DialogAgregarCliente ref="agregarDifuntoDialog" @created="handleCreatedCliente" @updated="handleUpdatedCliente"
       :difunto="true" />
-    <DialogAsignarParcela ref="asignarParcelaDialog" />
     <DialogGenerarContratosIndividual ref="generarContratosDialog" @created="handleGenerarContratos"
       :params="contratosParams" />
     <q-dialog allow-focus-outside v-model="agregarOcupanteDialog" class="j-dialog">
@@ -475,6 +502,8 @@
       </q-card>
     </q-dialog>
   </q-dialog>
+
+  <DialogCambiarTitular ref="cambiarTitularDialog" />
 </template>
 
 <script setup>
@@ -484,14 +513,15 @@ import { useQuasar } from "quasar";
 import { useRoute } from "vue-router";
 import { qNotify, obtenerParcelaExhumableId } from "src/boot/jardines";
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
-import DialogAsignarParcela from "src/components/popups/DialogAsignarParcela.vue";
 import DialogGenerarContratosIndividual from "src/components/popups/DialogGenerarContratosIndividual.vue";
+import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
 import QSelectDatetime from "src/components/selects/QSelectDatetime.vue";
 
 // Components
 import QSelectCliente from "src/components/selects/QSelectCliente.vue";
 import QSelectEstatusParcela from "src/components/selects/QSelectEstatusParcela.vue";
 import QSelectSeccion from "src/components/selects/QSelectSeccion.vue";
+
 
 const route = useRoute();
 const $q = useQuasar();
@@ -500,6 +530,8 @@ const tab = ref("detalles");
 
 const dialog = ref(false)
 const dataId = ref(null)
+
+const cambiarTitularDialog = ref(null)
 
 const openDialog = (id, event = null) => {
   dataId.value = id;
@@ -592,6 +624,8 @@ const handleOcuparPuesto = () => {
 
   let postData = agregarOcupanteData.value;
 
+  console.log('handleOcuparPuesto', dataId.value, postData)
+
   api
     .post("parcelas/" + dataId.value + "/ocupar", postData)
     .then((response) => {
@@ -604,7 +638,16 @@ const handleOcuparPuesto = () => {
         emit('updated', response.data)
       }
     })
-    .catch((error) => qNotify(error, "error", { callback: handleOcuparPuesto }))
+    .catch((error) => {
+      if (error?.response?.data?.messages?.ocupante_id.includes('propietario de un contrato')) {
+        cambiarTitularDialog.value.openDialog({
+          cliente_id: agregarOcupanteData.value.ocupante_id,
+          select_all: true
+        })
+      } else {
+        qNotify(error, "error", { callback: handleOcuparPuesto })
+      }
+    })
     .finally(() => (isLoadingPuestos.value = false));
 };
 
@@ -791,10 +834,14 @@ const handleSubmitExhumarPuesto = () => {
 function getData() {
   isLoadingDetalles.value = true;
 
+  parcelaData.value.recibos = []
+
   api
     .get("parcelas/" + dataId.value)
     .then((response) => {
       parcelaData.value = response.data;
+
+      parcelaData.value.puestos = parcelaData.value.puestos.reverse();
 
       Object.keys(response.data).forEach((i) => {
         if (parcelaDetalles.value.hasOwnProperty(i))
@@ -806,6 +853,13 @@ function getData() {
           puestosData.value[puesto.id] = puesto;
         });
       }
+
+      api.get("caja/recibos/ubicacion/" + dataId.value).then((response) => {
+        if (response.data) {
+          parcelaData.value.recibos = response.data
+        }
+      })
+
     })
     .finally(() => (isLoadingDetalles.value = false));
 
