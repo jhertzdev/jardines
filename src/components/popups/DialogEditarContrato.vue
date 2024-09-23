@@ -113,15 +113,20 @@
                   </div>
                   <div class="col-12">
                     <QSelectCliente dense v-model="contratoData.comprador_id" outlined clearable label="Cliente relacionado"
-                      required @update:model-value="val => handleRellenarCamposDeCliente(val)" hide-bottom-space />
+                      required @update:model-value="val => handleRellenarCamposDeCliente(val)" hide-bottom-space readonly />
                   </div>
                   <div class="col-12 text-right text-caption text-grey-6 q-mt-sm">
                     <template v-if="parseInt(contratoData.comprador_id)">
                       <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit" color="primary" @click="(e) =>
                         agregarClienteDialog.openDialog(contratoData.comprador_id, e)"/>
+                      <q-btn flat dense class="q-mr-sm" size="sm" label="Cambiar titular" icon="person" color="primary" @click="(e) =>
+                        cambiarTitularDialog.openDialog({
+                          cliente_id: contratoData.comprador_id,
+                          contrato_id: contratoData.id,
+                          num_contrato: contratoData.num_contrato,
+                          tipo_parcela: contratoData.tipo_parcela,
+                        })"/>
                     </template>
-                    <span>¿El cliente no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
-                      color="primary" @click="agregarClienteDialog.openDialog()" />
                   </div>
                 </div>
               </div>
@@ -517,6 +522,7 @@
 
   <DialogAgregarCliente ref="agregarClienteDialog" />
   <DialogAgregarDifunto ref="agregarDifuntoDialog" :difunto="true" />
+  <DialogCambiarTitular ref="cambiarTitularDialog" @updated="openDialog(contratoData.id); emit('updated')" />
 
 </template>
 
@@ -537,6 +543,7 @@ import QSelectEstatusContrato from 'src/components/selects/QSelectEstatusContrat
 import QSelectParcelas from 'src/components/selects/QSelectParcelas.vue'
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogAgregarDifunto from "src/components/popups/DialogAgregarCliente.vue";
+import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
 import QSelectDatetime from 'src/components/selects/QSelectDatetime.vue';
 
 const $q = useQuasar()
@@ -550,6 +557,7 @@ const authStore = useAuthStore()
 
 const agregarClienteDialog = ref(null)
 const agregarDifuntoDialog = ref(null)
+const cambiarTitularDialog = ref(null)
 const editarContratosForm = ref(null)
 const actualizarFechasForm = ref(null)
 const agregarCremacionForm = ref(null)

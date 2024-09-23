@@ -7,6 +7,26 @@
           <div class="text-h6">{{ data.id ? 'Editar' : 'Agregar' }} {{ props.difunto ? 'difunto' : (props.relacionado ? 'relacionado' : 'cliente') }}</div>
         </q-card-section>
 
+        <q-card-section v-if="titularFallecidoContratosActivos">
+          <q-banner class="bg-red-3 q-pb-md q-mb-lg">
+            <template v-slot:avatar>
+              <q-icon class="q-mt-sm" name="warning" color="black" />
+            </template>
+            <div class="row">
+              <div class="col-md">
+                <div class="text-h6">Titular fallecido</div>
+                <div>Antes de guardar la información del cliente, debes reasignar los contratos activos que tenga.</div>
+                <q-checkbox v-model="ignorarContratosActivos" label="Ignorar contratos activos" type="checkbox"  />
+              </div>
+              <div class="col-md-auto flex items-center">
+                <q-btn type="button" color="primary" label="Cambiar" icon="person" @click="cambiarTitularDialog.openDialog({ cliente_id: data.id })" />
+              </div>
+            </div>
+            <template v-slot:action>
+            </template>
+          </q-banner>
+        </q-card-section>
+
         <q-card-section>
 
           <div class="row q-col-gutter-lg">
@@ -257,9 +277,29 @@
 
         </q-card-section>
 
+        <q-card-section v-if="titularFallecidoContratosActivos">
+          <q-banner class="bg-red-3 q-pb-md q-mb-lg">
+            <template v-slot:avatar>
+              <q-icon class="q-mt-sm" name="warning" color="black" />
+            </template>
+            <div class="row">
+              <div class="col-md">
+                <div class="text-h6">Titular fallecido</div>
+                <div>Antes de guardar la información del cliente, debes reasignar los contratos activos que tenga.</div>
+                <q-checkbox v-model="ignorarContratosActivos" label="Ignorar contratos activos" type="checkbox"  />
+              </div>
+              <div class="col-md-auto flex items-center">
+                <q-btn type="button" color="primary" label="Cambiar" icon="person" @click="cambiarTitularDialog.openDialog({ cliente_id: data.id })" />
+              </div>
+            </div>
+            <template v-slot:action>
+            </template>
+          </q-banner>
+        </q-card-section>
+
         <q-card-actions class="justify-end">
           <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn type="submit" icon="save" :label="data.id ? 'Guardar' : 'Agregar'" color="primary" :loading="isLoadingSubmit" />
+          <q-btn type="submit" icon="save" :label="data.id ? 'Guardar' : 'Agregar'" color="primary" :loading="isLoadingSubmit" :disable="isLoadingSubmit" />
         </q-card-actions>
       </q-form>
     </q-card>
@@ -315,6 +355,7 @@
     </q-dialog>
 
     <DialogAgregarRelacionado ref="agregarRelacionadoDialog" :relacionado="true" @created="(cliente) => relacionData.relacion_id = cliente.id" />
+    <DialogCambiarTitular ref="cambiarTitularDialog" :relacionado="true" />
   </template>
 
 </template>
@@ -342,13 +383,14 @@
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { useAuthStore } from 'src/stores/auth.store';
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue';
 import QSelectDatetime from 'src/components/selects/QSelectDatetime.vue';
 import DialogAgregarRelacionado from './DialogAgregarCliente.vue';
+import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
 
 const $q = useQuasar()
 const dialog = ref(false)
@@ -369,6 +411,11 @@ const props = defineProps({
 
 const customParams = ref({})
 const agregarRelacionadoDialog = ref(null)
+const cambiarTitularDialog = ref(null)
+
+const titularFallecidoContratosActivos = computed(() => {
+  return tieneContratosActivos.value && !!parseInt(props.difunto || data.difunto)
+})
 
 let stringOpcionesParentesco = [
   {
@@ -476,6 +523,14 @@ const filterFn = (val, update) => {
 }
 
 const handleSubmit = () => {
+
+  if (titularFallecidoContratosActivos.value && !ignorarContratosActivos.value) {
+    cambiarTitularDialog.value.openDialog({
+      cliente_id: data.id,
+      select_all: true
+    })
+    return;
+  }
 
   isLoadingSubmit.value = true
   let postData = { ...data }
@@ -647,7 +702,7 @@ const data = reactive({
   estado_civil: null,
   genero: null,
   // Relaciones y parentesco
-  relaciones: []
+  relaciones: [],
 })
 
 const relacionData = reactive({
@@ -668,6 +723,8 @@ const tiposCliente = [
 const isLoadingSubmit = ref(false)
 const isLoadingSubmitRelacion = ref(false)
 const isLoadingEliminarRelacion = ref(false)
+const tieneContratosActivos = ref(false)
+const ignorarContratosActivos = ref(false)
 
 const buttonTargetId = ref(null)
 
@@ -684,11 +741,18 @@ const openDialog = (id, event = null, params = {}) => {
       )
   })
 
+  ignorarContratosActivos.value = false
+
   if (id) {
     isLoadingSubmit.value = true
-    api.get('clientes/' + id)
+    api.get('clientes/' + id + '?with[]=data')
       .then(response => {
         if (response.data) {
+
+
+          if (response.data.contratos.filter(contrato => contrato.estatus != 'Inactivo').length) {
+            tieneContratosActivos.value = true
+          }
 
 
           Object.keys(response.data).forEach((i) => {
