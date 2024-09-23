@@ -181,6 +181,9 @@
                       Ocupado
                     </q-badge>
                     <q-badge color="positive" v-else> Disponible </q-badge>
+                    <div class="text-grey-8" style="font-size: 0.6rem">
+                      {{ puesto.puesto_nombre }}
+                    </div>
                   </span>
                 </div>
                 <div class="col-sm col-12">
@@ -481,7 +484,7 @@ import { useQuasar } from "quasar";
 import { useRoute } from "vue-router";
 import { qNotify, obtenerParcelaExhumableId } from "src/boot/jardines";
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
-import DialogAsignarParcela from "src/components/popups/DialogAsignarParcela.vue";
+import DialogAsignarParcela from "src/components/popups/DialogCambiarTitular.vue";
 import DialogGenerarContratosIndividual from "src/components/popups/DialogGenerarContratosIndividual.vue";
 import QSelectDatetime from "src/components/selects/QSelectDatetime.vue";
 
@@ -775,6 +778,8 @@ function getData() {
     .get("parcelas/" + route.params.id)
     .then((response) => {
       parcelaData.value = response.data;
+
+      parcelaData.value.puestos = parcelaData.value.puestos.reverse();
 
       Object.keys(response.data).forEach((i) => {
         if (parcelaDetalles.value.hasOwnProperty(i))

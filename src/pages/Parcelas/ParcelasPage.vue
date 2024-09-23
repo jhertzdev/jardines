@@ -1,7 +1,7 @@
 <template>
   <div class="row full-width">
-    <div class="col-md-4 col-12">
-      <q-card class="q-pa-md" :class="$q.screen.lt.md ? 'q-mb-sm' : 'q-mr-sm'">
+    <div class="col-md-4 col-12 q-gutter-y-md">
+      <q-card class="q-pa-md">
         <table class="info-table">
           <tr>
             <th colspan="2" style="text-align: right;">UBICACIONES</th>
@@ -63,6 +63,7 @@
 
         <div class="q-gutter-md">
           <q-btn label="Agregar" icon="add" color="primary" @click="openDialogAgregarParcelas" />
+          <q-btn label="Grabado de mármol" icon="table_rows" color="primary" :to="`/app/grabado-marmol?tipo_parcela=${route.meta.tipoUbicacion}`" />
           <q-btn-dropdown label="Ver mapa" icon="yard" color="primary">
             <q-list>
               <q-item clickable v-close-popup v-for="seccion in secciones"
@@ -173,6 +174,8 @@
           </q-card>
         </q-dialog>
 
+        <DialogGrabadoMarmol ref="dialogGrabadoMarmol" />
+
       </div>
     </div>
   </div>
@@ -234,10 +237,13 @@ import { api } from "src/boot/axios";
 import { qNotify } from 'src/boot/jardines';
 import { useRoute, useRouter } from "vue-router";
 import { useQuasar } from "quasar";
+import DialogGrabadoMarmol from "src/components/popups/DialogGrabadoMarmol.vue";
 
 const router = useRouter()
 const route = useRoute()
 const $q = useQuasar()
+
+const dialogGrabadoMarmol = ref(null)
 
 const parcelasColumnas = [
   { name: 'codigo_parcela', label: 'Ubicación', align: 'left', field: 'codigo_parcela', sortable: true, headerStyle: "width: 105px"},

@@ -366,12 +366,11 @@ onMounted(() => {
     calculateLayout();
   });
 
-  api.get('parcelas?f[codigo_seccion]=' + route.params.codigo + '&with[]=data&rowsPerPage=-1')
+  api.get('parcelas/mapa/' + route.params.codigo)
     .then(response => {
       if (response.data) {
-        response.data.data.forEach( (parcela, index) => {
-
-          console.log(parcela);
+        console.log(response)
+        response.data.forEach( (parcela, index) => {
 
           layout.value.push({
             x: parcela.pos_x ? parseInt(parcela.pos_x) : 0,
@@ -381,12 +380,13 @@ onMounted(() => {
             i: parseInt(parcela.id),
             data: {
               estatus: parcela.estatus,
-              codigo: parcela.codigo_parcela,
+              codigo: parcela.codigo_seccion + '-' + parcela.num_parcela,
               propietario: parcela.propietario_id,
-              puestos: parcela.puestos
+              puestos: []
             },
             class: [slugify(parcela.estatus)]
           })
+
 
         });
       }
