@@ -358,6 +358,12 @@ const linksList = [
     /*perms: 'mantenimiento',*/
   },
   {
+    title: 'Servicios',
+    icon: 'fence',
+    to: '/app/servicios',
+    /*perms: 'mantenimiento',*/
+  },
+  {
     title: 'Ubicaciones',
     children: [
       {

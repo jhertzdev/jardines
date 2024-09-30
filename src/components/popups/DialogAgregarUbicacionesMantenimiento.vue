@@ -16,24 +16,34 @@
                 v-model:pagination="parcelasTablePagination" :loading="parcelasTableLoading" :filter="parcelasTableFilter"
                 @request="parcelasTableRequest" selection="multiple" v-model:selected="parcelasSelected">
                 <template v-slot:top-left>
-                  <q-option-group
-                    v-model="dataFilters"
-                    type="checkbox"
-                    :options="[
-                      { label: 'Solo contratos vigentes', value: 'vigente' },
-                      { label: 'Mantenimiento trimestral', value: 'trimestral' },
-                    ]"
-                    color="primary"
-                    inline
-                    dense
-                  />
+                  <div class="q-gutter-sm">
+                    <q-checkbox v-model="dataFilters.trimestral" label="Mantenimiento trimestral" color="primary" dense />
+                  </div>
                 </template>
                 <template v-slot:top-right>
+
+                  <q-input class="q-mr-sm" label="Vigente hasta" dense flat v-model="dataFilters.vigente_hasta" mask="####-##" :hide-bottom-space="true" readonly clearable style="width: 150px; display: inline-flex">
+                    <template v-slot:append>
+                      <q-icon v-if="dataFilters.vigente_hasta" name="close" class="cursor-pointer" @click="dataFilters.vigente_hasta = ''"></q-icon>
+                      <q-icon name="event" class="cursor-pointer">
+                        <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                          <q-date v-model="dataFilters.vigente_hasta" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                            @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
+                            :default-year-month="(dataFilters.vigente_hasta || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
+                            <div class="row items-center justify-end">
+                              <q-btn v-close-popup label="Close" color="primary" flat />
+                            </div>
+                          </q-date>
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
                   <q-input dense debounce="300" v-model="parcelasTableFilter" placeholder="Buscar...">
                     <template v-slot:append>
                       <q-icon name="search" />
                     </template>
                   </q-input>
+
                 </template>
                 <template v-slot:body-cell-codigo_parcela="props">
                   <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
@@ -138,7 +148,8 @@
                     <q-icon name="event" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                         <q-date v-model="data.fecha_vencimiento" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
-                          @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false">
+                          @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
+                          :default-year-month="(data.fecha_vencimiento || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
                           <div class="row items-center justify-end">
                             <q-btn v-close-popup label="Close" color="primary" flat />
                           </div>
@@ -175,7 +186,7 @@ import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 
-import { format, getDate, getMonth, getYear, lastDayOfMonth } from 'date-fns';
+import { format, getDate, getMonth, getYear, lastDayOfMonth, startOfMonth } from 'date-fns';
 
 // Components
 import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
@@ -184,7 +195,13 @@ const $q = useQuasar()
 const dialog = ref(false)
 const isLoadingSubmit = ref(false)
 
-const dataFilters = ref(['vigente', 'trimestral'])
+const ultimoDelMes = lastDayOfMonth(new Date())
+const primeroDelMes = startOfMonth(new Date())
+
+const dataFilters = ref({
+  trimestral: false,
+  vigente_hasta: new Date().toISOString().substr(0, 7),
+})
 
 const parcelas = ref([])
 const editarParcelaDialog = ref(null)
@@ -214,7 +231,7 @@ const parcelasTablePagination = ref({
 watch(dataFilters, () => {
   console.log('dataFilters', dataFilters.value)
   parcelasTableRef.value.requestServerInteraction()
-})
+}, { deep: true })
 
 const parcelasTableRequest = (props) => {
 
@@ -242,9 +259,8 @@ const parcelasTableRequest = (props) => {
 
   endpoint += '&with[]=data&with[]=mantenimiento';
 
-  dataFilters.value.forEach(filter => {
-    endpoint += `&${filter}=1`;
-  });
+  if (dataFilters.value.trimestral) endpoint += '&trimestral=1';
+  if (dataFilters.value.vigente_hasta) endpoint += `&vigente=${dataFilters.value.vigente_hasta}`;
 
   console.log('endpoint', endpoint);
 
@@ -292,7 +308,29 @@ const observacionesPorTipoUbicacion = {
 
 
 
-const handleSubmit = () => {
+const handleSubmit = (confirm = false) => {
+
+  // Chequear si alguna parcela no está vigente para el mes actual
+  if (confirm !== true && parcelasSelected.value.some(p => p.vigente_hasta && new Date(p.vigente_hasta) < primeroDelMes)) {
+    $q.dialog({
+      title: 'Parcelas no vigentes',
+      message: 'Las parcelas seleccionadas no están vigentes para el mes actual: ' + parcelasSelected.value.filter(p => p.vigente_hasta && new Date(p.vigente_hasta) < primeroDelMes).map(p => p.codigo_seccion + '-' + p.num_parcela + ' (' + new Date(p.vigente_hasta).toLocaleDateString() + ')').join(', '),
+      cancel: true,
+      ok: {
+        label: 'Asignar de todas formas',
+        color: 'primary',
+        flat: true,
+      },
+      cancel: {
+        label: 'Cerrar',
+        color: 'primary',
+      }
+    }).onOk(() => {
+      handleSubmit(true)
+    })
+
+    return;
+  }
 
   let postData = {
     ubicaciones: parcelasSelected.value.map(ub => ub.id),

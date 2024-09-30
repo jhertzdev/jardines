@@ -16,7 +16,8 @@
                   <q-icon name="event" class="cursor-pointer">
                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                       <q-date v-model="data.fecha_vencimiento" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
-                        @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false">
+                        @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
+                        :default-year-month="(data.fecha_vencimiento || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
                         <div class="row items-center justify-end">
                           <q-btn v-close-popup label="Close" color="primary" flat />
                         </div>
@@ -49,9 +50,6 @@
                 } else { data.estatus = 'Por ejecutar'; data.fecha_completado = null; }
               }"></q-select>
             </div>
-            <div class="col-12">
-              <q-input dense outlined v-model="data.notas" label="Notas internas" stack-label />
-            </div>
             <div class="col-12 col-lg-2">
               <q-select dense outlined v-model="data.estatus" :options="[
                 'Completado',
@@ -60,6 +58,10 @@
                 'Vencido'
               ]" @update:model-value="val => val != 'Completado' ? data.fecha_completado = null : data.fecha_completado = format(new Date(), 'yyyy-MM-dd')" label="Estatus" stack-label emit-value map-options></q-select>
             </div>
+            <div class="col-12">
+              <q-input dense outlined v-model="data.notas" label="Notas internas" stack-label />
+            </div>
+
             <div class="col-12">
 
 

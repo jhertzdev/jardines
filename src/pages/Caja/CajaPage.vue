@@ -69,16 +69,16 @@
 
           <div class="flex justify-between q-mb-md">
             <div class="q-gutter-xs">
-              <q-btn-toggle v-model="tipoTransaccion" toggle-color="primary" :options="[
+              <q-btn-toggle class="custom-btn-toggle" dense v-model="tipoTransaccion" toggle-color="primary" :options="[
                 { label: 'Pagados', value: 'Pagado' },
                 { label: 'Pendientes', value: 'Pendiente' },
               ]" />
-              <q-btn color="negative" :flat="!verAnulados" label="Ver anulados" icon="archive" @click="verAnulados = true; tipoTransaccion = null, transaccionesTableRef.requestServerInteraction()" />
+              <q-btn dense color="negative" :flat="!verAnulados" label="Ver anulados" icon="archive" @click="verAnulados = true; tipoTransaccion = null, transaccionesTableRef.requestServerInteraction()" />
             </div>
             <div class="q-gutter-sm">
-              <q-btn color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" />
-              <q-btn color="primary" label="Relación de ingresos" icon="assessment" to="caja/reportes/ingresos" />
-              <q-btn color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')" />
+              <q-btn dense class="q-px-sm" color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" />
+              <q-btn dense class="q-px-sm" color="primary" label="Relación de ingresos" icon="assessment" to="caja/reportes/ingresos" />
+              <q-btn dense class="q-px-sm" color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')" />
             </div>
           </div>
 
@@ -399,6 +399,10 @@
   background-color: #ffd700;
   color: #000;
 }
+
+.custom-btn-toggle .q-btn {
+  padding: .285em 8px;
+}
 </style>
 
 <script setup>
@@ -439,6 +443,8 @@
   const handleSubmitEditarLineaRecibo = () => {
     isLoadingEditarLineaRecibo.value = true
     let postData = agregarEditarLineaRecibo.value
+
+    console.log('pd', postData)
 
     console.log('postData', postData);
     api.post('caja/transacciones/editarLineaRecibo', postData)

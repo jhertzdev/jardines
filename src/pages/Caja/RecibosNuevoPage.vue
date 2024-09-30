@@ -257,7 +257,22 @@
             </template>
             <template v-slot:body-cell-descripcion="props">
               <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
-                <q-input type="textarea" rows="1" autogrow dense v-model="props.row[props.col.name]" style="margin-bottom: 20px;"/>
+                <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" readonly>
+                  <template v-slot:append>
+                    <q-btn flat color="primary" dense size="sm" icon="edit">
+                      <q-popup-proxy @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
+                        <q-banner>
+                          <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" />
+                          <div class="q-mt-xs q-gutter-xs">
+                            <q-btn outline dense size="sm" color="primary" label="Fecha desde" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__DESDE__'" />
+                            <q-btn outline dense size="sm" color="primary" label="Fecha hasta" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__HASTA__'"/>
+                            <q-btn outline dense size="sm" color="primary" label="Ubicaciones" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__UBICACIONES__'"/>
+                          </div>
+                        </q-banner>
+                      </q-popup-proxy>
+                    </q-btn>
+                  </template>
+                </q-input>
                 <div class="text-right" style="min-height: 20px; margin-top: -15px; margin-bottom: 20px" v-if="props.row['tipo']?.requiere_ubicaciones == 1">
                   <QSelectParcelasLinea class="q-select-parcelas-linea" :hint="contratoSelected?.fecha_emision ? `Emit: ${format(new Date(contratoSelected.fecha_emision), 'dd/MM/yyyy')} | Vence: ${format(new Date(contratoSelected.fecha_vencimiento), 'dd/MM/yyyy')}` : ''" dense options-dense v-model="props.row['ubicaciones']"
                     :use-input="!props.row['ubicaciones']?.length" placeholder="Asignar ubicaciones" :ubicaciones="parcelasSelected" @update:model-value="handleRecalcularLinea(props.row)"/>
@@ -268,13 +283,13 @@
                       <q-input label="Ubicación" dense v-model="ubicacion.codigo_parcela" readonly />
                     </div>
                     <div style="flex: 1 0 5em">
-                      <q-input label="Últ. pago" stack-label placeholder="--" dense v-model="ubicacion.pagado_hasta" readonly />
+                      <q-input type="date" label="Últ. pago" stack-label placeholder="--" dense :model-value="ubicacion.pagado_hasta?.substr(0, 10) " readonly />
                     </div>
                     <div style="flex: 1 0 5em" v-if="props.row.tipo?.tipo_producto == 'Mantenimiento'">
-                      <q-input label="Nuevo pago" type="date" stack-label placeholder="--" dense v-model="ubicacion.nuevo_pagado_hasta" />
+                      <q-input class="bg-green-1 text-white" style="border-radius: 3px !important" label="Nuevo pago" type="date" stack-label placeholder="--" dense v-model="ubicacion.nuevo_pagado_hasta" @update:model-value="val => handleRellenarDescripcion(props.row)" />
                     </div>
                     <div style="flex: 1 0 3em" v-if="props.row.tipo?.tipo_producto == 'Mantenimiento'">
-                      <q-input :label="props.row['pago_por_cuotas'] ? 'Meses' : 'Años'" type="number" step="1" min="0" stack-label dense v-model="ubicacion.cuotas" @update:model-value="val => handleRecalcularLinea(props.row, val)" required />
+                      <q-input class="bg-green-1 text-white" style="border-radius: 3px !important" :label="props.row['pago_por_cuotas'] ? 'Meses' : 'Años'" type="number" step="1" min="0" stack-label dense v-model="ubicacion.cuotas" @update:model-value="val => handleRecalcularLinea(props.row, val)" required />
                     </div>
                   </div>
 
@@ -567,7 +582,7 @@
                     <q-input dense v-model="props.row['referencia']" label="Referencia" v-if="props.row['tipo_metodo'] != 'Efectivo'"
                       debounce="500" @update:model-value="val => handleVerificarReferencia(props.row, val)" :error="props.row.referencias_usadas?.length > 0 && !props.row['referencia_usada']" hide-bottom-space>
                       <template v-slot:error>
-                        La refencia ya ha sido usada.
+                        La referencia ya ha sido usada.
                       </template>
                     </q-input>
                     <q-checkbox dense class="q-mt-xs" v-if="props.row.referencias_usadas?.length > 0" :model-value="!!props.row['referencia_usada']" @update:model-value="props.row['referencia_usada'] = !props.row['referencia_usada']" label="Utilizar referencia igualmente" />
@@ -1352,6 +1367,7 @@
         return {
           producto_id: row.tipo.id,
           descripcion: row.descripcion,
+          descripcion_plantilla: row.descripcion,
           ubicaciones: row.ubicaciones || null,
           cantidad: row.cantidad,
           precio_unitario: row.precio,
@@ -1404,6 +1420,7 @@
   const handleChangeTipoServicio = (row) => {
     if (row.tipo) {
       row.descripcion = row.tipo.descripcion
+      row.descripcion_plantilla = row.tipo.descripcion
       row.precio = parseFloat(row.tipo.precio_ref)
       row.pago_por_cuotas = false
       row.separar_pagos = false
@@ -1427,7 +1444,7 @@
   }
 
   const handleRecalcularLinea = (row, val) => {
-    console.log('handleRecalcularLinea', {
+    console.log('handleRecalcularLinea!!!', {
       cantidad: row.cantidad,
       pago_por_cuotas:row.pago_por_cuotas,
       precio: row.precio,
@@ -1455,6 +1472,8 @@
           ultimoPagadoHasta = new Date(contratoSelected.value.fecha_emision || null);
         }
 
+        //ubicacion.pagado_hasta = ultimoPagadoHasta.toISOString().substr(0, 10);
+
         if (row.pago_por_cuotas) {
           ubicacion.nuevo_pagado_hasta = agregarPorFechaCorte(ultimoPagadoHasta, new Date(contratoSelected.value.fecha_emision), parseInt(ubicacion.cuotas))
         } else {
@@ -1469,6 +1488,73 @@
     } else {
       row.total = row.precio * row.cantidad
     }
+
+    handleRellenarDescripcion(row)
+  }
+
+  const dateToDMY = (datestring) => {
+    if (!datestring) return null
+
+    const inputDate = new Date(datestring.replace(/-/g, '/'));
+
+    // Format the date as a string in the desired format
+    const day = inputDate.getDate().toString().padStart(2, '0');
+    const month = (inputDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = inputDate.getFullYear().toString();
+    const outputDateString = `${day}/${month}/${year}`;
+
+    return outputDateString;
+  }
+
+  const handleRellenarDescripcion = (row) => {
+    let plantilla = row.descripcion_plantilla
+
+    if (!plantilla) return;
+
+    let ubicacionesAgrupadasPorFecha = {}
+
+    // Verificar si la plantilla tiene __DESDE__ o __HASTA__
+    if (row.descripcion_plantilla.includes('__DESDE__') || row.descripcion_plantilla.includes('__HASTA__')) {
+      row.ubicaciones.forEach(ubicacion => {
+        let fechaDesde = ubicacion.pagado_hasta?.substr(0, 10) || '-'
+        let fechaHasta = ubicacion.nuevo_pagado_hasta?.substr(0, 10) || '-'
+
+        let fechaDesdeHasta = fechaDesde + '_' + fechaHasta
+        if (!ubicacionesAgrupadasPorFecha[fechaDesdeHasta]) {
+          ubicacionesAgrupadasPorFecha[fechaDesdeHasta] = []
+        }
+        ubicacionesAgrupadasPorFecha[fechaDesdeHasta].push(ubicacion)
+      })
+
+      let descripciones = [];
+      for (let fecha in ubicacionesAgrupadasPorFecha) {
+
+        let descripcion = row.descripcion_plantilla;
+
+        if (descripcion.includes('__DESDE__')) {
+          descripcion = descripcion.replace('__DESDE__', dateToDMY(ubicacionesAgrupadasPorFecha[fecha][0].pagado_hasta || contratoSelected.value?.fecha_emision))
+        }
+
+        if (descripcion.includes('__HASTA__')) {
+          descripcion = descripcion.replace('__HASTA__', dateToDMY(ubicacionesAgrupadasPorFecha[fecha][0].nuevo_pagado_hasta))
+        }
+
+        if (descripcion.includes('__UBICACIONES__')) {
+          descripcion = descripcion.replace('__UBICACIONES__', ubicacionesAgrupadasPorFecha[fecha].map(ubicacion => ubicacion.codigo_parcela).join(', '))
+        }
+
+        descripciones.push(descripcion)
+      }
+
+      row.descripcion = descripciones.join('\n')
+
+    } else if (row.descripcion_plantilla.includes('__UBICACIONES__')) {
+
+      row.descripcion = row.descripcion_plantilla.replace('__UBICACIONES__', row.ubicaciones.map(ubicacion => ubicacion.codigo_parcela).join(', '))
+
+    }
+
+
   }
 
   const agregarPorFechaCorte = (lastDate, baseDate, months) => {

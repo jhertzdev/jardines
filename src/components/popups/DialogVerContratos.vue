@@ -124,8 +124,8 @@
               </q-td>
             </template>
             <template v-slot:body-cell-cliente="props">
-              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="max-width: 160px; white-space: normal;">
-                <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }}</a>
+              <q-td :props="props" :class="{'highlighted': EstadosDesactivados.includes(props.row.estatus), 'bg-grey-5': !!parseInt(props.row.cliente.difunto), ['label-' + props.row.etiqueta]: !!props.row.etiqueta}" style="max-width: 160px; white-space: normal;">
+                <a href="javascript:void(0)" @click="(e) => verClienteDialog.openDialog(props.row.cliente.id, e)" v-if="props.row.cliente?.id">{{ props.value }} <q-badge class="bg-black" v-if="!!parseInt(props.row.cliente.difunto)">(Fallecido)</q-badge></a>
                 <span v-else>-</span>
               </q-td>
             </template>

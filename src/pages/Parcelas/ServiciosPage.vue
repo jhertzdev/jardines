@@ -1,30 +1,26 @@
-<template>
-  <div class="text-right q-mb-sm q-gutter-xs">
-    <q-btn size="sm" class="q-px-sm" :label="`Imprimir (${selectedRows.length})`" icon="print" color="primary" v-if="selectedRows.length" @click="imprimirMantenimientoDialog.openDialog();" />
-    <q-btn size="sm" class="q-px-sm" :label="`Editar (${selectedRows.length})`" icon="edit" color="primary" v-if="selectedRows.length" @click="editarLoteOrdenesTrabajoDialog.openDialog(selectedRows.map(r => r.id));" />
-    <q-btn size="sm" class="q-px-sm" :label="`Borrar (${selectedRows.length})`" icon="delete" color="negative" v-if="selectedRows.length" @click="handleEliminarOrdenesMantenimientoLote(selectedRows.map(r => r.id));" />
-    <q-btn size="sm" class="q-px-sm" label="Asignar mantenimientos" icon="handyman" color="primary" @click="agregarUbicacionesMantenimientoDialog.openDialog();" />
-    <q-btn size="sm" class="q-px-sm" label="Control trimestral" icon="event" color="primary" to="/app/mantenimiento/control-trimestral" />
-  </div>
+<style>
+/*.card-busqueda {
+  display: none !important;
+}
 
+body.section-busqueda-open .q-page-container {
+  padding-top: 50px !important;
+}
+*/
+</style>
+<template>
   <q-table dense :rows="tableData" flat :columns="tableColumns" row-key="id"
     :class="!$q.screen.lt.md && 'text-wrap'" ref="tableRef"
     v-model:pagination="tablePagination" :loading="tableLoading" :filter="tableFilter"
-    @request="tableRequest" selection="multiple" v-model:selected="selectedRows" style="max-height: 75vh;">
+    @request="tableRequest" style="max-height: 75vh;">
     <template v-slot:top-left>
-      <q-btn-toggle v-model="estatusOrdenes" toggle-color="primary" :options="[
-        { label: 'Todas', value: '' },
-        { label: 'Completadas', value: 'Completado' },
-        { label: 'Por entregar', value: 'Por entregar' },
-        { label: 'Por ejecutar', value: 'Por ejecutar' },
-      ]" @click="selectedRows = []" />
-      <!--<q-input class="q-ml-sm" label="Filtrar por mes" dense outlined v-model="filterDate" mask="####-##" :hide-bottom-space="true" style="max-width: 150px;" readonly clearable>
+      <q-input label="Mes asignado" dense outlined v-model="filterDate.mes" mask="####-##" :hide-bottom-space="true" readonly clearable>
         <template v-slot:append>
-          <q-icon v-if="filterDate" name="close" class="cursor-pointer" @click="filterDate = ''"></q-icon>
+          <q-icon v-if="filterDate.mes" name="close" class="cursor-pointer" @click="filterDate.mes = ''"></q-icon>
           <q-icon name="event" class="cursor-pointer">
             <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-              <q-date v-model="filterDate" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
-                @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false">
+              <q-date v-model="filterDate.mes" :default-year-month="(filterDate.mes || new Date().toISOString().substr(0, 7)).replace('-', '/')" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false" years-in-month-view>
                 <div class="row items-center justify-end">
                   <q-btn v-close-popup label="Close" color="primary" flat />
                 </div>
@@ -32,14 +28,8 @@
             </q-popup-proxy>
           </q-icon>
         </template>
-      </q-input>-->
-      <q-btn icon="filter_alt" label="Filtrar por fecha" color="primary" class="q-ml-sm" @click="showDialogFilterDate = true"></q-btn>
-      <div class="q-my-sm" style="width: 100%" v-if="filterDate.field?.value && (filterDate.desde || filterDate.hasta)">
-        <q-btn icon="delete" color="negative" dense size="sm" @click="filterDate.desde = ''; filterDate.hasta = ''; filterDateClosePopup = true" />
-        Filtrado por {{ filterDate.field.label.toLowerCase() }}
-        <template v-if="filterDate.desde"> desde el: {{ filterDate.desde }}</template>
-        <template v-if="filterDate.hasta"> hasta el: {{ filterDate.hasta }}</template>
-      </div>
+      </q-input>
+
     </template>
     <template v-slot:top-right>
       <q-input dense debounce="300" v-model="tableFilter" placeholder="Buscar...">
@@ -57,17 +47,23 @@
     </template>
     <template v-slot:body-cell-ubicacion="props">
       <q-td :props="props" style="width: 1px">
-        <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.ubicacion_id)">{{ props.row.ubicacion.codigo_parcela }}</a>
-        <q-icon name="info" class="q-ml-xs text-red-4" v-if="props.row?.notas?.length">
-          <q-tooltip anchor="top middle" self="bottom middle" max-width="240px" style="background: #000 !important; border: 1px solid #fff">
-            <div>{{ props.row.notas }}</div>
-          </q-tooltip>
-        </q-icon>
+        <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.ubicacion_id)">{{ props.row.ubicacion}}</a>
       </q-td>
     </template>
-    <template v-slot:body-cell-cliente="props">
-      <q-td :props="props" style="max-width: 150px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
-        {{ props.row.ubicacion.propietario.propietario_nombre }} ({{ props.row.ubicacion.propietario.propietario_identidad }})
+    <template v-slot:body-cell-clase_servicio="props">
+      <q-td class="text-center" :props="props">
+        <q-badge :label="props.row.clase_servicio" />
+        <template v-if="props.row.tipo_servicio">
+          <div style="font-size: .6rem; letter-spacing: -0.25px;">{{ props.row.tipo_servicio }}</div>
+        </template>
+
+      </q-td>
+    </template>
+    <template v-slot:body-cell-num_contrato="props">
+      <q-td :props="props" style="max-width: 150px;">
+        <a href="javascript:void(0)" @click="verContratosDialog.openDialog(props.row.num_contrato, props.row.tipo_contrato)" v-if="props.row.num_contrato">
+          {{ props.row.num_contrato }}
+        </a>
       </q-td>
     </template>
     <template v-slot:body-cell-difuntos="props">
@@ -109,6 +105,16 @@
         </template>
       </q-td>
     </template>
+    <template v-slot:body-cell-hora_asignado="props">
+      <q-td :props="props">
+        <template v-if="props.row.fecha_asignado && new Date(props.row.fecha_asignado) != 'Invalid Date'">
+          {{ format(props.row.fecha_asignado, 'hh:mm a') }}
+        </template>
+        <template v-else>
+          <span>-</span>
+        </template>
+      </q-td>
+    </template>
     <template v-slot:body-cell-vigente_hasta="props">
       <q-td :props="props" style="" :class="props.row.ubicacion.vigente_hasta ? new Date(props.row.ubicacion.vigente_hasta) < startOfMonth(new Date(props.row.fecha_vencimiento)) ? 'text-red-4 bg-red-1' : '' : ''">
         <template v-if="props.row.ubicacion?.vigente_hasta && new Date(props.row.ubicacion.vigente_hasta) != 'Invalid Date'">
@@ -132,7 +138,6 @@
     <template v-slot:body-cell-estatus="props">
       <q-td :props="props">
         <q-badge :color="classEstatus[props.row.estatus]" :label="props.row.estatus" />
-        <q-linear-progress stripe :value="props.row.avance / 100" :color="classEstatus[props.row.estatus]"  />
       </q-td>
     </template>
     <template v-slot:body-cell-notas="props">
@@ -141,64 +146,10 @@
       </q-td>
     </template>
   </q-table>
-  <q-dialog v-model="showDialogFilterDate" class="j-dialog j-dialog-lg">
-    <q-card>
-      <q-card-section>
-        <div class="text-h6">Filtrar por fecha</div>
-      </q-card-section>
-      <q-card-section>
-        <div class="row q-col-gutter-sm q-mb-sm">
-          <div class="col-5">
-            <q-select dense outlined v-model="filterDate.field" :options="[
-              { label: 'Asignado', value: 'fecha_asignado' },
-              { label: 'Último recibo', value: 'fecha_ultimo_recibo' },
-              { label: 'Completado', value: 'fecha_completado' },
-            ]" label="Filtrar por fecha" clearable />
-          </div>
-          <div class="col">
-            <q-input type="date" dense outlined v-model="filterDate.desde" label="Desde" clearable />
-          </div>
-          <div class="col">
-            <q-input type="date" dense outlined v-model="filterDate.hasta" label="Hasta" clearable />
-          </div>
-        </div>
 
-        <div class="row q-col-gutter-sm">
-          <div class="col-12">
-            <q-input label="Mes asignado" dense outlined v-model="filterDate.mes" mask="####-##" :hide-bottom-space="true" readonly clearable>
-              <template v-slot:append>
-                <q-icon v-if="filterDate.mes" name="close" class="cursor-pointer" @click="filterDate.mes = ''"></q-icon>
-                <q-icon name="event" class="cursor-pointer">
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date v-model="filterDate.mes" :default-year-month="(filterDate.mes || new Date().toISOString().substr(0, 7)).replace('-', '/')" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
-                      @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false" years-in-month-view>
-                      <div class="row items-center justify-end">
-                        <q-btn v-close-popup label="Close" color="primary" flat />
-                      </div>
-                    </q-date>
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-input>
-          </div>
-
-        </div>
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn label="Cerrar" flat @click="showDialogFilterDate = false" />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-  <DialogEditarOrdenTrabajo ref="editarOrdenTrabajoDialog" @updated="tableRequest(tablePagination)" />
-  <DialogAgregarUbicacionesMantenimiento ref="agregarUbicacionesMantenimientoDialog" @created="tableRequest(tablePagination)" />
-  <DialogEditarLoteOrdenesTrabajo ref="editarLoteOrdenesTrabajoDialog" @updated="val => {
-      if (!val?.mantener_marcados) {
-        selectedRows = [];
-      }
-      tableRequest(tablePagination)
-    }" />
-  <DialogImprimirMantenimento ref="imprimirMantenimientoDialog" :completado="estatusOrdenes" :ids="selectedRows" :mes="filterDate" />
   <DialogEditarParcela ref="editarParcelaDialog" />
+  <DialogVerContratos ref="verContratosDialog" />
+
 
 </template>
 
@@ -209,21 +160,15 @@
   import { useRoute } from 'vue-router';
   import { useQuasar } from 'quasar';
   import { qNotify } from 'src/boot/jardines';
-  import DialogEditarOrdenTrabajo from 'src/components/popups/DialogEditarOrdenTrabajo.vue';
-  import DialogEditarLoteOrdenesTrabajo from "src/components/popups/DialogEditarLoteOrdenesTrabajo.vue";
-  import DialogAgregarUbicacionesMantenimiento from "src/components/popups/DialogAgregarUbicacionesMantenimiento.vue";
-  import DialogImprimirMantenimento from "src/components/popups/DialogImprimirMantenimento.vue";
+
   import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
+  import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
 
   import { format, lastDayOfMonth, startOfMonth } from 'date-fns'
 
   const editarOrdenTrabajoDialog = ref(null)
-  const editarLoteOrdenesTrabajoDialog = ref(null)
-  const agregarUbicacionesMantenimientoDialog = ref(null)
-  const imprimirMantenimientoDialog = ref(null)
+  const verContratosDialog = ref(null)
   const editarParcelaDialog = ref(null)
-
-  const estatusOrdenes = ref('Por entregar')
 
   const ultimoDelMes = lastDayOfMonth(new Date())
   const primeroDelMes = startOfMonth(new Date())
@@ -231,10 +176,8 @@
   const filterDateClosePopup = ref(false)
 
   const classEstatus = {
-    'Por entregar': 'primary',
-    'Por ejecutar': 'blue',
-    'Completado': 'positive',
-    'Vencido': 'negative',
+    'Pendiente': 'yellow-9',
+    'Completado': 'primary',
   }
 
   const $q = useQuasar()
@@ -245,14 +188,6 @@
     field: '',
     desde: '',
     hasta: ''
-  })
-
-  /* const filterDate = ref(format(new Date(), 'yyyy-MM')) */
-
-  const selectedRows = ref([])
-
-  watch(estatusOrdenes, () => {
-    tableRef.value.requestServerInteraction()
   })
 
   watch(filterDate, () => {
@@ -266,22 +201,14 @@
   const tableData = ref([])
 
   const tableColumns = [
-    { name: 'acciones', label: '', align: 'left' },
-    { name: 'cliente', label: 'Cliente', align: 'left' },
-    { name: 'ubicacion', label: 'Ubicación', field: 'ubicacion', align: 'left', sortable: true },
-    { name: 'contrato', label: 'Contrato', align: 'left', style: 'width: 1px', field: row => [
-      ...new Set(row.ubicacion.contratos
-        .filter(c => c.estatus == 'Activo')
-        .map(c => c.num_contrato))
-      ].join(', ') },
-    { name: 'difuntos', label: 'Difuntos', align: 'left' },
-    { name: 'fecha_vencimiento', label: 'Mes', align: 'left', field: 'fecha_vencimiento', sortable: true },
-    { name: 'fecha_asignado', label: 'Asignado el', align: 'left', field: 'fecha_asignado', sortable: true },
-    { name: 'fecha_completado', label: 'Completado el', align: 'left', field: 'fecha_completado', sortable: true },
-    { name: 'vigente_hasta', label: 'Pagado hasta', align: 'left', field: 'vigente_hasta', sortable: true },
-    { name: 'fecha_ultimo_recibo', label: 'Último recibo', align: 'left', field: 'fecha_ultimo_recibo', sortable: true },
+    { name: 'clase_servicio', label: 'Tipo de servicio', align: 'center', field: 'clase_servicio', headerStyle: 'width: 110px' },
+    { name: 'ubicacion', label: 'Ubicación', field: 'ubicacion', align: 'left', sortable: true, headerStyle: 'width: 90px'},
+    { name: 'fecha_asignado', label: 'Fecha', align: 'left', sortable: true, headerStyle: 'width: 80px'},
+    { name: 'hora_asignado', label: 'Hora', align: 'left', sortable: false, headerStyle: 'width: 70px'},
+    { name: 'difunto', label: 'Difunto', align: 'left', field: 'difunto' },
     { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', headerStyle: 'width: 100px' },
-    { name: 'notas', label: 'Notas', align: 'left', field: 'notas', headerStyle: 'width: 100px' },
+    { name: 'num_contrato', label: 'Contrato', align: 'left', field: 'num_contrato' },
+    { name: 'observaciones', label: 'Observaciones', align: 'left', field: 'observaciones' },
   ]
 
   const tableRef = ref(null)
@@ -289,7 +216,7 @@
   const tableFilter = ref('');
   const tablePagination = ref({
     page: 1,
-    rowsPerPage: 100,
+    rowsPerPage: 50,
     sortBy: 'fecha_asignado',
     descending: true,
   })
@@ -321,7 +248,7 @@
       ids.forEach(id => {
         api.delete('mantenimiento/' + id)
           .catch(error => qNotify(error, 'error'))
-        selectedRows.value = []
+
       });
 
       setTimeout(() => {
@@ -369,13 +296,11 @@
 
   const tableRequest = (props) => {
 
-    console.log('props', props);
-
     const { page, rowsPerPage, sortBy, descending } = props.pagination ? props.pagination : props
 
     tableLoading.value = true;
 
-    let endpoint = 'mantenimiento';
+    let endpoint = 'parque/servicios';
 
     const searchParams = new URLSearchParams(
       Object.fromEntries(Object.entries(props.pagination ? props.pagination : props).filter(([k, v]) => v != null && k != 'descending'))
@@ -393,27 +318,15 @@
       endpoint += '?' + searchParams.toString();
     }
 
-    if (estatusOrdenes.value) {
-      endpoint += '&f[estatus]=' + estatusOrdenes.value;
-    }
-
     if (filterDate.value.field?.value) {
       endpoint += '&datefield=' + filterDate.value.field.value;
       endpoint += filterDate.value.desde ? `&from=${filterDate.value.desde}` : '';
       endpoint += filterDate.value.hasta ? `&to=${filterDate.value.hasta}` : '';
     }
 
-    if (filterDate.value.mes) {
-      endpoint += '&mes=' + filterDate.value.mes.substr(0, 7);
-    }
-
-    console.log('endpoint', endpoint);
-
     api.get(endpoint)
       .then(response => {
         if (response.data) {
-
-          console.log('Response', response.data);
           tableData.value = response.data.data
           tablePagination.value.page = response.data.pager.currentPage
           tablePagination.value.rowsPerPage = response.data.pager.perPage

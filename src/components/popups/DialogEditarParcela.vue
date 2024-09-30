@@ -13,237 +13,224 @@
             <q-tab name="puestos" icon="crop_landscape" label="Puestos" />
             <q-tab name="contratos" icon="attach_money" label="Contratos" />
             <q-tab name="recibos" icon="receipt" label="Recibos" />
+            <q-tab name="mantenimiento" icon="handyman" label="Mantenimiento" />
           </q-tabs>
         </template>
 
         <template v-slot:after>
           <q-tab-panels v-model="tab" animated swipeable vertical transition-prev="jump-up" transition-next="jump-up">
             <q-tab-panel name="detalles">
-              <q-card class="q-pa-md">
-                <q-form @submit="handleSubmitDetalles" :class="isLoadingDetalles && 'form-disabled'">
-                  <q-card-section>
-                    <div class="text-h6">Detalles de la parcela</div>
-                    <!--<div class="text-right" v-if="parcelaData.contratos?.length">
-                      <q-btn size="md" label="Traspasar parcela" icon="move_up" color="primary"
-                        @click="asignarParcelaDialog.openDialog(parcelaData.id)" />
-                    </div>-->
-                  </q-card-section>
 
-                  <q-card-section>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Propietario</span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <QSelectCliente dense outlined clearable v-model="parcelaDetalles.propietario_id" />
-                      </div>
+              <q-form class="q-pa-md" @submit="handleSubmitDetalles" :class="isLoadingDetalles && 'form-disabled'">
+
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Propietario</span>
                     </div>
-                    <div class="row q-mb-md">
-                      <div class="col-12 text-right text-caption text-grey-6">
-                        <template v-if="parseInt(parcelaDetalles.propietario_id)">
-                          <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
-                            color="primary" @click="(e) =>
-                              agregarClienteDialog.openDialog(parcelaDetalles.propietario_id, e)" />
-                        </template>
-                        <span>¿El cliente no existe?</span>
-                        <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar" color="primary"
-                          @click="agregarClienteDialog.openDialog()" />
-                      </div>
+                    <div class="col-sm-8 col-12">
+                      <QSelectCliente dense outlined clearable v-model="parcelaDetalles.propietario_id" />
                     </div>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Pariente más cercano
-                          <q-icon name="help_outline">
-                            <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                              Opcional. Es el principal beneficiario de la parcela y
-                              controla los derechos de entierro del propietario
-                              después de su muerte.
-                            </q-tooltip>
-                          </q-icon>
-                        </span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <QSelectCliente dense outlined clearable v-model="parcelaDetalles.pariente_mas_cercano" />
-                      </div>
+                  </div>
+                  <div class="row q-mb-md">
+                    <div class="col-12 text-right text-caption text-grey-6">
+                      <template v-if="parseInt(parcelaDetalles.propietario_id)">
+                        <q-btn id="btnEditPlotOwner" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
+                          color="primary" @click="(e) =>
+                            agregarClienteDialog.openDialog(parcelaDetalles.propietario_id, e)" />
+                      </template>
+                      <span>¿El cliente no existe?</span>
+                      <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar" color="primary"
+                        @click="agregarClienteDialog.openDialog()" />
                     </div>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Estatus de la parcela</span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <QSelectEstatusParcela dense outlined required v-model="parcelaDetalles.estatus" />
-                      </div>
+                  </div>
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Pariente más cercano
+                        <q-icon name="help_outline">
+                          <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
+                            Opcional. Es el principal beneficiario de la parcela y
+                            controla los derechos de entierro del propietario
+                            después de su muerte.
+                          </q-tooltip>
+                        </q-icon>
+                      </span>
                     </div>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Descripción</span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <q-input dense outlined v-model="parcelaDetalles.descripcion" placeholder="Escribe una descripción"
-                          autogrow />
-                      </div>
+                    <div class="col-sm-8 col-12">
+                      <QSelectCliente dense outlined clearable v-model="parcelaDetalles.pariente_mas_cercano" />
                     </div>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Ubicación</span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <div class="row q-col-gutter-sm">
-                          <div class="col-12 col-md-5">
-                            <QSelectSeccion dense outlined required clearable v-model="parcelaDetalles.codigo_seccion"
-                              label="Sector" />
-                          </div>
-                          <div class="col-6 col-md">
-                            <q-input class="input-num-parcela" dense outlined v-model="parcelaDetalles.num_parcela"
-                              :stack-label="!!parcelaDetalles.codigo_seccion" label="Parcela">
-                              <template v-slot:prepend v-if="parcelaDetalles.codigo_seccion">
-                                <span>{{ parcelaDetalles.codigo_seccion }}</span>
-                              </template>
-                            </q-input>
-                          </div>
-                          <div class="col-auto text-grey-8 flex column justify-center">
-                            |
-                          </div>
-                          <div class="col-6 col-md">
-                            <q-input dense outlined v-model="parcelaDetalles.num_fila" label="Fila" />
-                          </div>
+                  </div>
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Estatus de la parcela</span>
+                    </div>
+                    <div class="col-sm-8 col-12">
+                      <QSelectEstatusParcela dense outlined required v-model="parcelaDetalles.estatus" />
+                    </div>
+                  </div>
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Descripción</span>
+                    </div>
+                    <div class="col-sm-8 col-12">
+                      <q-input dense outlined v-model="parcelaDetalles.descripcion" placeholder="Escribe una descripción"
+                        autogrow />
+                    </div>
+                  </div>
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Ubicación</span>
+                    </div>
+                    <div class="col-sm-8 col-12">
+                      <div class="row q-col-gutter-sm">
+                        <div class="col-12 col-md-5">
+                          <QSelectSeccion dense outlined required clearable v-model="parcelaDetalles.codigo_seccion"
+                            label="Sector" />
+                        </div>
+                        <div class="col-6 col-md">
+                          <q-input class="input-num-parcela" dense outlined v-model="parcelaDetalles.num_parcela"
+                            :stack-label="!!parcelaDetalles.codigo_seccion" label="Parcela">
+                            <template v-slot:prepend v-if="parcelaDetalles.codigo_seccion">
+                              <span>{{ parcelaDetalles.codigo_seccion }}</span>
+                            </template>
+                          </q-input>
+                        </div>
+                        <div class="col-auto text-grey-8 flex column justify-center">
+                          |
+                        </div>
+                        <div class="col-6 col-md">
+                          <q-input dense outlined v-model="parcelaDetalles.num_fila" label="Fila" />
                         </div>
                       </div>
                     </div>
-                    <div class="row q-col-gutter-sm q-mb-md">
-                      <div class="col-sm-4 col-12 flex column justify-center">
-                        <span class="text-grey-8">Características</span>
-                      </div>
-                      <div class="col-sm-8 col-12">
-                        <table class="full-width text-center">
-                          <thead>
-                            <tr>
-                              <th>Tipo de parcela</th>
-                              <th>Largo &times; Ancho &times; Alto</th>
-                              <th>Puestos</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <td>
-                              {{ parcelaData.tipo_parcela?.nombre }}
-                            </td>
-                            <td>
-                              {{
-                                parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
-                                  2
-                                )
-                              }}
-                              &times;
-                              {{
-                                parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
-                                  2
-                                )
-                              }}
-                              &times;
-                              {{
-                                parseFloat(
-                                  parcelaData.tipo_parcela?.profundidad
-                                ).toFixed(2)
-                              }}
-                            </td>
-                            <td>
-                              {{ parcelaData.puestos?.length }}
-                            </td>
-                          </tbody>
-                        </table>
-                      </div>
+                  </div>
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-sm-4 col-12 flex column justify-center">
+                      <span class="text-grey-8">Características</span>
                     </div>
-                  </q-card-section>
+                    <div class="col-sm-8 col-12">
+                      <table class="full-width text-center">
+                        <thead>
+                          <tr>
+                            <th>Tipo de parcela</th>
+                            <th>Largo &times; Ancho &times; Alto</th>
+                            <th>Puestos</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <td>
+                            {{ parcelaData.tipo_parcela?.nombre }}
+                          </td>
+                          <td>
+                            {{
+                              parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
+                                2
+                              )
+                            }}
+                            &times;
+                            {{
+                              parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
+                                2
+                              )
+                            }}
+                            &times;
+                            {{
+                              parseFloat(
+                                parcelaData.tipo_parcela?.profundidad
+                              ).toFixed(2)
+                            }}
+                          </td>
+                          <td>
+                            {{ parcelaData.puestos?.length }}
+                          </td>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                  <q-card-actions class="justify-end">
+                  <div class="text-right">
                     <q-btn type="submit" label="Guardar" color="primary" :loading="isLoadingDetalles" />
-                  </q-card-actions>
-                </q-form>
-              </q-card>
+                  </div>
+              </q-form>
+
             </q-tab-panel>
             <q-tab-panel name="puestos">
               <div class="full-width q-pa-lg text-center" v-if="!parcelaData.puestos?.length">
                 <p>No hay puestos asociados a esta parcela.</p>
               </div>
 
-              <q-card class="q-pa-md" v-else>
-                <q-card-section>
-                  <div class="text-h6">Puestos de la parcela</div>
-                </q-card-section>
-                <q-card-section>
-                  <div class="row q-col-gutter-sm q-mb-md" v-for="(puesto, key) in parcelaData.puestos || []">
-                    <div class="col-sm-auto col-12 flex column justify-center" :draggable="true"
-                      @dragstart="onDragStart(i, $event)" @dragend="onDragEnd($event)" @dragover.prevent
-                      @dragenter="onDragEnter(i, $event)" @dragleave="onDragLeave(i, $event)" @drop="onDrop(i, $event)">
-                      <span class="text-grey-8">{{ puesto.nombre }}</span>
-                      <span>
-                        <q-badge color="negative" v-if="parseInt(puesto.ocupado)">
-                          Ocupado
-                        </q-badge>
-                        <q-badge color="positive" v-else> Disponible </q-badge>
-                        <div class="text-grey-8" style="font-size: 0.6rem">
-                          {{ puesto.puesto_nombre }}
-                        </div>
-                      </span>
-                    </div>
-                    <div class="col-sm col-12">
-                      <div class="row q-col-gutter-sm">
-                        <div class="col-12 col-md-6">
-                          <template v-if="parseInt(puestosData[puesto.id].ocupado)">
-                            <q-input readonly dense outlined label="Ocupante" :model-value="`${puestosData[puesto.id].ocupante_nombre} (${puestosData[puesto.id].ocupante_identidad
-                              })`" stack-label />
-                          </template>
-                        </div>
-                        <div class="col-12 col-md">
-                          <q-input type="datetime-local" readonly dense outlined stack-label label="Fecha de inhumación"
-                            v-model="puestosData[puesto.id].fecha_inhumacion" v-if="parseInt(puestosData[puesto.id].ocupado)" />
-                        </div>
-                        <div class="col-12 col-md-auto flex flex-column items-center">
-                          <q-btn-dropdown dense size="sm" color="primary" :loading="isLoadingPuestos"
-                            v-if="parseInt(puestosData[puesto.id].ocupado)">
-                            <q-list v-if="!isLoadingPuestos">
-                              <q-item clickable @click="exhumarPuestoOpenDialog(puesto.id)" :disable="obtenerParcelaExhumableId(parcelaData.puestos) !=
-                                puesto.id
-                                " v-close-popup>
-                                <q-item-section side>
-                                  <q-icon color="black" name="eject" />
-                                </q-item-section>
-                                <q-item-section>Exhumar</q-item-section>
-                              </q-item>
-                              <q-item id="btnEditPlotOccupant" clickable
-                                @click="(e) => agregarDifuntoDialog.openDialog(puestosData[puesto.id].ocupante_id, e)"
-                                v-close-popup>
-                                <q-item-section side>
-                                  <q-icon color="black" name="manage_accounts" />
-                                </q-item-section>
-                                <q-item-section>Editar ocupante</q-item-section>
-                              </q-item>
-                              <q-item clickable @click="modificarPuestoOpenDialog(puesto.id)" v-close-popup>
-                                <q-item-section side>
-                                  <q-icon color="black" name="edit" />
-                                </q-item-section>
-                                <q-item-section>Modificar puesto</q-item-section>
-                              </q-item>
-                              <q-item clickable @click="reasignarFallecidoOpenDialog(puesto.id)" v-close-popup>
-                                <q-item-section side>
-                                  <q-icon color="black" name="wrong_location" />
-                                </q-item-section>
-                                <q-item-section>Reasignar fallecido</q-item-section>
-                              </q-item>
-                            </q-list>
-                          </q-btn-dropdown>
-                        </div>
+              <div class="q-pa-md" v-else>
+                <div class="row q-col-gutter-sm q-mb-md" v-for="(puesto, key) in parcelaData.puestos || []">
+                  <div class="col-sm-auto col-12 flex column justify-center" :draggable="true"
+                    @dragstart="onDragStart(i, $event)" @dragend="onDragEnd($event)" @dragover.prevent
+                    @dragenter="onDragEnter(i, $event)" @dragleave="onDragLeave(i, $event)" @drop="onDrop(i, $event)">
+                    <span class="text-grey-8">{{ puesto.nombre }}</span>
+                    <span>
+                      <q-badge color="negative" v-if="parseInt(puesto.ocupado)">
+                        Ocupado
+                      </q-badge>
+                      <q-badge color="positive" v-else> Disponible </q-badge>
+                      <div class="text-grey-8" style="font-size: 0.6rem">
+                        {{ puesto.puesto_nombre }}
+                      </div>
+                    </span>
+                  </div>
+                  <div class="col-sm col-12">
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-12 col-md-6">
+                        <template v-if="parseInt(puestosData[puesto.id].ocupado)">
+                          <q-input readonly dense outlined label="Ocupante" :model-value="`${puestosData[puesto.id].ocupante_nombre} (${puestosData[puesto.id].ocupante_identidad
+                            })`" stack-label />
+                        </template>
+                      </div>
+                      <div class="col-12 col-md">
+                        <q-input type="datetime-local" readonly dense outlined stack-label label="Fecha de inhumación"
+                          v-model="puestosData[puesto.id].fecha_inhumacion" v-if="parseInt(puestosData[puesto.id].ocupado)" />
+                      </div>
+                      <div class="col-12 col-md-auto flex flex-column items-center">
+                        <q-btn-dropdown dense size="sm" color="primary" :loading="isLoadingPuestos"
+                          v-if="parseInt(puestosData[puesto.id].ocupado)">
+                          <q-list v-if="!isLoadingPuestos">
+                            <q-item clickable @click="exhumarPuestoOpenDialog(puesto.id)" :disable="obtenerParcelaExhumableId(parcelaData.puestos) !=
+                              puesto.id
+                              " v-close-popup>
+                              <q-item-section side>
+                                <q-icon color="black" name="eject" />
+                              </q-item-section>
+                              <q-item-section>Exhumar</q-item-section>
+                            </q-item>
+                            <q-item id="btnEditPlotOccupant" clickable
+                              @click="(e) => agregarDifuntoDialog.openDialog(puestosData[puesto.id].ocupante_id, e)"
+                              v-close-popup>
+                              <q-item-section side>
+                                <q-icon color="black" name="manage_accounts" />
+                              </q-item-section>
+                              <q-item-section>Editar ocupante</q-item-section>
+                            </q-item>
+                            <q-item clickable @click="modificarPuestoOpenDialog(puesto.id)" v-close-popup>
+                              <q-item-section side>
+                                <q-icon color="black" name="edit" />
+                              </q-item-section>
+                              <q-item-section>Modificar puesto</q-item-section>
+                            </q-item>
+                            <q-item clickable @click="reasignarFallecidoOpenDialog(puesto.id)" v-close-popup>
+                              <q-item-section side>
+                                <q-icon color="black" name="wrong_location" />
+                              </q-item-section>
+                              <q-item-section>Reasignar fallecido</q-item-section>
+                            </q-item>
+                          </q-list>
+                        </q-btn-dropdown>
                       </div>
                     </div>
                   </div>
-                </q-card-section>
-                <q-card-actions class="justify-end">
+                </div>
+                <div class="text-right q-gutter-sm">
                   <q-btn @click="liberarParcelaDialog = true" label="Liberar parcela" icon="lock_open" color="primary"
                     :loading="isLoadingPuestos" />
                   <q-btn @click="agregarOcupanteDialog = true" label="Agregar ocupante" icon="add" color="primary"
                     :loading="isLoadingPuestos" />
-                </q-card-actions>
-              </q-card>
+                </div>
+              </div>
             </q-tab-panel>
             <q-tab-panel name="contratos">
               <div class="full-width q-pa-lg text-center" v-if="!parcelaData.contratos?.length">
@@ -251,88 +238,79 @@
                 <q-btn color="primary" label="Generar contratos" to="/app/contratos" />
                 <!--<q-btn color="primary" label="Generar contratos" @click="openDialogGenerarContratos" />-->
               </div>
-              <q-card class="q-pa-md" v-else>
-                <q-form @submit="handleSubmitDetalles" :class="isLoadingDetalles && 'form-disabled'">
-                  <q-card-section>
-                    <div class="text-h6">Contratos</div>
-                  </q-card-section>
+              <q-form class="q-pa-md" @submit="handleSubmitDetalles" :class="isLoadingDetalles && 'form-disabled'" v-else>
+                <div class="row q-col-gutter-sm">
+                  <div class="col-md-6 col-12" v-for="contrato in parcelaData.contratos">
+                    <q-card class="my-card">
+                      <q-card-section class="bg-primary text-white">
+                        <q-badge class="float-right" color="white" text-color="primary">
+                          {{ contrato.estatus }}
+                        </q-badge>
+                        <div class="text-h5">
+                          {{ contrato.codnum_contrato }}
+                        </div>
+                        <p class="q-mb-none">{{ contrato.nombre_contrato }}</p>
+                      </q-card-section>
+                      <q-card-section>
+                        <table class="full-width">
+                          <tbody>
+                            <tr>
+                              <th>Comprador</th>
+                              <td class="text-right">
+                                {{ contrato.comprador_nombre }} ({{
+                                  contrato.comprador_identidad
+                                }})
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Vendedor</th>
+                              <td class="text-right">
+                                {{ contrato.razon_social }}
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Fecha de emisión</th>
+                              <td class="text-right">
+                                {{ contrato.fecha_emision || "-" }}
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Fecha de vencimiento</th>
+                              <td class="text-right">
+                                {{ contrato.fecha_vencimiento || "-" }}
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Valor total</th>
+                              <td class="text-right">
+                                {{ $money.$bs(contrato.valor_total) || "-" }}
+                              </td>
+                            </tr>
+                            <tr>
+                              <th>Número de cuotas</th>
+                              <td class="text-right">
+                                {{ contrato.numero_cuotas || "-" }}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </q-card-section>
 
-                  <q-card-section>
-                    <div class="row q-col-gutter-md">
-                      <div class="col-md-6 col-12" v-for="contrato in parcelaData.contratos">
-                        <q-card class="my-card">
-                          <q-card-section class="bg-primary text-white">
-                            <q-badge class="float-right" color="white" text-color="primary">
-                              {{ contrato.estatus }}
-                            </q-badge>
-                            <div class="text-h5">
-                              {{ contrato.codnum_contrato }}
-                            </div>
-                            <p class="q-mb-none">{{ contrato.nombre_contrato }}</p>
-                          </q-card-section>
-                          <q-card-section>
-                            <table class="full-width">
-                              <tbody>
-                                <tr>
-                                  <th>Comprador</th>
-                                  <td class="text-right">
-                                    {{ contrato.comprador_nombre }} ({{
-                                      contrato.comprador_identidad
-                                    }})
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <th>Vendedor</th>
-                                  <td class="text-right">
-                                    {{ contrato.razon_social }}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <th>Fecha de emisión</th>
-                                  <td class="text-right">
-                                    {{ contrato.fecha_emision || "-" }}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <th>Fecha de vencimiento</th>
-                                  <td class="text-right">
-                                    {{ contrato.fecha_vencimiento || "-" }}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <th>Valor total</th>
-                                  <td class="text-right">
-                                    {{ $money.$bs(contrato.valor_total) || "-" }}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <th>Número de cuotas</th>
-                                  <td class="text-right">
-                                    {{ contrato.numero_cuotas || "-" }}
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </q-card-section>
+                      <q-separator />
 
-                          <q-separator />
-
-                          <q-card-actions class="justify-end">
-                            <q-btn label="Ver" icon="picture_as_pdf" color="primary"
-                              @click="handleDownloadPdf(contrato.id)" />
-                            <!--<q-btn label="Editar" icon="edit" color="primary" />
-                            <q-btn label="Borrar" icon="delete" color="negative" />-->
-                          </q-card-actions>
-                        </q-card>
-                      </div>
-                    </div>
-                  </q-card-section>
-
-                  <q-card-actions class="justify-end">
-                    <q-btn type="submit" label="Guardar" color="primary" :loading="isLoadingDetalles" />
-                  </q-card-actions>
-                </q-form>
-              </q-card>
+                      <q-card-actions class="justify-end">
+                        <q-btn label="Ver" icon="picture_as_pdf" color="primary"
+                          @click="handleDownloadPdf(contrato.id)" />
+                        <!--<q-btn label="Editar" icon="edit" color="primary" />
+                        <q-btn label="Borrar" icon="delete" color="negative" />-->
+                      </q-card-actions>
+                    </q-card>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <q-btn type="submit" label="Guardar" color="primary" :loading="isLoadingDetalles" />
+                </div>
+              </q-form>
             </q-tab-panel>
             <q-tab-panel name="recibos">
               <q-markup-table>
@@ -354,6 +332,32 @@
                     <td>{{ recibo.estatus }}</td>
                     <td>{{ recibo.pagado_hasta ? new Date(recibo.pagado_hasta).toLocaleDateString() : '-'}}</td>
                     <td style="white-space: pre-wrap;">{{ recibo.descripcion }}</td>
+                  </tr>
+                </tbody>
+              </q-markup-table>
+            </q-tab-panel>
+            <q-tab-panel name="mantenimiento">
+              <q-markup-table>
+                <thead>
+                  <tr>
+                    <th>Mes asignado</th>
+                    <th>Estatus</th>
+                    <th>Completado el</th>
+                    <th>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="m in parcelaData.mantenimientos" :key="m.id">
+                    <td class="text-center">{{ m.fecha_vencimiento ? getYMD(new Date(m.fecha_vencimiento)).substr(0, 7) : '-' }}</td>
+                    <td class="text-center">{{ m.estatus }}</td>
+                    <td class="text-center">{{ m.fecha_completado ? getDMY(new Date(m.fecha_completado)) : '-' }}</td>
+                    <td>
+                      <ul class="q-pl-xs" v-if="m.observaciones?.length" style="list-style: square">
+                        <li v-for="o in m.observaciones.filter(o => o.value)" :key="o.id">
+                          <b>{{ o.title }}:</b> {{ o.value }}
+                        </li>
+                      </ul>
+                    </td>
                   </tr>
                 </tbody>
               </q-markup-table>
@@ -527,6 +531,22 @@ const route = useRoute();
 const $q = useQuasar();
 const splitterModel = ref(20);
 const tab = ref("detalles");
+
+function getDMY(date) {
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero based
+  let day = ("0" + date.getDate()).slice(-2);
+  let ymd = `${day}/${month}/${year}`;
+  return ymd;
+}
+
+function getYMD(date) {
+  let year = date.getFullYear();
+  let month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero based
+  let day = ("0" + date.getDate()).slice(-2);
+  let ymd = `${year}-${month}-${day}`;
+  return ymd;
+}
 
 const dialog = ref(false)
 const dataId = ref(null)
@@ -835,6 +855,7 @@ function getData() {
   isLoadingDetalles.value = true;
 
   parcelaData.value.recibos = []
+  parcelaData.value.mantenimientos = []
 
   api
     .get("parcelas/" + dataId.value)
@@ -857,6 +878,12 @@ function getData() {
       api.get("caja/recibos/ubicacion/" + dataId.value).then((response) => {
         if (response.data) {
           parcelaData.value.recibos = response.data
+        }
+      })
+
+      api.get("mantenimiento/ubicacion/" + dataId.value).then((response) => {
+        if (response.data) {
+          parcelaData.value.mantenimientos = response.data
         }
       })
 

@@ -66,10 +66,10 @@
           <q-btn label="Grabado de mármol" icon="table_rows" color="primary" :to="`/app/grabado-marmol?tipo_parcela=${route.meta.tipoUbicacion}`" />
           <q-btn-dropdown label="Ver mapa" icon="yard" color="primary">
             <q-list>
-              <q-item clickable v-close-popup v-for="seccion in secciones"
-                :to="`/app/ubicaciones/${seccion.codigo_seccion}/mapa`">
+              <q-item clickable v-close-popup v-for="area in areas"
+                :to="`/app/ubicaciones/${area.id}/mapa`">
                 <q-item-section>
-                  <q-item-label>{{ seccion.nombre }}</q-item-label>
+                  <q-item-label>{{ area.nombre }}</q-item-label>
                 </q-item-section>
               </q-item>
             </q-list>
@@ -255,12 +255,14 @@ const parcelasColumnas = [
 
 const parcelas = ref([])
 const secciones = ref([])
+const areas = ref([])
 
 // Agregar parcelas
 const dialogAgregarParcelas = ref(false)
 const isLoadingAgregarParcelas = ref(false);
 
 const seccionesOptions = []
+const areasOptions = []
 const tiposParcelasOptions = []
 
 function obtenerConsecutivo(numero) {
@@ -522,6 +524,22 @@ onMounted(() => {
             }
           );
         })
+      }
+    })
+    .catch(e => console.log(e))
+
+  api.get('areas')
+    .then(response => {
+      if (response.data) {
+        areas.value = response.data
+        areas.value.forEach(area => {
+          areasOptions.push(
+            {
+              label: `${area.nombre}`,
+              value: area.id
+            }
+          );
+        });
       }
     })
     .catch(e => console.log(e))

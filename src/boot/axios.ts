@@ -9,8 +9,8 @@ import { AxiosError } from 'axios';
 // "export default () => {}" function below (which runs individually
 // for each client)
 
-//const api = axios.create({ baseURL: 'http://jardines-backend.test/api', timeout: 15000 })
-const api = axios.create({ baseURL: 'http://192.168.94.1/jardines-backend/public/api', timeout: 15000 })
+//const api = axios.create({ baseURL: 'http://jardines-backend.test/api', timeout: 20000 })
+const api = axios.create({ baseURL: 'http://192.168.94.1/jardines-backend/public/api', timeout: 20000 })
 
 if (localStorage.getItem('token')) {
   api.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('token')}`;

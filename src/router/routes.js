@@ -80,6 +80,11 @@ const routes = [
         path: 'ubicaciones/:codigo/mapa',
         component: () => import('src/pages/Parcelas/ParcelasMapaPage.vue'),
         meta: { viewName: 'Mapa', viewIcon: 'yard' }
+      },
+      {
+        path: 'servicios',
+        component: () => import('src/pages/Parcelas/ServiciosPage.vue'),
+        meta: { viewName: 'Servicios', viewIcon: 'gate' }
       }
     ]
   },
@@ -87,6 +92,11 @@ const routes = [
     path: '/app/mantenimiento',
     component: () => import('layouts/MainLayout.vue'),
     children: [
+      {
+        path: 'control-trimestral',
+        component: () => import('src/pages/Mantenimiento/ControlTrimestral.vue'),
+        meta: { viewName: 'Control trimestral', viewIcon: 'handyman' }
+      },
       {
         path: 'ordenes',
         component: () => import('src/pages/Mantenimiento/OrdenesTrabajo.vue'),
