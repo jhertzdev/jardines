@@ -339,6 +339,8 @@ const busqueda = ref('')
 
 const permisos = authStore.user.role_perms;
 
+const appStore = useAppStore()
+
 const linksList = [
   {
     title: 'Dashboard',
@@ -361,6 +363,7 @@ const linksList = [
     title: 'Servicios',
     icon: 'fence',
     to: '/app/servicios',
+    count: 'servicios',
     /*perms: 'mantenimiento',*/
   },
   {
@@ -439,8 +442,11 @@ watch(leftDrawerOpen, (value) => {
   }
 })
 
-const $q = useQuasar()
-const appStore = useAppStore()
+watch(router.currentRoute, () => {
+  appStore.getNotificaciones()
+})
+
+const $q = useQuasar();
 
 watch(toRef(appStore, 'modalMessage'), () => {
   if (!appStore.modalIsVisible) {
@@ -455,6 +461,7 @@ watch(toRef(appStore, 'modalMessage'), () => {
 });
 
 onMounted(() => {
+  appStore.getNotificaciones()
   showSectionBusqueda.value = false;
   document.body.classList.remove('section-busqueda-open');
   if (leftDrawerOpen.value) {

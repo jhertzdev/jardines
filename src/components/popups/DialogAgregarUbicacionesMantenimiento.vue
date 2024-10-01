@@ -45,7 +45,7 @@
                   </q-input>
 
                 </template>
-                <template v-slot:body-cell-codigo_parcela="props">
+                <template v-slot:body-cell-ubicacion="props">
                   <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
                     <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.id)">{{ props.row.codigo_parcela }}</a>
                   </q-td>
@@ -208,7 +208,7 @@ const editarParcelaDialog = ref(null)
 const filterDateClosePopup = ref(false)
 
 const parcelasColumnas = [
-  { name: 'codigo_parcela', label: 'Ubicación', align: 'left', field: 'num_parcela', sortable: true, headerStyle: "width: 105px" },
+  { name: 'ubicacion', label: 'Ubicación', align: 'left', sortable: true, headerStyle: "width: 105px" },
   { name: 'propietario', label: 'Propietario', align: 'left', field: 'cliente_nombre', sortable: false },
   { name: 'difuntos', label: 'Difuntos', align: 'left', sortable: false },
   { name: 'vigente_hasta', label: 'Vigente hasta', align: 'left', field: 'vigente_hasta', sortable: true },

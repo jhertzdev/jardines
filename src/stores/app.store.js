@@ -6,6 +6,9 @@ export const useAppStore = defineStore('app', {
     modalMessage: null,
     modalIsVisible: false,
     notifications: [],
+    menuNotifications: {
+      servicios: 0
+    },
     metodosDePago: [],
     monedas: [],
     cajaSeleccionada: JSON.parse(localStorage.getItem("cajaSeleccionada")) || {},
@@ -22,6 +25,15 @@ export const useAppStore = defineStore('app', {
     seleccionarCaja(caja) {
       this.cajaSeleccionada = caja
       localStorage.setItem("cajaSeleccionada", JSON.stringify(caja))
+    },
+    getNotificaciones() {
+      api.get('notificaciones')
+        .then(response => {
+          if (response.data) {
+            this.menuNotifications = response.data
+          }
+        })
+        .catch(e => console.log(e))
     }
   }
 })

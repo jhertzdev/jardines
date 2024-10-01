@@ -37,6 +37,10 @@
       <q-item-label>{{ title }}</q-item-label>
       <q-item-label caption>{{ caption }}</q-item-label>
     </q-item-section>
+
+    <q-item-section side v-if="count && parseInt(appStore.menuNotifications[count])">
+      <q-badge class="bg-red" :label="appStore.menuNotifications[count]"/>
+    </q-item-section>
   </q-item>
 </template>
 
@@ -44,36 +48,37 @@
 
 import { ref } from 'vue'
 import MenuLink from 'src/components/MenuLink.vue'
+import { useAppStore } from 'src/stores/app.store';
 
 const isExpanded = ref(true)
+const appStore = useAppStore()
 
 const props = defineProps({
   title: {
     type: String,
     required: true
   },
-
   caption: {
     type: String,
     default: ''
   },
-
   link: {
     type: String,
     default: ''
   },
-
   to: {
     type: String,
     default: ''
   },
-
   children: {
     type: Array,
     default: []
   },
-
   icon: {
+    type: String,
+    default: ''
+  },
+  count: {
     type: String,
     default: ''
   }
