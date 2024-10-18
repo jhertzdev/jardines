@@ -1,7 +1,7 @@
 <template>
   <!-- Crear cliente -->
-  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
-    <q-card class="q-pa-md">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog">
+    <q-card class="q-pa-md" style="width: 100%">
       <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'" class="no-bottoms" @keydown.enter.prevent="">
         <q-card-section>
           <div class="text-h6">Asignar mantenimientos</div>
@@ -137,30 +137,54 @@
                 </q-item>
               </q-list>
 
+              <q-select
+                dense
+                outlined
+                v-model="data.lista_id"
+                label="Lista seleccionada"
+                emit-value
+                map-options
+                style="width: 220px;"
+                class="q-mt-sm"
+                :options="[
+                  {
+                    label: '-- No asignar --',
+                    value: null,
+                  },
+                  ...listas?.map((lista) => {
+                    return {
+                      label: [lista.resumen, lista.titulo, lista.subtitulo]
+                        .filter((el) => !!el)
+                        .join(' - '),
+                      value: lista.id,
+                    };
+                  }),
+                ]"
+              >
+              </q-select>
+
+              <q-input class="q-mt-sm" label="Mes asignado" dense outlined v-model="data.fecha_vencimiento" mask="####-##" :hide-bottom-space="true" readonly clearable style="width: 220px">
+                <template v-slot:append>
+                  <q-icon v-if="data.fecha_vencimiento" name="close" class="cursor-pointer" @click="data.fecha_vencimiento = ''"></q-icon>
+                  <q-icon name="event" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="data.fecha_vencimiento" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                        @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
+                        :default-year-month="(data.fecha_vencimiento || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Close" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+
+              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" @update:model-value="data.fecha_vencimiento = new Date().toISOString().substr(0, data.oculto ? 10 : 7)" />
+
               <template v-if="data.oculto">
                 <q-input dense class="q-mt-sm" type="date" v-model="data.fecha_vencimiento" outlined label="Completado el" clearable />
               </template>
-
-              <template v-else>
-                <q-input class="q-mt-sm" label="Mes asignado" dense outlined v-model="data.fecha_vencimiento" mask="####-##" :hide-bottom-space="true" readonly clearable style="width: 220px">
-                  <template v-slot:append>
-                    <q-icon v-if="data.fecha_vencimiento" name="close" class="cursor-pointer" @click="data.fecha_vencimiento = ''"></q-icon>
-                    <q-icon name="event" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-date v-model="data.fecha_vencimiento" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
-                          @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
-                          :default-year-month="(data.fecha_vencimiento || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
-                          <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Close" color="primary" flat />
-                          </div>
-                        </q-date>
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-              </template>
-
-              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" @update:model-value="data.fecha_vencimiento = new Date().toISOString().substr(0, data.oculto ? 10 : 7)" />
 
             </div>
           </div>
@@ -206,6 +230,16 @@ const dataFilters = ref({
 const parcelas = ref([])
 const editarParcelaDialog = ref(null)
 const filterDateClosePopup = ref(false)
+
+const props = defineProps({
+  listas: {
+    type: Array,
+    required: false,
+    default: () => [],
+  },
+});
+
+const listas = ref([])
 
 const parcelasColumnas = [
   { name: 'ubicacion', label: 'Ubicación', align: 'left', sortable: true, headerStyle: "width: 105px" },
@@ -283,6 +317,8 @@ const parcelasTableRequest = (props) => {
 
 const data = reactive({
   fecha_vencimiento: null,
+  fecha_completado: null,
+  lista_id: null,
   ubicaciones: [],
   oculto: false
 })
@@ -335,6 +371,8 @@ const handleSubmit = (confirm = false) => {
   let postData = {
     ubicaciones: parcelasSelected.value.map(ub => ub.id),
     fecha_vencimiento: data.fecha_vencimiento,
+    fecha_completado: data.fecha_completado,
+    lista_id: data.lista_id,
     oculto: data.oculto ? 1 : 0,
     observacionesPorTipo: observacionesPorTipoUbicacion
   }
@@ -353,7 +391,7 @@ const handleSubmit = (confirm = false) => {
 
   isLoadingSubmit.value = true
 
-   console.log(postData)
+  console.log(postData)
 
   api.post('mantenimiento/asignar', postData)
     .then(response => {
@@ -371,6 +409,7 @@ const handleSubmit = (confirm = false) => {
 
 const openDialog = (id) => {
   dialog.value = true
+  listas.value = props.listas
 
   data.fecha_vencimiento = new Date().toISOString().substr(0, 7),
 
@@ -384,6 +423,7 @@ const openDialog = (id) => {
 
 onMounted(() => {
   nextTick(() => {
+    console.log('ori', props)
     parcelasTableRef.value.requestServerInteraction()
   })
 })

@@ -124,31 +124,33 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <td>
-                          {{ parcelaData.tipo_parcela?.nombre }}
-                        </td>
-                        <td>
-                          {{
-                            parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
-                              2
-                            )
-                          }}
-                          &times;
-                          {{
-                            parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
-                              2
-                            )
-                          }}
-                          &times;
-                          {{
-                            parseFloat(
-                              parcelaData.tipo_parcela?.profundidad
-                            ).toFixed(2)
-                          }}
-                        </td>
-                        <td>
-                          {{ parcelaData.puestos?.length }}
-                        </td>
+                        <tr>
+                          <td>
+                            {{ parcelaData.tipo_parcela?.nombre }}
+                          </td>
+                          <td>
+                            {{
+                              parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
+                                2
+                              )
+                            }}
+                            &times;
+                            {{
+                              parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
+                                2
+                              )
+                            }}
+                            &times;
+                            {{
+                              parseFloat(
+                                parcelaData.tipo_parcela?.profundidad
+                              ).toFixed(2)
+                            }}
+                          </td>
+                          <td>
+                            {{ parcelaData.puestos?.length }}
+                          </td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>

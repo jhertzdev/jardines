@@ -84,8 +84,8 @@
           @moved="handleMoved"
           :class="item.class.join(' ')"
           >
-          <span>{{ item.data.codigo }}</span>
-          <div class="puestos-wrapper">
+          <span>{{ item.data.codigo.slice(3, 10) }}</span>
+          <!--<div class="puestos-wrapper">
             <div class="puesto-item" :class="parseInt(puesto.ocupado) && 'ocupado'" v-for="puesto in item.data.puestos" style="font-size:5px">
               <q-tooltip anchor="top middle" self="bottom middle" class="puesto-tooltip" :offset="[10, 2]">
                 <p>{{ puesto.nombre }}</p>
@@ -106,7 +106,7 @@
                 <p>Tiene propietario.</p>
               </q-tooltip>
             </div>
-          </div>
+          </div>-->
         </grid-item>
       </template>
     </grid-layout>
@@ -142,7 +142,7 @@
 }
 
 .vue-grid-item {
-  font-size: 12px;
+  font-size: 8px;
   text-align: center;
 }
 
@@ -241,10 +241,10 @@ const gridWidth = ref(0)
 const minNumColumnas = ref($q.screen.lt.sm ? 16 : ($q.screen.lt.md ? 30 : 40))
 const numColumnas = ref(minNumColumnas.value);
 
-const rowHeight = ref(30)
-const gridItemMinWidth = ref(60)
+const rowHeight = ref(10)
+const gridItemMinWidth = ref(20)
 const colsPerItem = 2
-const gutterMargin = 6
+const gutterMargin = 2
 
 const props = defineProps(['leftDrawerOpen'])
 watch(() => props.leftDrawerOpen, () => {

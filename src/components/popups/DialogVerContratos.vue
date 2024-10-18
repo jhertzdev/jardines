@@ -3,7 +3,20 @@
 
     <q-card class="q-pa-md scroll">
       <q-card-section>
-        <div class="text-h6">Contratos asociados</div>
+        <div class="row">
+          <div class="col">
+            <div class="text-h6">Contratos asociados</div>
+          </div>
+          <div class="col-auto flex q-gutter-xs">
+            <q-input type="number" step="1" v-model="contratoNum" dense outlined label="N° Contrato" style="width: 100px" @update:model-value="openDialog(contratoNum, contratoTipo)" debounce="5004"/>
+            <q-select v-model="contratoTipo" dense  outlined label="Tipo contrato" style="width: 120px" :options="[
+              'Parcela',
+              'Nicho',
+              'Columbario',
+              'Cremación',
+            ]" @update:model-value="openDialog(contratoNum, contratoTipo)"></q-select>
+          </div>
+        </div>
       </q-card-section>
       <div class="q-pb-lg text-center" v-if="isLoading">
         <q-spinner size="xl" color="primary" />
@@ -346,6 +359,9 @@ const authStore = useAuthStore()
 const contratos = ref([])
 const router = useRouter()
 
+const contratoNum = ref('')
+const contratoTipo = ref('')
+
 const editarContratoDialog = ref(null)
 const renovarContratoDialog = ref(null)
 const generarContratoDialog = ref(null)
@@ -583,6 +599,9 @@ const openDialog = (numContrato, tipoContrato) => {
     num_contrato: numContrato,
     tipo_contrato: tipoContrato
   }
+
+  contratoNum.value = numContrato
+  contratoTipo.value = tipoContrato
 
   if (tipoContrato == 'Cremacion') {
     columnasVisibles.value = ['actions', 'num_contrato', 'fecha_emision', 'fecha_vencimiento', 'estatus', 'cliente', 'cremaciones', 'notas']

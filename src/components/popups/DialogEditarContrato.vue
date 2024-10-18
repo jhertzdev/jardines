@@ -362,7 +362,7 @@
               <q-input dense v-model="agregarCremacionData.libro_registro" outlined label="Año registro" required :rules="[val => val && val.length > 0]" hide-bottom-space />
             </div>
             <div class="col-12 col-md-6">
-              <QSelectDatetime dense stack-label outlined v-model="agregarCremacionData.fecha_servicio" label="Fecha del servicio" ref="cremacionFechaServicio" />
+              <q-input type="datetime-local" dense stack-label outlined v-model="agregarCremacionData.fecha_servicio" label="Fecha del servicio"></q-input>
             </div>
             <div class="col-12 col-md-8 text-right text-caption text-grey-6">
               <QSelectCliente dense v-model="agregarCremacionData.cliente_id" outlined label="Cliente" required @selected="val => handleCremacionSelectCliente(val)" readonly />
@@ -477,6 +477,16 @@
               <q-input dense v-model="agregarCremacionData.testigo_2_telefono" outlined label="#1) N° de teléfono" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Telefono" />
             </div>
 
+            <div class="col-12">
+              <q-checkbox v-model="agregarCremacionData.generar_servicio" color="primary" dense>
+                Generar servicio de cremación
+                <q-icon name="help_outline" />
+                <q-tooltip max-width="240px">
+                  Al marcar esta opción, se generará un registro de la cremación en el módulo de servicios del Parque.
+                </q-tooltip>
+              </q-checkbox>
+            </div>
+
 
           </div>
         </q-card-section>
@@ -523,6 +533,7 @@
   <DialogAgregarCliente ref="agregarClienteDialog" />
   <DialogAgregarDifunto ref="agregarDifuntoDialog" :difunto="true" />
   <DialogCambiarTitular ref="cambiarTitularDialog" @updated="openDialog(contratoData.id); emit('updated')" />
+  <DialogSeleccionarServicio ref="seleccionarServicioDialog"/>
 
 </template>
 
@@ -544,6 +555,7 @@ import QSelectParcelas from 'src/components/selects/QSelectParcelas.vue'
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogAgregarDifunto from "src/components/popups/DialogAgregarCliente.vue";
 import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
+import DialogSeleccionarServicio from 'src/components/popups/DialogSeleccionarServicio.vue';
 import QSelectDatetime from 'src/components/selects/QSelectDatetime.vue';
 
 const $q = useQuasar()
@@ -558,6 +570,7 @@ const authStore = useAuthStore()
 const agregarClienteDialog = ref(null)
 const agregarDifuntoDialog = ref(null)
 const cambiarTitularDialog = ref(null)
+const seleccionarServicioDialog = ref(null)
 const editarContratosForm = ref(null)
 const actualizarFechasForm = ref(null)
 const agregarCremacionForm = ref(null)
@@ -572,6 +585,7 @@ const addProducts = ref([])
 const openDialogCremacion = (cremacionId = null, params = {}) => {
   for (let key in agregarCremacionData.value) {
     agregarCremacionData.value[key] = ''
+    agregarCremacionData.value.generar_servicio = true
   }
 
   if (cremacionId === null) {
@@ -592,10 +606,6 @@ const openDialogCremacion = (cremacionId = null, params = {}) => {
           for (let key in response.data) {
             if (Object.keys(agregarCremacionData.value).includes(key)) {
               agregarCremacionData.value[key] = response.data[key]
-            }
-
-            if (key === 'fecha_servicio') {
-              cremacionFechaServicio.value.setDateValue(response.data[key] || '')
             }
 
             if (key === 'difunto_fecha_nacimiento') {
@@ -640,6 +650,7 @@ const agregarCremacionData = ref({
   testigo_2_nombre: '',
   testigo_2_identidad: '',
   testigo_2_telefono: '',
+  generar_servicio: true,
 })
 
 const props = defineProps({
@@ -787,6 +798,21 @@ const handleSubmitAgregarCremacion = () => {
         $q.notify({ message: 'Cremación agregada exitosamente.', color: 'positive' })
       }
     })
+
+
+    .catch((error) => {
+      console.log(error)
+      if (error?.response?.data?.messages?.generar_servicio) {
+        seleccionarServicioDialog.value.openDialog(error.response.data.messages, () => {
+          agregarCremacionData.value.generar_servicio = false;
+          handleSubmitAgregarCremacion()
+        })
+      } else {
+        qNotify(error, "error", { callback: handleSubmitAgregarCremacion })
+      }
+    })
+
+
     .catch((error) => qNotify(error, 'error', handleSubmitAgregarCremacion))
     .finally(() => isLoadingSubmit.value = false)
 }

@@ -48,9 +48,10 @@
             <q-table flat bordered hide-bottom hide-header
               class="q-mt-md" selection="multiple"
               v-model:selected="metodosPagoSelected"
-              :rows="metodosPago" :columns="metodosPagoColumnas">
+              :rows="metodosPago" :columns="metodosPagoColumnas"
+              :pagination="{ rowsPerPage: -1 }" >
               <template v-slot:body-cell-cantidad="props">
-                <q-td :props="props" class="text-center">
+                <q-td :props="props" class="text-center" style="padding-bottom: .75rem">
                   <template v-if="metodosPagoSelected.includes(props.row)">
                     <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada"
                       @update:model-value="val => props.row['monto_transaccion'] = val / props.row.tasa * transaccionData.tasa_actual" required>

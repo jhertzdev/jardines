@@ -228,9 +228,10 @@
               <q-table flat bordered hide-bottom hide-header
                 class="q-mt-md" selection="multiple"
                 v-model:selected="metodosPagoSelected"
-                :rows="metodosPago" :columns="metodosPagoColumnas">
+                :rows="metodosPago" :columns="metodosPagoColumnas"
+                :pagination="{ rowsPerPage: -1 }" >
                 <template v-slot:body-cell-cantidad="props">
-                  <q-td :props="props" class="text-center">
+                  <q-td :props="props" class="text-center" style="padding-bottom: .75rem">
                     <template v-if="metodosPagoSelected.includes(props.row)">
                       <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada"
                         @update:model-value="val => props.row['monto_transaccion'] = val / props.row.tasa * transaccionData.tasa_actual">
@@ -345,6 +346,23 @@
         </q-card-section>
         <q-card-section>
           <q-input type="textarea" outlined autogrow dense v-model="agregarEditarLineaRecibo.descripcion" label="Descripción" />
+
+          <template v-if="agregarEditarLineaRecibo.ubicaciones?.length">
+
+            <h6 class="text-center q-my-sm">Ubicaciones</h6>
+            <template v-for="ubicacion in agregarEditarLineaRecibo.ubicaciones">
+              <div class="row q-col-gutter-sm q-mb-sm">
+                <div class="col-auto">
+                  <QSelectUbicacion dense v-model="ubicacion.ubicacion_id" label="Ubicación" outlined disable />
+                </div>
+                <div class="col">
+                  <q-input dense type="date" v-model="ubicacion.pagado_hasta" label="Pagado hasta" outlined clearable></q-input>
+                </div>
+              </div>
+            </template>
+
+          </template>
+
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" v-close-popup />
@@ -415,6 +433,8 @@
   import { format } from "date-fns";
   import { useQuasar } from 'quasar';
 
+  import QSelectUbicacion from "src/components/selects/QSelectUbicacion.vue";
+
   const appStore = useAppStore();
   const router = useRouter()
 
@@ -437,6 +457,13 @@
       id: linea.id,
       transaccion_id: linea.transaccion_id,
       descripcion: linea.descripcion,
+      ubicaciones: linea.ubicaciones.map(u => {
+        return {
+          id: u.id,
+          ubicacion_id: u.ubicacion_id,
+          pagado_hasta: u.pagado_hasta ? u.pagado_hasta.substr(0, 10) : null,
+        }
+      })
     }
   }
 
@@ -444,9 +471,8 @@
     isLoadingEditarLineaRecibo.value = true
     let postData = agregarEditarLineaRecibo.value
 
-    console.log('pd', postData)
-
     console.log('postData', postData);
+
     api.post('caja/transacciones/editarLineaRecibo', postData)
       .then(response => {
         if (response.data) {

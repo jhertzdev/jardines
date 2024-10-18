@@ -6,6 +6,7 @@
     <template v-if="cajaSeleccionada">
 
       <template v-if="cajaSeleccionada.esta_abierta">
+
         <q-table
           dense
           flat
@@ -36,45 +37,46 @@
           </template>
 
           <template v-slot:body-cell-descripcion="props">
-            <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
+            <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" :colspan="!!props.row.tipo ? 1 : 2">
 
-              <q-select
-                v-model="props.row['tipo']"
-                dense
-                borderless
-                :options="filteredServicios"
-                option-value="id"
-                option-label="nombre_producto"
-                map-options
-                :hide-dropdown-icon="!!props.row['tipo']"
-                @update:model-value="handleChangeTipoServicio(props.row)"
-              >
-                <template v-slot:selected>
-                  <q-chip
-                    removable
-                    v-if="props.row['tipo']"
-                    @remove="
-                      props.row['tipo'] = null;
-                      handleChangeTipoServicio(props.row);
-                    "
-                  >
-                    {{ props.row['tipo']?.nombre_producto }}
-                  </q-chip>
-                  <span class="text-grey-5" style="font-size: 10px" v-else> -- Línea personalizada -- </span>
-                </template>
-              </q-select>
-
-              <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" readonly>
+              <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" :readonly="!!props.row.tipo">
                 <template v-slot:append>
                   <q-btn flat color="primary" dense size="sm" icon="edit">
-                    <q-popup-proxy @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
+                    <q-popup-proxy ref="plantillaDescripcionPopup" @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
                       <q-banner>
-                        <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" />
+
+                        <q-select
+                          v-model="props.row['tipo']"
+                          :options="filteredServicios"
+                          option-value="id"
+                          option-label="nombre_producto"
+                          map-options
+                          @update:model-value="handleChangeTipoServicio(props.row)"
+                          round
+                          dense
+                          class="q-mb-sm"
+                          standout="bg-primary text-white"
+                          clearable
+                          @clear="plantillaDescripcionPopup.hide()"
+                        >
+                          <template v-slot:selected>
+                            {{ props.row['tipo']?.nombre_producto || '-- Línea personalizada --' }}
+                          </template>
+                        </q-select>
+
+                        <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" autofocus />
                         <div class="q-mt-xs q-gutter-xs">
                           <q-btn outline dense size="sm" color="primary" label="Fecha desde" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__DESDE__'" />
                           <q-btn outline dense size="sm" color="primary" label="Fecha hasta" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__HASTA__'"/>
                           <q-btn outline dense size="sm" color="primary" label="Ubicaciones" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__UBICACIONES__'"/>
                         </div>
+
+                        <q-separator class="q-mt-sm q-mb-none"></q-separator>
+
+                        <div class="text-right">
+                          <q-btn dense size="sm" color="primary" label="Guardar" icon="save" class="q-mt-sm q-pa-xs" @click="plantillaDescripcionPopup.hide();" />
+                        </div>
+
                       </q-banner>
                     </q-popup-proxy>
                   </q-btn>
@@ -90,9 +92,9 @@
           </template>
 
           <template v-slot:body-cell-cantidad="props">
-            <q-td :props="props" :class="{'highlighted': hoveredRow === props.row }">
+            <q-td :props="props" :class="{'highlighted': hoveredRow === props.row }" v-if="!!props.row.tipo">
 
-              <q-input dense :label="props.row.tipo?.tipo_producto == 'Mantenimiento' ? 'Ubicaciones' : null" v-model="props.row[props.col.name]" type="number" step="1" min="1" style="margin-bottom: 20px;" :disable="!!parseInt(props.row.tipo?.requiere_ubicaciones)" @update:model-value="handleRecalcularLinea(props.row)" />
+              <q-input dense :label="props.row.tipo?.tipo_producto == 'Mantenimiento' ? 'Ubicaciones' : null" v-model="props.row[props.col.name]" type="number" step="1" min="1" style="margin-bottom: 20px;" :disable="!!parseInt(props.row.tipo?.requiere_ubicaciones)" v-if="props.row.tipo?.tipo_producto != 'Mantenimiento'" @update:model-value="handleRecalcularLinea(props.row)" />
               <template v-if="props.row.tipo?.tipo_producto == 'Mantenimiento'">
                 <q-input label="Años" type="number" step="1" min="0" stack-label dense v-model="props.row['cuotas']" @update:model-value="val => handleRecalcularLinea(props.row, val)" required style="margin-top: -20px;" />
               </template>
@@ -338,6 +340,8 @@ import QSelectParcelasLinea from "src/components/selects/QSelectParcelasLinea.vu
 
 const tablePagination = ref({ rowsPerPage: 0 });
 
+const plantillaDescripcionPopup = ref(null)
+
 const agregarPagoDialog = ref(null)
 
 const tableData = ref([
@@ -565,6 +569,7 @@ const handleAgregarPago = (data) => {
 }
 
 const handleChangeTipoServicio = (row) => {
+
   if (row.tipo) {
     row.descripcion = row.tipo.descripcion
     row.descripcion_plantilla = row.tipo.descripcion
@@ -580,8 +585,10 @@ const handleChangeTipoServicio = (row) => {
     if (row.tipo.tipo_producto == 'Mantenimiento') {
       row.cuotas = 1;
     }
+
   } else {
     row.descripcion = ''
+    row.descripcion_plantilla = ''
     row.precio = 0
     row.cantidad = 1
     delete row.ubicaciones
@@ -600,7 +607,7 @@ const agregarServicio = () => {
   })
 }
 
-const handleRecalcularLinea = (row, val) => {
+const handleRecalcularLinea = (row, val = 1) => {
 
   if (!!parseInt(row.tipo?.requiere_ubicaciones)) {
     row.cantidad = row.ubicaciones?.length || 0
@@ -627,6 +634,7 @@ const handleRecalcularLinea = (row, val) => {
     row.total = precioPorCuota * row.cuotas * row.cantidad
   } else {
     row.total = row.precio * row.cantidad
+    row.cuotas = null
   }
 
   handleRellenarDescripcion(row)

@@ -101,9 +101,8 @@ const dialog = ref(false)
 const isLoadingSubmit = ref(false)
 
 const data = reactive({
-  completado: '-1',
-  mes: [],
   ids: [],
+  lista: null,
   titles: {}
 })
 
@@ -116,27 +115,21 @@ const ordenarPorParcelaUbicacion = () => {
 }
 
 const props = defineProps({
-  completado: {
-    type: String,
-    required: false,
-    default: '0',
-  },
-  mes: {
-    type: String,
-    required: false,
-    default: '',
-  },
   ids: {
     type: Array,
     required: false,
     default: () => [],
   },
+  lista: {
+    type: Number,
+    required: false,
+    default: null,
+  },
 })
 
 watch(props, () => {
-  data.completado = props.completado
-  data.mes = props.mes
-  data.ids = props.ids
+  data.lista = props.lista
+  data.ids = props.ids || []
 }, { deep: true })
 
 
@@ -148,13 +141,6 @@ const handleSubmit = () => {
 
   if (data.ids.length) {
     searchParams.append('id', data.ids.map(row => row.id).join(','));
-  } else {
-    if (data.completado != '-1') {
-      searchParams.append('completado', data.completado);
-    }
-    if (data.mes) {
-      searchParams.append('mes', data.mes);
-    }
   }
 
   for(let key in data.titles) {
@@ -178,15 +164,37 @@ const handleSubmit = () => {
 
 }
 
-const openDialog = (id) => {
-  dialog.value = true
-}
+const openDialog = (listaId) => {
 
-onMounted(() => {
-  data.completado = props.completado
-  data.mes = props.mes
-  data.ids = props.ids
-})
+  if (!!parseInt(listaId)) {
+    data.lista = parseInt(listaId)
+
+    api.get('mantenimiento/listas/' + props.lista)
+      .then(response => {
+        if (response.data) {
+          data.titles.resumen = response.data.resumen
+          data.titles.titulo = response.data.titulo
+          data.titles.subtitulo = response.data.subtitulo
+        }
+      })
+
+    api.get(`mantenimiento?f[lista_id]=${props.lista}&rowsPerPage=-1&sortBy=orden&order=ASC`)
+      .then(response => {
+        if (response.data) {
+          data.ids = response.data.data
+          dialog.value = true
+        }
+      })
+      .catch(error => qNotify(error, 'error'))
+      .finally(() => isLoadingSubmit.value = false)
+  } else if (data.ids.length) {
+    dialog.value = true
+  } else {
+    qNotify('Debe seleccionar una lista o un listado de mantenimientos.', 'error')
+  }
+
+
+}
 
 defineExpose({ openDialog })
 const emit = defineEmits(['created'])

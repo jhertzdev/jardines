@@ -294,6 +294,7 @@
   padding-right: 2px;
   display: flex;
   align-items: center;
+  text-wrap: nowrap;
 }
 
 .badge-contrato > span:last-child {

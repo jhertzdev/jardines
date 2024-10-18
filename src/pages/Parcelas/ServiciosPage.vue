@@ -43,14 +43,14 @@ body.section-busqueda-open .q-page-container {
     <template v-slot:body-cell-acciones="props">
       <q-td :props="props">
         <div class="q-gutter-xs">
-          <q-btn color="primary" dense flat size="sm" icon="edit" @click="openDialogEditarServicio(props.row.id)" />
+          <q-btn color="primary" dense flat size="sm" icon="edit" @click="agregarEditarServicioDialog.openDialog(props.row.id)" />
           <q-btn color="negative" dense flat size="sm" icon="delete" @click="handleEliminarServicio(props.row.id)" />
         </div>
       </q-td>
     </template>
     <template v-slot:body-cell-ubicacion="props">
       <q-td :props="props" style="width: 1px">
-        <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.ubicacion_id)">{{ props.row.ubicacion}}</a>
+        <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(props.row.ubicacion_id, props.row)">{{ props.row.ubicacion }}</a>
       </q-td>
     </template>
     <template v-slot:body-cell-clase_servicio="props">
@@ -111,7 +111,12 @@ body.section-busqueda-open .q-page-container {
     <template v-slot:body-cell-hora_asignado="props">
       <q-td :props="props">
         <template v-if="props.row.fecha_asignado && new Date(props.row.fecha_asignado) != 'Invalid Date'">
-          {{ format(props.row.fecha_asignado, 'hh:mm a') }}
+          <template v-if="props.row.fecha_asignado.substr(11, 5) == '00:00'">
+            -
+          </template>
+          <template v-else>
+            {{ format(props.row.fecha_asignado, 'hh:mm a') }}
+          </template>
         </template>
         <template v-else>
           <span>-</span>
@@ -152,74 +157,7 @@ body.section-busqueda-open .q-page-container {
 
   <DialogEditarParcela ref="editarParcelaDialog" />
   <DialogVerContratos ref="verContratosDialog" />
-
-  <q-dialog v-model="showDialogAgregarServicio" class="j-dialog j-dialog-lg">
-    <q-card>
-      <q-form @submit="handleSubmit">
-        <q-card-section>
-          <div class="text-h6">{{ agregarServicioData.id ? 'Editar servicio' : 'Agregar servicio' }}</div>
-        </q-card-section>
-        <q-card-section>
-
-          <div class="row q-col-gutter-sm">
-            <div class="col-6">
-              <q-select dense v-model="agregarServicioData.clase_servicio" outlined label="Categoría de servicio"
-              :options="['Inhumación', 'Exhumación', 'Cremación']"
-              @update:model-value="(val) => {
-                if (val == 'Cremación') agregarServicioData.ubicacion_id = null
-              }" lazy-rules="true" :rules="[val => val && val.length > 0 || 'Selecciona una categoría']" hide-hint hide-bottom-space></q-select>
-            </div>
-            <div class="col-6">
-              <QSelectUbicacion dense v-model="agregarServicioData.ubicacion_id" outlined
-                :disable="!agregarServicioData.clase_servicio || agregarServicioData.clase_servicio == 'Cremación'"
-                @selected="handleSelectUbicacion" clearable required lazy-rules="true" :rules="[val => val > 0 || ' ']"
-              />
-            </div>
-            <div class="col-6">
-              <q-input dense v-model="agregarServicioData.tipo_contrato" outlined label="Tipo de contrato" readonly />
-            </div>
-            <div class="col-6">
-              <q-select dense v-model="agregarServicioData.tipo_servicio" outlined label="Tipo de servicio"
-                :options="['1er Cuerpo', '2do Cuerpo']" :disable="agregarServicioData.tipo_contrato != 'Parcela'"
-                lazy-rules="true" :rules="[val => val && val.length > 0 || 'Selecciona un tipo de servicio']" hide-bottom-space></q-select>
-            </div>
-            <div class="col-4">
-              <q-input dense type="date" v-model="agregarServicioData.fecha_servicio" outlined label="Fecha"
-                lazy-rules="true" :rules="[val => val && val.length > 0 || 'Selecciona una fecha']" hide-bottom-space />
-            </div>
-            <div class="col-4">
-              <q-input dense type="time" v-model="agregarServicioData.hora_servicio" outlined label="Hora" step="60"
-                lazy-rules="true" :rules="[val => val && val.length > 0 || 'Selecciona una hora']" hide-bottom-space/>
-            </div>
-            <div class="col-4">
-              <q-select dense v-model="agregarServicioData.estatus" outlined label="Estatus" :options="['Pendiente', 'Completado']"></q-select>
-            </div>
-            <div class="col-4">
-              <q-input dense v-model="agregarServicioData.num_contrato" outlined label="Núm. contrato" />
-            </div>
-            <div class="col-8">
-              <q-input dense v-model="agregarServicioData.difunto" outlined label="Nombre del difunto"
-                lazy-rules="true" :rules="[val => val && val.length > 0 || 'Escribe del nombre del difunto/a']" hide-bottom-space/>
-            </div>
-            <div class="col-12">
-              <q-input dense outlined type="textarea" rows="2" label="Observaciones" v-model="agregarServicioData.observaciones"></q-input>
-            </div>
-            <div class="col-12" v-if="agregarServicioData.tipo_contrato && agregarServicioData.tipo_contrato != 'Cremación'">
-              <q-checkbox v-model="agregarServicioData.incluir_mantenimiento" label="Incluir en mantenimiento del mes" />
-              <q-checkbox v-model="agregarServicioData.entrega_parcela" :label="'Hace entrega de ' + agregarServicioData.tipo_contrato.toLowerCase()"  />
-            </div>
-
-          </div>
-
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn type="button" label="Cerrar" flat @click="showDialogAgregarServicio = false" />
-          <q-btn type="submit" :label="agregarServicioData.id ? 'Editar' : 'Agregar'" color="primary" :loading="isLoadingSubmit"/>
-        </q-card-actions>
-      </q-form>
-    </q-card>
-  </q-dialog>
-
+  <DialogAgregarEditarServicio ref="agregarEditarServicioDialog" @updated="handleAgregarEditarServicioSubmit" />
 
 </template>
 
@@ -233,32 +171,21 @@ body.section-busqueda-open .q-page-container {
 
   import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
   import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
+  import DialogAgregarEditarServicio from "src/components/popups/DialogAgregarEditarServicio.vue";
 
   import { format, lastDayOfMonth, startOfMonth } from 'date-fns'
-  import QSelectUbicacion from 'src/components/selects/QSelectUbicacion.vue';
 
   const verContratosDialog = ref(null)
   const editarParcelaDialog = ref(null)
-
-  const openDialogEditarServicio = (id) => {
-
-    if (id) {
-      api.get('parque/servicios/' + id).then((response) => {
-        agregarServicioData.value = response.data
-        showDialogAgregarServicio.value = true
-      })
-    } else {
-      showDialogAgregarServicio.value = true
-    }
-
-
-  }
+  const agregarEditarServicioDialog = ref(null)
 
   const showDialogAgregarServicio = ref(false)
 
   const filterDateClosePopup = ref(false)
 
-  const isLoadingSubmit = ref(false);
+  const handleAgregarEditarServicioSubmit = (data) => {
+    tableRef.value.requestServerInteraction()
+  }
 
   const classEstatus = {
     'Pendiente': 'yellow-9',
@@ -267,56 +194,15 @@ body.section-busqueda-open .q-page-container {
 
   const $q = useQuasar()
 
-  const agregarServicioData = ref({
-    incluir_mantenimiento: false,
-    entrega_parcela: false
-  })
-
   const filterDate = ref({
     field: '',
     desde: '',
     hasta: ''
   })
 
-  const handleSelectUbicacion = (val) => {
-    agregarServicioData.value.tipo_contrato = val?.tipo_parcela?.tipo_parcela;
-
-    if (!val || val?.tipo_parcela?.tipo_parcela == 'Cremación') {
-      agregarServicioData.value.tipo_servicio = null
-      agregarServicioData.value.incluir_mantenimiento = false
-      agregarServicioData.value.entrega_parcela = false
-    }
-  }
-
   watch(filterDate, () => {
     tableRef.value.requestServerInteraction()
   }, { deep: true })
-
-  const handleSubmit = () => {
-    isLoadingSubmit.value = true;
-
-    api.post('parque/servicios', agregarServicioData.value).then((response) => {
-      qNotify('Servicio agregado', 'positive')
-      agregarServicioData.value = {
-        incluir_mantenimiento: false,
-        entrega_parcela: false
-      }
-      showDialogAgregarServicio.value = false
-      tableRef.value.requestServerInteraction();
-    })
-    .catch((error) => {
-      console.log(error);
-      qNotify(error, 'error')
-    })
-    .finally(() => {
-      isLoadingSubmit.value = false;
-    });
-
-  }
-
-  /* watch(filterDate, () => {
-    tableRef.value.requestServerInteraction()
-  }) */
 
   const tableData = ref([])
 
@@ -379,42 +265,6 @@ body.section-busqueda-open .q-page-container {
     }
 
   }
-
-  const handleEliminarOrdenMantenimiento = (id, confirm = false) => {
-  if (!confirm) {
-    $q.dialog({
-      title: 'Eliminar orden de trabajo',
-      message: '¿Estás seguro de que quieres eliminar esta orden de trabajo?',
-      cancel: true,
-      persistent: true,
-      ok: {
-        label: 'Eliminar',
-        color: 'primary',
-        flat: true,
-        icon: 'delete'
-      },
-      cancel: {
-        label: 'Cancelar',
-        color: 'primary',
-        flat: true,
-        icon: 'cancel'
-      }
-    }).onOk(() => {
-      handleEliminarOrdenMantenimiento(id, true)
-    })
-  } else {
-    tableLoading.value = true
-    api.delete('mantenimiento/' + id)
-      .then(response => {
-        if (response.data) {
-          $q.notify({ message: 'Eliminado exitosamente.', color: 'positive' })
-          tableRef.value.requestServerInteraction()
-        }
-      })
-      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarOrdenMantenimiento(id) }))
-      .finally(() => tableLoading.value = false)
-  }
-}
 
   const tableRequest = (props) => {
 

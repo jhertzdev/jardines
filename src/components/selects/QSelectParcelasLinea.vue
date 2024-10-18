@@ -71,7 +71,7 @@ function toggleOption(option) {
 }
 
 watch(() => props.ubicaciones, (newValue) => {
-  props.ubicaciones = newValue;
+  emit('update:modelValue', newValue)
 })
 
 watch(() => props.modelValue, async (val) => {

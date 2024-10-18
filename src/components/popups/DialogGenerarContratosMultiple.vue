@@ -64,16 +64,6 @@
               <q-card>
                 <q-card-section>
                   <div class="row q-col-gutter-md">
-                    <div class="col-12 text-right q-gutter-sm">
-                      <q-btn size="sm" label="Copiar del anterior" color="primary" icon="content_copy"
-                        @click="handleCopiarContratoAnterior(codigo)" v-if="index > 0" />
-                      <template v-if="contratosData[codigo].tipo_actividad == 'venta_parcelas'">
-                        <q-btn size="sm" v-for="tipo in filteredTiposContratos?.filter(tipo => tipo.tipo_actividad == 'mantenimiento_parcelas') ?? []" :key="tipo.codigo_contrato" icon="add"
-                          :label="`${tipo.nombre} (${tipo.codigo_contrato})`" color="primary" @click="agregarTipoContrato(tipo)" />
-                      </template>
-                      <q-btn size="sm" label="Remover" color="negative" icon="clear"
-                        @click="handleRemoverContrato(codigo)" />
-                    </div>
                     <div class="col-12 col-md-4">
                       <template v-if="index > 0">
                         <q-input class="input-num-parcela" dense stack-label :model-value="Object.values(contratosData)[0].num_contrato"
@@ -241,6 +231,16 @@
                             <template v-if="authStore.user.role_perms.find((role) => role == 'contratos.*' || role == 'contratos.editar')">
                               <q-checkbox v-model="contratosData[codigo].sin_parcelas" true-value="1" false-value="0" label="El contrato no tiene ubicaciones asociadas" v-if="!contratosData[codigo].ubicaciones?.length" />
                             </template>
+
+                            <div class="col-12 text-right">
+                              <template v-if="contratosData[codigo].tipo_actividad == 'venta_parcelas'">
+                                <q-btn class="q-mr-sm" size="sm" v-for="tipo in filteredTiposContratos?.filter(tipo => tipo.tipo_actividad == 'mantenimiento_parcelas') ?? []" :key="tipo.codigo_contrato" icon="add"
+                                  :label="`${tipo.nombre} (${tipo.codigo_contrato})`" color="primary" @click="agregarTipoContrato(tipo); handleCopiarContratoAnterior(codigo)" />
+                              </template>
+                              <q-btn size="sm" label="Remover" color="negative" icon="clear"
+                                @click="handleRemoverContrato(codigo)" />
+                            </div>
+
 
 
 

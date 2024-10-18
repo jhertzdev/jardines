@@ -233,41 +233,41 @@
                 <q-btn label="Agregar servicio" class="q-my-md" icon="add" color="primary" @click="agregarServicio" />
               </q-td>
             </template>
-            <template v-slot:body-cell-tipo="props">
-              <q-td :props="props" style="padding-left: 0; padding-right: 0;"
-                :class="{'highlighted': hoveredRow === props.row}">
-                <q-select v-model="props.row[props.col.name]" dense borderless :options="filteredServicios"
-                  option-value="id" option-label="nombre_producto" map-options
-                  :hide-dropdown-icon="!!props.row[props.col.name]"
-                  @update:model-value="handleChangeTipoServicio(props.row)">
-                  <template v-slot:prepend>
-                    <q-btn icon="delete" size="sm" dense color="red" flat class="q-ml-xs" @click="deleteRow(props.row)"
-                      @mouseover="hoveredRow = props.row" @mouseleave="hoveredRow = null" />
-                  </template>
-                  <template v-slot:selected>
-                    <q-chip removable v-if="props.row[props.col.name]" @remove="props.row[props.col.name] = null; handleChangeTipoServicio(props.row)">
-                      {{ props.row[props.col.name]?.nombre_producto }}
-                    </q-chip>
-                    <span class="text-grey-5" v-else>
-                      -- Línea personalizada --
-                    </span>
-                  </template>
-                </q-select>
-              </q-td>
-            </template>
+
             <template v-slot:body-cell-descripcion="props">
-              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
-                <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" readonly>
+              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" :colspan="!!props.row.tipo ? 1 : 2">
+                <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" :readonly="!!props.row.tipo">
                   <template v-slot:append>
                     <q-btn flat color="primary" dense size="sm" icon="edit">
-                      <q-popup-proxy @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
+                      <q-popup-proxy ref="plantillaDescripcionPopup" @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
                         <q-banner>
-                          <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" />
+
+                          <q-select
+                            v-model="props.row['tipo']"
+                            :options="filteredServicios"
+                            option-value="id"
+                            option-label="nombre_producto"
+                            map-options
+                            @update:model-value="handleChangeTipoServicio(props.row)"
+                            round
+                            dense
+                            class="q-mb-sm"
+                            standout="bg-primary text-white"
+                            clearable
+                            @clear="plantillaDescripcionPopup.hide()"
+                          >
+                            <template v-slot:selected>
+                              {{ props.row['tipo']?.nombre_producto || '-- Línea personalizada --' }}
+                            </template>
+                          </q-select>
+
+                          <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" autofocus />
                           <div class="q-mt-xs q-gutter-xs">
                             <q-btn outline dense size="sm" color="primary" label="Fecha desde" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__DESDE__'" />
                             <q-btn outline dense size="sm" color="primary" label="Fecha hasta" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__HASTA__'"/>
                             <q-btn outline dense size="sm" color="primary" label="Ubicaciones" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__UBICACIONES__'"/>
                           </div>
+
                         </q-banner>
                       </q-popup-proxy>
                     </q-btn>
@@ -319,7 +319,7 @@
               </q-td>
             </template>
             <template v-slot:body-cell-cantidad="props">
-              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row, 'td-cantidad-cuotas': props.row['tipo']?.pagable_cuotas == 1 }">
+              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row, 'td-cantidad-cuotas': props.row['tipo']?.pagable_cuotas == 1 }" v-if="!!props.row.tipo || props.row.tipo?.tipo_producto == 'Mantenimiento'">
                 <q-input dense v-model="props.row[props.col.name]" type="number" step="1" min="1" style="margin-bottom: 20px;" :disable="!!parseInt(props.row.tipo?.requiere_ubicaciones)" @update:model-value="handleRecalcularLinea(props.row)" />
               </q-td>
             </template>
@@ -567,12 +567,13 @@
               </div>
             </div>
 
-            <q-table flat bordered hide-bottom hide-header
+            <q-table dense flat bordered hide-bottom hide-header
               class="q-mt-md" selection="multiple"
               v-model:selected="metodosPagoSelected"
-              :rows="metodosPago" :columns="metodosPagoColumnas">
+              :rows="metodosPago" :columns="metodosPagoColumnas"
+              :pagination="{ rowsPerPage: -1 }" >
               <template v-slot:body-cell-cantidad="props">
-                <q-td :props="props" class="text-center">
+                <q-td :props="props" class="text-center" style="padding-bottom: .75rem">
                   <template v-if="metodosPagoSelected.includes(props.row)">
                     <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada">
                       <template v-slot:append>
@@ -723,6 +724,8 @@
 
   const agregarClienteDialog = ref(null)
   const agregarDifuntoDialog = ref(null);
+
+  const plantillaDescripcionPopup = ref(null)
 
   function highestOccupiedIndex(puestos) {
     let highestIndex = -1;
@@ -975,15 +978,6 @@
 
   const tableColumns = [
     {
-      name: 'tipo',
-      required: true,
-      label: 'Tipo',
-      align: 'left',
-      field: 'tipo',
-      headerStyle: 'width: 230px',
-      style: 'width: 230px',
-    },
-    {
       name: 'descripcion',
       required: true,
       label: 'Descripción',
@@ -1014,7 +1008,7 @@
       name: 'total',
       required: true,
       label: 'Total',
-      align: 'left',
+      align: 'right',
       field: 'total',
       format: value => `${value.toFixed(2)}`,
       headerStyle: 'width: 100px',

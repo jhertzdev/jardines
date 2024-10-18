@@ -30,27 +30,10 @@
             <div class="col-12 col-sm-6 col-lg-3">
               <q-input dense outlined type="date" v-model="data.fecha_completado" label="Fecha completado" stack-label :readonly="data.estatus != 'Completado'" :disable="data.estatus != 'Completado'" />
             </div>
-            <div class="col-12 col-sm-6 col-lg-2">
+            <div class="col-12 col-sm-6 col-lg-3">
               <QSelectUbicacion dense outlined v-model="data.ubicacion_id" :hide-bottom-space="true" clearable/>
             </div>
-            <div class="col-12 col-sm-6 col-lg-2">
-              <q-select dense outlined v-model="data.avance" :options="[
-                {label: '100%', value: '100'},
-                {label: '75%', value: '75'},
-                {label: '50%', value: '50'},
-                {label: '25%', value: '25'},
-                {label: '0%', value: '0'},
-              ]" label="Avance" stack-label emit-value map-options @update:model-value="val => {
-                if (val == '100') {
-                  data.estatus = 'Completado';
-                  data.fecha_completado = format(new Date(), 'yyyy-MM-dd');
-                } else if (val == '0') {
-                  data.estatus = 'Por entregar';
-                  data.fecha_completado = null;
-                } else { data.estatus = 'Por ejecutar'; data.fecha_completado = null; }
-              }"></q-select>
-            </div>
-            <div class="col-12 col-lg-2">
+            <div class="col-12 col-lg-3">
               <q-select dense outlined v-model="data.estatus" :options="[
                 'Completado',
                 'Por entregar',
@@ -58,7 +41,24 @@
                 'Vencido'
               ]" @update:model-value="val => val != 'Completado' ? data.fecha_completado = null : data.fecha_completado = format(new Date(), 'yyyy-MM-dd')" label="Estatus" stack-label emit-value map-options></q-select>
             </div>
-            <div class="col-12">
+            <div class="col-12 col-lg-6">
+              <q-select label="Lista de mantenimiento" dense outlined v-model="data.lista_id" :options="[
+                {
+                  label: '-- Mantenimientos sin asignar --',
+                  value: null,
+                },
+                ...listasMantenimiento.map((lista) => {
+                  return {
+                    label: [lista.resumen, lista.titulo, lista.subtitulo]
+                      .filter((el) => !!el)
+                      .join(' - '),
+                    value: lista.id,
+                  };
+                }),
+              ]" map-options emit-value map-option-label="resumen" stack-label>
+              </q-select>
+            </div>
+            <div class="col-12 col-lg-6">
               <q-input dense outlined v-model="data.notas" label="Notas internas" stack-label />
             </div>
 
@@ -156,10 +156,10 @@ const handleSubmit = () => {
 
 }
 
+const listasMantenimiento = ref([])
+
 const openDialog = (id) => {
   dialog.value = true
-
-  console.log('id', id)
 
   api.get(`mantenimiento/${id}`)
     .then(response => {
@@ -190,7 +190,20 @@ const openDialog = (id) => {
         }
 
       }
+  })
+
+  api
+    .get("mantenimiento/listas")
+    .then((response) => {
+      if (response.data) {
+        listasMantenimiento.value = response.data;
+      }
     })
+    .catch((error) => {
+      console.log(error);
+      qNotify(error, "error");
+  })
+
 }
 
 defineExpose({ openDialog })

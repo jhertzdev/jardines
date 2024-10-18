@@ -117,31 +117,33 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <td>
-                            {{ parcelaData.tipo_parcela?.nombre }}
-                          </td>
-                          <td>
-                            {{
-                              parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
-                                2
-                              )
-                            }}
-                            &times;
-                            {{
-                              parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
-                                2
-                              )
-                            }}
-                            &times;
-                            {{
-                              parseFloat(
-                                parcelaData.tipo_parcela?.profundidad
-                              ).toFixed(2)
-                            }}
-                          </td>
-                          <td>
-                            {{ parcelaData.puestos?.length }}
-                          </td>
+                          <tr>
+                            <td>
+                              {{ parcelaData.tipo_parcela?.nombre }}
+                            </td>
+                            <td>
+                              {{
+                                parseFloat(parcelaData.tipo_parcela?.largo).toFixed(
+                                  2
+                                )
+                              }}
+                              &times;
+                              {{
+                                parseFloat(parcelaData.tipo_parcela?.ancho).toFixed(
+                                  2
+                                )
+                              }}
+                              &times;
+                              {{
+                                parseFloat(
+                                  parcelaData.tipo_parcela?.profundidad
+                                ).toFixed(2)
+                              }}
+                            </td>
+                            <td>
+                              {{ parcelaData.puestos?.length }}
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -227,7 +229,7 @@
                 <div class="text-right q-gutter-sm">
                   <q-btn @click="liberarParcelaDialog = true" label="Liberar parcela" icon="lock_open" color="primary"
                     :loading="isLoadingPuestos" />
-                  <q-btn @click="agregarOcupanteDialog = true" label="Agregar ocupante" icon="add" color="primary"
+                  <q-btn @click="agregarOcupanteDialog = true; agregarOcupanteData.generar_servicio = true" label="Agregar ocupante" icon="add" color="primary"
                     :loading="isLoadingPuestos" />
                 </div>
               </div>
@@ -398,8 +400,17 @@
                 @click="(e) => agregarDifuntoDialog.openDialog(null, e)" />
             </div>
             <div class="col-12">
-              <QSelectDatetime dense outlined stack-label label="Fecha de inhumación"
+              <q-input type="datetime-local" dense outlined stack-label label="Fecha de inhumación"
                 v-model="agregarOcupanteData.fecha_inhumacion" />
+            </div>
+            <div class="col-12">
+              <q-checkbox v-model="agregarOcupanteData.generar_servicio" color="primary" dense>
+                Generar servicio de inhumación
+                <q-icon name="help_outline" />
+                <q-tooltip max-width="240px">
+                  Al marcar esta opción, se generará un registro de la inhumación en el módulo de servicios del Parque.
+                </q-tooltip>
+              </q-checkbox>
             </div>
           </div>
         </q-card-section>
@@ -428,7 +439,7 @@
                 @click="agregarDifuntoDialog.openDialog()" />
             </div>
             <div class="col-12">
-              <QSelectDatetime dense outlined stack-label label="Fecha de inhumación"
+              <q-input type="datetime-local" dense outlined stack-label label="Fecha de inhumación"
                 v-model="modificarPuestoData.fecha_inhumacion" />
             </div>
           </div>
@@ -497,6 +508,17 @@
         </q-card-section>
         <q-card-section>
           <p>¿Estás seguro de desocupar este puesto?</p>
+
+          <q-checkbox v-model="exhumarPuestoData.generar_servicio" color="primary" dense>
+            Generar servicio de exhumación
+            <q-icon name="help_outline" />
+            <q-tooltip max-width="240px">
+              Al marcar esta opción, se generará un registro de la exhumación en el módulo de servicios del Parque.
+            </q-tooltip>
+          </q-checkbox>
+
+          <q-input class="q-mt-md" outlined dense type="datetime-local" v-model="exhumarPuestoData.fecha_asignado" label="Fecha de exhumación" clearable
+            lazy-rules :rules="[val => val && val.length > 0 || 'Selecciona una fecha']" :disable="!exhumarPuestoData.generar_servicio" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" v-close-popup />
@@ -505,8 +527,11 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+
   </q-dialog>
 
+  <DialogSeleccionarServicio ref="seleccionarServicioDialog"/>
   <DialogCambiarTitular ref="cambiarTitularDialog" />
 </template>
 
@@ -519,6 +544,7 @@ import { qNotify, obtenerParcelaExhumableId } from "src/boot/jardines";
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogGenerarContratosIndividual from "src/components/popups/DialogGenerarContratosIndividual.vue";
 import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
+import DialogSeleccionarServicio from "src/components/popups/DialogSeleccionarServicio.vue";
 import QSelectDatetime from "src/components/selects/QSelectDatetime.vue";
 
 // Components
@@ -526,6 +552,7 @@ import QSelectCliente from "src/components/selects/QSelectCliente.vue";
 import QSelectEstatusParcela from "src/components/selects/QSelectEstatusParcela.vue";
 import QSelectSeccion from "src/components/selects/QSelectSeccion.vue";
 
+const seleccionarServicioDialog = ref(null)
 
 const route = useRoute();
 const $q = useQuasar();
@@ -595,7 +622,13 @@ const puestosData = ref({});
 const agregarOcupanteData = ref({
   ocupante_data: null,
   fecha_inhumacion: null,
+  generar_servicio: true,
 });
+
+const exhumarPuestoData = ref({
+  id: null,
+  generar_servicio: true,
+})
 
 const agregarClienteDialog = ref(null);
 const asignarParcelaDialog = ref(null);
@@ -655,14 +688,21 @@ const handleOcuparPuesto = () => {
           message: "Fallecido asignado exitosamente.",
           color: "positive",
         });
+        agregarOcupanteDialog.value = false;
         emit('updated', response.data)
       }
     })
     .catch((error) => {
-      if (error?.response?.data?.messages?.ocupante_id.includes('propietario de un contrato')) {
+      console.log(error)
+      if (error?.response?.data?.messages?.ocupante_id?.includes('propietario de un contrato')) {
         cambiarTitularDialog.value.openDialog({
           cliente_id: agregarOcupanteData.value.ocupante_id,
           select_all: true
+        })
+      } else if (error?.response?.data?.messages?.generar_servicio) {
+        seleccionarServicioDialog.value.openDialog(error.response.data.messages, () => {
+          agregarOcupanteData.value.generar_servicio = false;
+          handleOcuparPuesto()
         })
       } else {
         qNotify(error, "error", { callback: handleOcuparPuesto })
@@ -685,6 +725,7 @@ const handleModificarPuesto = () => {
           message: "Puesto modificado exitosamente.",
           color: "positive",
         });
+        modificarPuestoDialog.value = false
         emit('updated', response.data)
       }
     })
@@ -714,10 +755,10 @@ const handleSubmitLiberarParcela = () => {
 };
 
 const exhumarPuestoDialog = ref(null);
-const exhumarPuestoId = ref(null);
 
 const exhumarPuestoOpenDialog = (puestoId) => {
-  exhumarPuestoId.value = puestoId;
+  exhumarPuestoData.value.id = puestoId;
+  exhumarPuestoData.value.generar_servicio = true;
   exhumarPuestoDialog.value = true;
 };
 
@@ -830,12 +871,10 @@ const reasignarFallecidoOpenDialog = (puestoId) => {
 const handleSubmitExhumarPuesto = () => {
   isLoadingPuestos.value = true;
 
-  let postData = { id: exhumarPuestoId.value };
-
   api
-    .post("parcelas/" + dataId.value + "/exhumar", postData)
+    .post("parcelas/" + dataId.value + "/exhumar", exhumarPuestoData.value)
     .then((response) => {
-      console.log(postData);
+      console.log(exhumarPuestoData.value);
       if (response.data) {
         getData();
         $q.notify({
@@ -845,9 +884,18 @@ const handleSubmitExhumarPuesto = () => {
         emit('updated', response.data)
       }
     })
-    .catch((error) =>
-      qNotify(error, "error", { callback: handleSubmitExhumarPuesto })
-    )
+    .catch((error) => {
+      console.log(error)
+      if (error?.response?.data?.messages?.generar_servicio) {
+        seleccionarServicioDialog.value.openDialog(error.response.data.messages, () => {
+          exhumarPuestoData.value.generar_servicio = false;
+          handleSubmitExhumarPuesto()
+        })
+      } else {
+        qNotify(error, "error", { callback: handleSubmitExhumarPuesto })
+      }
+    })
+
     .finally(() => (isLoadingPuestos.value = false));
 };
 

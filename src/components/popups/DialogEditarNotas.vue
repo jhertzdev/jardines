@@ -7,7 +7,7 @@
           <div class="text-h6">{{ data.title || 'Editar notas' }}</div>
         </q-card-section>
         <q-card-section class="q-pa-md">
-          <q-input dense v-model="data.notas" outlined type="textarea" label="Notas" stack-label autogrow />
+          <q-input dense v-model="data.notas" outlined type="textarea" label="Notas" stack-label autogrow autofocus />
         </q-card-section>
         <q-card-actions class="justify-end">
           <q-btn flat label="Cancelar" v-close-popup />

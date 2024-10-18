@@ -1,10 +1,10 @@
 <template>
   <!-- Crear cliente -->
-  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xxl">
-    <q-card class="q-pa-md">
+  <q-dialog allow-focus-outside v-model="dialog" class="j-dialog">
+    <q-card class="q-pa-md" style="width: 100%">
       <q-form @submit="handleSubmit" :class="isLoadingSubmit && 'form-disabled'" class="no-bottoms">
         <q-card-section>
-          <div class="text-h6">Editar lote</div>
+          <div class="text-h6">{{ tituloLista || 'Editar lote' }}</div>
         </q-card-section>
 
         <q-card-section class="q-pa-md">
@@ -37,13 +37,10 @@
               ]" @update:model-value="val => {
                 if (val == null) {
                   data.fecha_completado = null;
-                  data.avance = null;
                 } else if (val != 'Completado') {
                   data.fecha_completado = null
-                  if (!parseInt(data.avance) || parseInt(data.avance) == 100) data.avance = '0'
                 } else {
                   data.fecha_completado = format(new Date(), 'yyyy-MM-dd')
-                  data.avance = '100'
                 }
               }" label="Estatus" stack-label emit-value map-options></q-select>
             </div>
@@ -53,32 +50,31 @@
             <div class="col-12 col-sm">
               <q-input dense outlined type="date" v-model="data.fecha_completado" label="Fecha completado" stack-label :readonly="data.estatus != 'Completado'" :disable="data.estatus != 'Completado'" clearable />
             </div>
-            <div class="col-12 col-sm">
-              <q-select dense outlined v-model="data.avance" :options="[
-                {label: '-- No cambiar --', value: null},
-                {label: '100%', value: '100'},
-                {label: '75%', value: '75'},
-                {label: '50%', value: '50'},
-                {label: '25%', value: '25'},
-                {label: '0%', value: '0'},
-              ]" label="Avance" stack-label emit-value map-options @update:model-value="val => {
-                if (val == '100') {
-                  data.estatus = 'Completado';
-                  data.fecha_completado = format(new Date(), 'yyyy-MM-dd');
-                } else if (val == '0') {
-                  data.estatus = 'Por entregar';
-                  data.fecha_completado = null;
-                } else if (val == null) {
-                  data.estatus = null;
-                  data.fecha_completado = null;
-                  data.avance = null;
-                } else {
-                  data.estatus = 'Por ejecutar'; data.fecha_completado = null;
-                }
-              }"></q-select>
+          </div>
+          <div class="row q-col-gutter-sm q-mt-xs">
+            <div class="col">
+              <q-select label="Lista de mantenimiento" dense outlined v-model="data.lista_id" :options="[
+                  {
+                    label: '-- No cambiar --',
+                    value: null,
+                  },
+                  {
+                    label: '-- Mantenimientos sin asignar --',
+                    value: -1,
+                  },
+                  ...listasMantenimiento.map((lista) => {
+                    return {
+                      label: [lista.resumen, lista.titulo, lista.subtitulo]
+                        .filter((el) => !!el)
+                        .join(' - '),
+                      value: lista.id,
+                    };
+                  }),
+                ]" map-options emit-value map-option-label="resumen" stack-label>
+              </q-select>
             </div>
-            <div class="col-12 text-right">
-              <q-btn label="Ordenar por tipo de ubicación" size="sm" @click="ordenarPorParcelaUbicacion" color="primary" class="q-mt-md" />
+            <div class="col-auto flex">
+              <q-btn label="Ordenar por tipo de ubicación" size="sm" icon="sort" @click="ordenarPorParcelaUbicacion" color="primary" />
             </div>
           </div>
         </q-card-section>
@@ -86,6 +82,7 @@
           <q-markup-table flat dense separator="cell">
               <thead>
                 <tr>
+                  <th></th>
                   <th class="text-left">Ubicación</th>
                   <th class="text-left">Puestos</th>
                   <th class="text-left">Notas internas</th>
@@ -93,7 +90,22 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in data.rows" :key="row.id">
+                <tr v-for="(row, index) in data.rows" :key="row.id">
+                  <td>
+                    {{ index + 1 }}
+                    <q-btn icon="sort" dense size="sm" flat color="primary" v-if="!!selectedLista">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-card>
+                          <q-card-section class="q-pa-sm flex column q-gutter-xs">
+                            <q-btn icon="vertical_align_top" label="Al principio" dense outline size="sm" color="primary" @click="reordenar(index, 0)"></q-btn>
+                            <q-btn icon="keyboard_arrow_up" label="Subir" dense outline size="sm" color="primary" @click="reordenar(index, index - 1)" :disabled="index === 0"></q-btn>
+                            <q-btn icon="keyboard_arrow_down" label="Bajar" dense outline size="sm" color="primary" @click="reordenar(index, index + 1)" :disabled="index === data.rows.length - 1"></q-btn>
+                            <q-btn icon="vertical_align_bottom" label="Al final" dense outline size="sm" color="primary" @click="reordenar(index, data.rows.length - 1)"></q-btn>
+                          </q-card-section>
+                        </q-card>
+                      </q-popup-proxy>
+                    </q-btn>
+                  </td>
                   <td>{{ row.ubicacion }}</td>
                   <td style="max-width: 240px; white-space: break-spaces;">
                     <ol class="q-pl-md" v-if="row.difuntos?.length">
@@ -152,13 +164,15 @@ const mantenerMarcados = ref(true)
 
 const filterDateClosePopup = ref(false)
 
+const nuevaPosicion = ref(null)
+
 const data = ref({
   rows: [],
   fecha_vencimiento: null,
   fecha_completado: null,
   fecha_asignado: null,
-  avance: null,
   estatus: null,
+  lista_id: null,
 })
 
 const observacionesPorTipoUbicacion = {
@@ -184,7 +198,7 @@ const handleSubmit = () => {
 
   let postData = JSON.parse(JSON.stringify(data.value))
 
-  let keys = ['fecha_vencimiento', 'fecha_completado', 'fecha_asignado', 'avance', 'estatus']
+  let keys = ['fecha_vencimiento', 'fecha_completado', 'fecha_asignado', 'estatus']
 
   keys.forEach(key => {
     if (postData[key] === null || postData[key] === '') delete postData[key];
@@ -193,6 +207,12 @@ const handleSubmit = () => {
   if (postData.fecha_vencimiento?.length < 10) {
     postData.fecha_vencimiento = postData.fecha_vencimiento + '-01'
   }
+
+  if (selectedLista.value) {
+    postData.update_order = true;
+  }
+
+  console.log(postData)
 
   api.post('mantenimiento/editarLote', postData)
     .then(response => {
@@ -203,7 +223,6 @@ const handleSubmit = () => {
           fecha_vencimiento: null,
           fecha_completado: null,
           fecha_asignado: null,
-          avance: null,
           estatus: null,
         }
 
@@ -221,87 +240,154 @@ const ordenarPorParcelaUbicacion = () => {
   });
 }
 
-const openDialog = (ids) => {
-  dialog.value = true
+function reordenar(from, to) {
+  data.value.rows.splice(to, 0, data.value.rows.splice(from, 1)[0]);
+};
 
-  console.log('ids', ids)
+const listasMantenimiento = ref([])
+const tituloLista = ref('')
+const selectedLista = ref(null)
 
-  api.get(`mantenimiento?id=${ids.join(',')}&rowsPerPage=-1`)
-    .then(response => {
-      var ordering = {}, // map for efficient lookup of sortIndex
-        sortOrder = ids;
-      for (var i=0; i<sortOrder.length; i++)
-        ordering[sortOrder[i]] = i;
+const openDialog = (ids, listaId = null) => {
 
-      console.log('response', response);
+  if (parseInt(listaId)) {
 
-      data.value.rows = response.data?.data?.map(row => {
-        return {
-          id: row.id,
-          ubicacion_id: row.ubicacion_id,
-          ubicacion: row.ubicacion?.codigo_parcela,
-          codigo_seccion: row.ubicacion?.codigo_seccion,
-          num_parcela: row.ubicacion?.num_parcela,
-          estatus: row.estatus,
-          observaciones: row.observaciones,
-          ultimas_observaciones: row.ultimas_observaciones,
-          tipo_parcela: row.ubicacion?.tipo_parcela?.tipo_parcela,
-          notas: row.notas,
-          difuntos: row.ubicacion?.puestos?.filter(p => !!parseInt(p.ocupado)),
-        }
-      }).sort(function(a, b) {
-        /* ORDERNAR POR TIPO DE PARCELA
-        if (x.tipo_parcela > y.tipo_parcela) {
-          return -1;
-        }
-        if (x > y) {
-          return 1;
-        }
-        return 0;
-        */
+    data.value.lista_id = listaId
+    selectedLista.value = listaId
 
-        if ( ordering[a.id] < ordering[b.id] ){
-          return -1;
-        }
-        if ( ordering[a.id] > ordering[b.id] ){
-          return 1;
-        }
-        return 0;
+    api.get(`mantenimiento?f[lista_id]=${parseInt(listaId)}&rowsPerPage=-1&sortBy=orden&order=ASC`)
+      .then(response => {
+        data.value.rows = response.data?.data?.map(row => {
+          return {
+            id: row.id,
+            ubicacion_id: row.ubicacion_id,
+            ubicacion: row.ubicacion?.codigo_parcela,
+            codigo_seccion: row.ubicacion?.codigo_seccion,
+            num_parcela: row.ubicacion?.num_parcela,
+            estatus: row.estatus,
+            observaciones: row.observaciones,
+            ultimas_observaciones: row.ultimas_observaciones,
+            tipo_parcela: row.ubicacion?.tipo_parcela?.tipo_parcela,
+            notas: row.notas,
+            difuntos: row.ubicacion?.puestos?.filter(p => !!parseInt(p.ocupado)),
+          }
+        })
 
+        loadObservaciones()
+
+        dialog.value = true
       });
 
-      data.value.rows.forEach((row, index) => {
-        if (!row.observaciones?.length) {
-          data.value.rows[index].observaciones = JSON.parse(JSON.stringify(observacionesPorTipoUbicacion[row.tipo_parcela]))
-        } else {
-          let observacionesPlantilla = JSON.parse(JSON.stringify(observacionesPorTipoUbicacion[row.tipo_parcela]))
-
-          observacionesPlantilla.forEach((obs, key) => {
-            let rowObservacion = row.observaciones.find(o => o.title == obs?.title)
-            if (rowObservacion?.value) {
-              observacionesPlantilla[key].value = rowObservacion.value
-            }
-          })
-
-          row.observaciones = observacionesPlantilla
-        }
-
-        if (row.ultimas_observaciones?.length) {
-
-          row.observaciones.forEach(observacion => {
-
-            let ultimaObservacion = row.ultimas_observaciones.find(o => o.title == observacion.title)
-            if (!observacion.value && ultimaObservacion?.value) {
-              observacion.value = ultimaObservacion.value
-              observacion.isLast = true
-            }
-
-          })
-
+    api.get(`mantenimiento/listas/${parseInt(listaId)}`)
+      .then(response => {
+        if (response.data) {
+          tituloLista.value = [response.data.resumen, response.data.titulo, response.data.subtitulo].filter(el => !!el).join(' - ')
         }
       })
 
+
+  } else {
+
+    data.value.lista_id = null
+    selectedLista.value = null;
+
+    api.get(`mantenimiento?id=${ids.join(',')}&rowsPerPage=-1`)
+      .then(response => {
+        var ordering = {}, // map for efficient lookup of sortIndex
+          sortOrder = ids;
+        for (var i=0; i<sortOrder.length; i++)
+          ordering[sortOrder[i]] = i;
+
+        console.log('response', response);
+
+        data.value.rows = response.data?.data?.map(row => {
+          return {
+            id: row.id,
+            ubicacion_id: row.ubicacion_id,
+            ubicacion: row.ubicacion?.codigo_parcela,
+            codigo_seccion: row.ubicacion?.codigo_seccion,
+            num_parcela: row.ubicacion?.num_parcela,
+            estatus: row.estatus,
+            observaciones: row.observaciones,
+            ultimas_observaciones: row.ultimas_observaciones,
+            tipo_parcela: row.ubicacion?.tipo_parcela?.tipo_parcela,
+            notas: row.notas,
+            difuntos: row.ubicacion?.puestos?.filter(p => !!parseInt(p.ocupado)),
+          }
+        }).sort(function(a, b) {
+          /* ORDERNAR POR TIPO DE PARCELA
+          if (x.tipo_parcela > y.tipo_parcela) {
+            return -1;
+          }
+          if (x > y) {
+            return 1;
+          }
+          return 0;
+          */
+
+          if ( ordering[a.id] < ordering[b.id] ){
+            return -1;
+          }
+          if ( ordering[a.id] > ordering[b.id] ){
+            return 1;
+          }
+          return 0;
+
+        });
+
+        loadObservaciones()
+        tituloLista.value = null
+        dialog.value = true
+
+      })
+  }
+
+  function loadObservaciones()
+  {
+    data.value.rows.forEach((row, index) => {
+      if (!row.observaciones?.length) {
+        data.value.rows[index].observaciones = JSON.parse(JSON.stringify(observacionesPorTipoUbicacion[row.tipo_parcela]))
+      } else {
+        let observacionesPlantilla = JSON.parse(JSON.stringify(observacionesPorTipoUbicacion[row.tipo_parcela]))
+
+        observacionesPlantilla.forEach((obs, key) => {
+          let rowObservacion = row.observaciones.find(o => o.title == obs?.title)
+          if (rowObservacion?.value) {
+            observacionesPlantilla[key].value = rowObservacion.value
+          }
+        })
+
+        row.observaciones = observacionesPlantilla
+      }
+
+      if (row.ultimas_observaciones?.length) {
+
+        row.observaciones.forEach(observacion => {
+
+          let ultimaObservacion = row.ultimas_observaciones.find(o => o.title == observacion.title)
+          if (!observacion.value && ultimaObservacion?.value) {
+            observacion.value = ultimaObservacion.value
+            observacion.isLast = true
+          }
+
+        })
+
+      }
     })
+  }
+
+
+  api
+    .get("mantenimiento/listas")
+    .then((response) => {
+      if (response.data) {
+        listasMantenimiento.value = response.data;
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      qNotify(error, "error")
+    });
 
 }
 
