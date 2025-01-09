@@ -60,6 +60,10 @@
               :rules="[val => val && val.length > 0 || '']" />
           </div>
 
+          <div class="col-12 col-md-6 q-mt-md">
+            <q-checkbox v-model="data.disponible" true-value="1" false-value="0" label="Mostrar en calculadora" />
+          </div>
+
 
 
 

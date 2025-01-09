@@ -220,6 +220,10 @@
 </template>
 
 <style>
+  tr.highlighted td, tr.highlighted th {
+    background-color: #ffebee !important;
+  }
+
   .highlighted {
     background-color: #ffebee !important;
   }

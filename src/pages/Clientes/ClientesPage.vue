@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="dialogInfoCliente" class="j-dialog j-dialog-xl dialog-info-cliente">
+  <q-dialog allow-focus-outside v-model="dialogInfoCliente" class="j-dialog j-dialog-xl dialog-info-cliente">
     <q-card class="q-pa-md">
       <div class="q-py-lg text-center" v-if="isLoadingInfoCliente">
         <q-spinner size="xl" color="primary" />
@@ -204,7 +204,7 @@
       <DialogAgregarCliente ref="agregarClienteDialog" @created="handleClienteAgregado" @updated="handleClienteEditado" />
 
       <!-- Eliminar cliente -->
-      <q-dialog v-model="dialogEliminarCliente" class="j-dialog">
+      <q-dialog allow-focus-outside v-model="dialogEliminarCliente" class="j-dialog">
         <q-card class="q-pa-md text-center">
           <q-card-section>
             <div class="text-h6">Eliminar cliente</div>

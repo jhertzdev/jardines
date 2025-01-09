@@ -3,58 +3,30 @@
     <div class="col-md-4 col-12 q-gutter-y-md">
       <q-card class="q-pa-md">
         <table class="info-table">
-          <tr>
-            <th colspan="2" style="text-align: right;">UBICACIONES</th>
-          </tr>
-          <tr>
-            <th>Totales</th>
-            <td>{{ stats.parcelas_totales }}</td>
-          </tr>
-          <tr>
-            <th>Ocupadas totalmente</th>
-            <td>{{ stats.parcelas_ocupadas_totalmente }}</td>
-          </tr>
-          <tr>
-            <th>Ocupadas parcialmente</th>
-            <td>{{ stats.parcelas_ocupadas_parcialmente }}</td>
-          </tr>
-          <tr>
-            <th colspan="2" style="text-align: right;">POR ESTATUS</th>
-          </tr>
-          <tr v-for="parcela in stats?.parcelas_por_estatus">
-            <th class="text-left">{{ parcela.estatus || 'No definido' }}</th>
-            <td class="text-right">{{ parcela.total }}</td>
-          </tr>
-          <!--<tr>
-            <th colspan="2" style="text-align: right;">NICHOS</th>
-          </tr>
-          <tr>
-            <th>Totales</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Ocupados</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Disponibles</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th colspan="2" style="text-align: right;">COLUMBARIOS</th>
-          </tr>
-          <tr>
-            <th>Totales</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Ocupados</th>
-            <td>0</td>
-          </tr>
-          <tr>
-            <th>Disponibles</th>
-            <td>0</td>
-          </tr>-->
+          <tbody>
+            <tr>
+              <th colspan="2" style="text-align: right;">UBICACIONES</th>
+            </tr>
+            <tr>
+              <th>Totales</th>
+              <td>{{ stats.parcelas_totales }}</td>
+            </tr>
+            <tr>
+              <th>Ocupadas totalmente</th>
+              <td>{{ stats.parcelas_ocupadas_totalmente }}</td>
+            </tr>
+            <tr>
+              <th>Ocupadas parcialmente</th>
+              <td>{{ stats.parcelas_ocupadas_parcialmente }}</td>
+            </tr>
+            <tr>
+              <th colspan="2" style="text-align: right;">POR ESTATUS</th>
+            </tr>
+            <tr v-for="parcela in stats?.parcelas_por_estatus">
+              <th class="text-left">{{ parcela.estatus || 'No definido' }}</th>
+              <td class="text-right">{{ parcela.total }}</td>
+            </tr>
+          </tbody>
         </table>
       </q-card>
     </div>
@@ -116,7 +88,7 @@
         </q-table>
 
         <!-- Agregar parcelas -->
-        <q-dialog v-model="dialogAgregarParcelas" class="j-dialog j-dialog-lg">
+        <q-dialog allow-focus-outside v-model="dialogAgregarParcelas" class="j-dialog j-dialog-lg">
           <q-card class="q-pa-md">
             <q-form @submit="handleAgregarParcelas">
               <q-card-section>

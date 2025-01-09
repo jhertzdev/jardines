@@ -142,6 +142,7 @@
     min-width: 80px;
     max-width: 80px;
     left: 0px;
+    text-align: center;
   }
 
   .second-col {
@@ -149,6 +150,7 @@
     width: 80px;
     min-width: 80px;
     max-width: 80px;
+    text-align: center;
   }
 
   .third-col {

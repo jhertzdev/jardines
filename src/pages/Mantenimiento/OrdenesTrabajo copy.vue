@@ -141,7 +141,7 @@
       </q-td>
     </template>
   </q-table>
-  <q-dialog v-model="showDialogFilterDate" class="j-dialog j-dialog-xl">
+  <q-dialog allow-focus-outside v-model="showDialogFilterDate" class="j-dialog j-dialog-xl">
     <q-card>
       <q-card-section>
 

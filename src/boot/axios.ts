@@ -41,36 +41,33 @@ export default boot(({ app, router }) => {
     return response;
   }, async (error: AxiosError) => {
 
-    console.log('Axios error...', error);
+    if (error?.response?.status === 500) {
+      return Promise.reject(error);
+    }
 
     // Eliminar token
     if (error?.response?.data?.error === 'OTP_TOKEN_REQUIRED') {
       delete api.defaults.headers.common['OTP-Token']
     } else {
 
-      axios.get(api.defaults.baseURL + '/auth/check', { timeout: 3000 })
+      const publicPages = ['/auth/login', '/auth/logout'];
+      const authRequired = !publicPages.includes(router.currentRoute.value.path);
+
+      api.get('/auth/check', { timeout: 3000 })
+        .then(response => {
+          console.log('auth/check', response)
+          if (authRequired && response?.data === false) {
+            const event = new Event("TokenExpired")
+            window.dispatchEvent(event)
+          }
+        })
         .catch(error => {
-          router.push('/auth/logout')
+          if (error?.message == 'Network Error') {
+            const event = new Event("NetworkError")
+            window.dispatchEvent(event)
+          }
         })
 
-    }
-
-    const publicPages = ['/auth/login', '/auth/logout'];
-    const authRequired = !publicPages.includes(router.currentRoute.value.path);
-
-    if (authRequired) {
-      try {
-        let response = await api.get('auth/check')
-        console.log('Checking auth...', response.data);
-
-        if (!response.data) {
-          router.push('/auth/logout')
-          return Promise.reject('Unauthorized');
-        }
-      } catch (error) {
-        router.push('/auth/logout')
-        return Promise.reject('Unauthorized');
-      }
     }
 
     return Promise.reject(error);

@@ -21,7 +21,7 @@
   </q-table>
 
   <!-- Crear / Editar usuario -->
-  <q-dialog v-model="dialogAgregarEditarUsuario" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogAgregarEditarUsuario" class="j-dialog">
     <q-card class="q-pa-md">
       <q-form @submit="handleAgregarEditarUsuario">
         <q-card-section>
@@ -53,7 +53,7 @@
   </q-dialog>
 
   <!-- Eliminar usuario -->
-  <q-dialog v-model="dialogEliminarUsuario" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogEliminarUsuario" class="j-dialog">
     <q-card class="q-pa-md text-center">
       <q-card-section>
         <div class="text-h6">Eliminar usuario</div>

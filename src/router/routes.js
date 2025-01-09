@@ -161,6 +161,11 @@ const routes = [
         component: () => import('pages/Caja/ReporteIngresosPage.vue'),
         meta: { viewName: 'Reporte de ingresos', viewIcon: 'assessment' }
       },
+      {
+        path: 'reportes/mensual',
+        component: () => import('pages/Caja/ReporteMensualPage.vue'),
+        meta: { viewName: 'Reporte mensual', viewIcon: 'event' }
+      },
     ]
   },
   // Always leave this as last one,

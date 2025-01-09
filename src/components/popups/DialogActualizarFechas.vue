@@ -12,7 +12,7 @@
         </q-card-section>
         <q-card-section class="q-py-none">
           <q-table class="q-mb-lg" :columns="[
-            { name: 'codigo_parcela', label: 'Cód. parcela', field: 'codigo_parcela', sortable: false, align: 'center' },
+            { name: 'codigo_parcela', label: 'Ubicación', field: 'codigo_parcela', sortable: false, align: 'center' },
             { name: 'pagado_hasta', label: 'Pagado hasta', field: 'pagado_hasta', sortable: false, align: 'center' },
           ]" :rows="props.rows" row-key="id" separator="cell"
             :pagination="{rowsPerPage: -1}" hide-bottom

@@ -18,7 +18,7 @@
   </q-table>
 
   <!-- Agregar / Editar -->
-  <q-dialog v-model="dialogAgregarEditar" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogAgregarEditar" class="j-dialog">
     <q-card class="q-pa-md">
       <q-form @submit="handleAgregarEditar">
         <q-card-section>
@@ -43,7 +43,7 @@
                 label="Tipo de empresa" emit-value map-options clearable hint="El tipo de empresa que puede registrar este contrato."/>
             </div>
             <div class="col-12">
-              <q-select :options="['Parcela', 'Columbario', 'Nicho']" outlined v-model="agregarEditarData.tipo_parcela" 
+              <q-select :options="['Parcela', 'Columbario', 'Nicho']" outlined v-model="agregarEditarData.tipo_parcela"
                 label="Tipo de producto" clearable hint="El tipo de producto que puede asociarse a este contrato." />
             </div>
             <div class="col-12 col-md-6">
@@ -74,7 +74,7 @@
   </q-dialog>
 
   <!-- Eliminar -->
-  <q-dialog v-model="dialogEliminar" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogEliminar" class="j-dialog">
     <q-card class="q-pa-md text-center">
       <q-card-section>
         <div class="text-h6">Eliminar contrato</div>
@@ -168,7 +168,7 @@ const handleAgregarEditar = () => {
           Object.keys(agregarEditarData).forEach((i) => agregarEditarData[i] = null)
           dialogAgregarEditar.value = false
           qNotify('Editado exitosamente.')
-          let index = contratos.value.findIndex(row => row.id == postData.id) 
+          let index = contratos.value.findIndex(row => row.id == postData.id)
           if (index > -1) {
             response.data['id'] = response.data.codigo_contrato
             contratos.value[index] = response.data

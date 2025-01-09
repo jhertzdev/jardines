@@ -102,30 +102,17 @@
               <div style="border-right: 1px solid var(--q-primary); display: inline-flex; height: 20px; margin-bottom: -8px"></div>
             </template>
 
-            <q-btn
-              size="sm"
-              class="q-px-sm"
-              :label="`Editar (${selectedRows.length})`"
-              icon="edit"
-              color="primary"
-              v-if="selectedRows.length"
-              @click="
-                editarLoteOrdenesTrabajoDialog.openDialog(
-                  selectedRows.map((r) => r.id)
-                )
-              "
-            />
 
           </template>
 
           <q-btn
               size="sm"
               class="q-px-sm"
-              :label="`Seleccionar todo (${tableData.length})`"
+              :label="`Seleccionar todo (${filteredTableData.length})`"
               icon="check_box"
               color="primary"
               v-if="!selectedRows.length"
-              @click="selectedRows = tableData"
+              @click="selectedRows = filteredTableData"
             />
             <q-btn
               size="sm"
@@ -135,6 +122,15 @@
               color="primary"
               v-if="selectedRows.length"
               @click="imprimirMantenimientoDialog.openDialog()"
+            />
+            <q-btn
+              size="sm"
+              class="q-px-sm"
+              :label="`Copiar (${selectedRows.length})`"
+              icon="table_view"
+              color="primary"
+              v-if="selectedRows.length"
+              @click="() => copiarFilasSeleccionadas()"
             />
             <q-btn
               size="sm"
@@ -179,10 +175,11 @@
           <q-input
             dense
             outlined
-            debounce="300"
             v-model="tableFilter"
             placeholder="Buscar..."
             style="width: 240px"
+            @keyup.enter="tableRequest(tablePagination)"
+            @blur="tableRequest(tablePagination)"
           >
             <template v-slot:append>
               <q-icon name="search" />
@@ -195,13 +192,14 @@
   </div>
 
   <q-virtual-scroll
+    dense
     type="table"
     ref="tableRef"
     style="max-height: 70vh"
     :virtual-scroll-item-size="48"
     :virtual-scroll-sticky-size-start="48"
     :virtual-scroll-sticky-size-end="32"
-    :items="tableData"
+    :items="filteredTableData"
   >
     <template v-slot:before>
       <thead class="thead-sticky text-left">
@@ -209,6 +207,32 @@
           <th></th>
           <th v-for="col in tableColumns" :key="'1--' + col.name">
             {{ col.label }}
+            <template v-if="tableFilters.sort?.column == col.name">
+              <q-icon name="arrow_upward" v-if="tableFilters.sort.type == 'ASC'"></q-icon>
+              <q-icon name="arrow_downward" v-if="tableFilters.sort.type == 'DESC'"></q-icon>
+            </template>
+            <q-icon name="filter_alt" class="column-filter" v-if="col.sortable">
+              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                <q-card class="column-filters__card">
+                  <q-card-section class="flex column q-gutter-xs q-pa-sm">
+                    <q-btn size="sm" color="primary" icon="arrow_upward" @click="setColumnFilter(col.name, 'sort', 'ASC')" :outline="tableFilters.sort?.column == col.name && tableFilters.sort?.type == 'ASC' ? false : true">Orden ascendente</q-btn>
+                    <q-btn size="sm" color="primary" icon="arrow_downward" @click="setColumnFilter(col.name, 'sort', 'DESC')" :outline="tableFilters.sort?.column == col.name && tableFilters.sort?.type == 'DESC' ? false : true">Orden descendente</q-btn>
+                    <template v-if="col.fieldType == 'date'">
+                      <q-input dense type="date" v-model="tableFilters.filters[col.name]['desde']" label="Desde" clearable />
+                      <q-input dense type="date" v-model="tableFilters.filters[col.name]['hasta']" label="Hasta" clearable />
+                    </template>
+                  </q-card-section>
+                </q-card>
+              </q-popup-proxy>
+            </q-icon>
+            <div style="font-size: .5rem; font-weight: normal" v-if="col.fieldType == 'date'">
+              <template v-if="tableFilters.filters[col.name]?.desde">
+                <p class="q-ma-none">Desde: <b>{{ tableFilters.filters[col.name].desde.replaceAll('-', '/') }}</b></p>
+              </template>
+              <template v-if="tableFilters.filters[col.name]?.hasta">
+                <p class="q-ma-none">Hasta: <b>{{ tableFilters.filters[col.name].hasta.replaceAll('-', '/') }}</b></p>
+              </template>
+            </div>
           </th>
         </tr>
       </thead>
@@ -239,22 +263,9 @@
 
     <template v-slot="{ item: row, index }">
       <tr :key="index">
-        <td>
+        <td style="padding-right: 0; padding-left: .5em">
           <q-checkbox v-model="selectedRows" :val="row"></q-checkbox>
         </td>
-        <!-- Acciones -->
-        <q-td>
-          <div class="q-gutter-sm">
-            <q-btn
-              color="primary"
-              dense
-              flat
-              size="sm"
-              icon="edit"
-              @click="editarOrdenTrabajoDialog.openDialog(row.id)"
-            />
-          </div>
-        </q-td>
 
         <!-- Cliente -->
         <q-td
@@ -291,6 +302,11 @@
               <div>{{ row.notas }}</div>
             </q-tooltip>
           </q-icon>
+
+          <div>
+            <q-badge :color="classEstatus[row.estatus]" :label="row.estatus" style="font-size: .4rem; padding: 0 2px; border-radius: 2px; text-transform: uppercase; margin-top: 0px; display: block; text-align: center;"/>
+          </div>
+
         </q-td>
 
         <!-- Contrato -->
@@ -351,6 +367,25 @@
           <template v-else>
             <span>-</span>
           </template>
+
+
+          <template v-if="!!parseInt(row.lista_id)">
+            <q-btn
+              class="q-ml-xs"
+              color="primary"
+              style="font-size: .75em"
+              dense
+              flat
+              icon="list_alt"
+              @click="handleSelectListaMantenimiento(row.lista_id)"
+            >
+              <q-tooltip max-width="200px" class="text-center bg-black" style="margin-top: -500px">
+                {{ getListaMantenimiento(row.lista_id)?.label || 'Asignado a lista de mantenimiento' }}
+              </q-tooltip>
+            </q-btn>
+
+          </template>
+
         </q-td>
         <!-- Completado el -->
         <q-td>
@@ -404,10 +439,7 @@
             <span>-</span>
           </template>
         </q-td>
-        <!-- Estatus -->
-        <q-td>
-          <q-badge :color="classEstatus[row.estatus]" :label="row.estatus" />
-        </q-td>
+
         <!-- Notas -->
         <q-td
           style="
@@ -425,7 +457,7 @@
   </q-virtual-scroll>
 
 
-  <q-dialog v-model="showDialogFilterDate" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="showDialogFilterDate" class="j-dialog j-dialog-lg">
     <q-card>
       <q-card-section>
         <div class="row q-col-gutter-md">
@@ -553,7 +585,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog
+  <q-dialog allow-focus-outside
     v-model="showDialogListasMantenimiento"
     class="j-dialog j-dialog-xl"
   >
@@ -773,10 +805,23 @@
 .tfoot-custom-sticky tr:first-child > * {
   bottom: 0;
 }
+
+th .column-filter {
+  opacity: 0;
+}
+
+th:hover .column-filter {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.column-filters__card .q-field__control {
+  height: 40px;
+}
 </style>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { api } from "src/boot/axios";
 import { useRoute } from "vue-router";
 import { useQuasar } from "quasar";
@@ -797,7 +842,8 @@ const editarParcelaDialog = ref(null);
 
 const estatusOrdenes = ref("");
 const selectedLista = ref({
-  value: "",
+  label: "-- Mantenimientos sin asignar --",
+  value: "null",
 });
 
 const filterDateClosePopup = ref(false);
@@ -816,6 +862,57 @@ const showDialogListasMantenimiento = ref(false);
 const loadingSubmitCrearListaMantenimiento = ref(false);
 const loadingListasMantenimiento = ref(true);
 const showCrearNuevaListaMantenimiento = ref(false);
+
+function copiarFilasSeleccionadas() {
+    // Crear una cadena para almacenar el contenido de la tabla
+    let tableContent = '';
+    let row = [
+      'Ubicación',
+      'Titular',
+      'Estatus',
+      'Contrato',
+      'Difuntos',
+      'Fecha asignado',
+      'Vigente hasta',
+    ]
+
+    tableContent += row.join('\t') + '\n';
+
+    selectedRows.value.forEach(row => {
+        row = [
+          row.ubicacion?.codigo_parcela || '-', // Ubicación
+          row.ubicacion?.propietario?.propietario_nombre || '-', // Nombre del cliente
+          row.estatus, // Estatus
+          row.ubicacion.contratos // Número de contrato
+            .filter(
+              (c) =>
+                c.estatus == "Activo" &&
+                c.tipo_actividad == "mantenimiento_parcelas"
+            )
+            .map((c) => c.num_contrato)
+            .join(", "),
+          row.ubicacion?.puestos?.filter( // Difuntos
+            (p) => !!parseInt(p.ocupado)
+          )
+          .map(difunto => difunto.ocupante_nombre)
+          .join(', '),
+          row.fecha_asignado,
+          row.vigente_hasta,
+        ]
+
+        tableContent += row.join('\t') + '\n';
+    });
+
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = tableContent;
+
+    document.body.appendChild(tempTextArea);
+    tempTextArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempTextArea);
+
+    alert('Tabla copiada al portapapeles.');
+}
 
 const openDialogCrearListaMantenimiento = (id = null) => {
   if (id) {
@@ -844,6 +941,34 @@ const openDialogCrearListaMantenimiento = (id = null) => {
     showCrearNuevaListaMantenimiento.value = true;
   }
 };
+
+const getListaMantenimiento = (id) => {
+  let lista = listasMantenimiento.value.find(l => l.id == id)
+  if (lista) {
+    lista.label = [lista.resumen, lista.titulo, lista.subtitulo]
+      .filter((el) => !!el)
+      .join(' - ');
+  }
+
+  return lista;
+}
+
+const handleSelectListaMantenimiento = (id) => {
+  let lista = listasMantenimiento.value.find(l => l.id == id)
+  if (lista) {
+    selectedLista.value = { label: [lista.resumen, lista.titulo, lista.subtitulo]
+      .filter((el) => !!el)
+      .join(' - '), value: lista.id };
+
+    lista.label = [lista.resumen, lista.titulo, lista.subtitulo]
+      .filter((el) => !!el)
+      .join(' - ');
+  }
+
+  console.log(lista)
+
+  return lista;
+}
 
 const handleSubmitAgregarListaMantenimiento = () => {
   loadingSubmitCrearListaMantenimiento.value = true;
@@ -907,9 +1032,91 @@ const selectedRows = ref([]);
 
 const tableData = ref([]);
 
+const filteredTableData = computed(() => {
+
+  let rows = tableData.value
+  let sort = tableFilters.value.sort
+
+  let column = sort?.column ? tableColumns.find(col => col.name == sort.column) : null
+
+  if (sort && column?.fieldType == 'date') {
+    rows = rows.sort((a, b) => {
+      let dateA = a[sort.column] ? new Date(a[sort.column]) : new Date(0);
+      let dateB = b[sort.column] ? new Date(b[sort.column]) : new Date(0);
+
+      if (sort.type == 'ASC') {
+        return dateA - dateB
+      } else {
+        return dateB - dateA
+      }
+    })
+  }
+
+  if (sort?.column == 'ubicacion') {
+    // Filtrar por tipo de ubicación
+
+    rows = rows.sort(function(a, b) {
+      if (sort.type == 'ASC') {
+        return b.ubicacion.tipo_parcela.tipo_parcela.localeCompare(a.ubicacion.tipo_parcela.tipo_parcela) || a.ubicacion.codigo_seccion.localeCompare(b.ubicacion.codigo_seccion) || a.ubicacion.num_parcela - b.ubicacion.num_parcela;
+      } else {
+        return a.ubicacion.tipo_parcela.tipo_parcela.localeCompare(b.ubicacion.tipo_parcela.tipo_parcela) || b.ubicacion.codigo_seccion.localeCompare(a.ubicacion.codigo_seccion) || b.ubicacion.num_parcela - a.ubicacion.num_parcela;
+      }
+    });
+
+  }
+
+  // Filtrar por fechas
+  Object.keys(tableFilters.value.filters).forEach(key => {
+    let desde = tableFilters.value.filters[key]['desde']
+    let hasta = tableFilters.value.filters[key]['hasta']
+
+    if (desde) {
+      desde = new Date(desde)
+      rows = rows.filter(row => new Date(row[key]) >= desde)
+    }
+
+    if (hasta) {
+      hasta = hasta.substr(0, 10) + ' 23:59:59'
+      hasta = new Date(hasta)
+      rows = rows.filter(row => new Date(row[key]) <= hasta)
+    }
+  });
+
+
+  return rows
+})
+
+const tableFilters = ref({
+  sort: null,
+  filters: {}
+})
+
+const setColumnFilter = (column, filter, value) => {
+  let tableColumn = tableColumns.find(col => col.name == column)
+
+  if (!column) return
+
+  // Sorting
+  if (filter == 'sort') {
+
+    if (tableFilters.value.sort?.column == column && tableFilters.value.sort?.type == value) {
+      tableFilters.value.sort = null
+    } else {
+      tableFilters.value.sort = {
+        column: column,
+        type: value
+      }
+    }
+  }
+
+}
+
 const tableColumns = [
-  { name: "acciones", label: "", align: "left" },
-  { name: "cliente", label: "Cliente", align: "left" },
+  {
+    name: "cliente",
+    label: "Cliente",
+    align: "left"
+  },
   {
     name: "ubicacion",
     label: "Ubicación",
@@ -938,6 +1145,7 @@ const tableColumns = [
     align: "left",
     field: "fecha_vencimiento",
     sortable: true,
+    fieldType: 'date',
   },
   {
     name: "fecha_asignado",
@@ -945,6 +1153,7 @@ const tableColumns = [
     align: "left",
     field: "fecha_asignado",
     sortable: true,
+    fieldType: 'date',
   },
   {
     name: "fecha_completado",
@@ -952,6 +1161,7 @@ const tableColumns = [
     align: "left",
     field: "fecha_completado",
     sortable: true,
+    fieldType: 'date',
   },
   {
     name: "vigente_hasta",
@@ -959,6 +1169,7 @@ const tableColumns = [
     align: "left",
     field: "vigente_hasta",
     sortable: true,
+    fieldType: 'date',
   },
   {
     name: "fecha_ultimo_recibo",
@@ -966,13 +1177,7 @@ const tableColumns = [
     align: "left",
     field: "fecha_ultimo_recibo",
     sortable: true,
-  },
-  {
-    name: "estatus",
-    label: "Estatus",
-    align: "center",
-    field: "estatus",
-    headerStyle: "width: 100px",
+    fieldType: 'date',
   },
   {
     name: "notas",
@@ -1027,11 +1232,6 @@ watch(selectedLista, () => {
   //tableRef.value.requestServerInteraction()
   tableRequest(tablePagination.value);
 });
-
-watch(tableFilter, () => {
-  //tableRef.value.requestServerInteraction()
-  tableRequest(tablePagination.value)
-})
 
 const handleEliminarOrdenesMantenimientoLote = (ids, confirm = false) => {
   if (!confirm) {
@@ -1209,6 +1409,12 @@ const tableRequest = (props) => {
       if (response.data) {
         console.log("Response", response.data);
         tableData.value = response.data.data;
+
+        tableData.value.map(row => {
+          row.vigente_hasta = row.ubicacion?.vigente_hasta
+          return row
+        })
+
         tablePagination.value.page = response.data.pager.currentPage;
         tablePagination.value.rowsPerPage = response.data.pager.perPage;
         tablePagination.value.rowsNumber = response.data.pager.total;
@@ -1222,6 +1428,16 @@ const tableRequest = (props) => {
 
 onMounted(() => {
   tableRequest(tablePagination.value);
+
+  tableColumns.forEach(col => {
+    if (col.sortable && col.fieldType == 'date') {
+      tableFilters.value.filters[col.name] = {
+        desde: null,
+        hasta: null
+      }
+    }
+  })
+
   loadListasMantenimiento();
 });
 </script>

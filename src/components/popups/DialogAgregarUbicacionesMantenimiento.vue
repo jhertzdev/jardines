@@ -180,10 +180,14 @@
                 </template>
               </q-input>
 
-              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" @update:model-value="data.fecha_vencimiento = new Date().toISOString().substr(0, data.oculto ? 10 : 7)" />
+              <q-checkbox v-model="data.oculto" label="Marcar como completados" color="primary" class="q-mt-sm" @update:model-value="() => {
+                if (data.fecha_vencimiento) {
+                  data.fecha_completado = data.fecha_vencimiento + '-01'
+                }
+              }" />
 
               <template v-if="data.oculto">
-                <q-input dense class="q-mt-sm" type="date" v-model="data.fecha_vencimiento" outlined label="Completado el" clearable />
+                <q-input dense class="q-mt-sm" type="date" v-model="data.fecha_completado" outlined label="Completado el" clearable />
               </template>
 
             </div>

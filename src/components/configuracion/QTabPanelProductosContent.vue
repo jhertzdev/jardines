@@ -18,7 +18,7 @@
   </q-table>
 
   <!-- Agregar / Editar -->
-  <q-dialog v-model="dialogAgregarEditar" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="dialogAgregarEditar" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md">
       <q-form @submit="handleAgregarEditar">
         <q-card-section>
@@ -96,7 +96,7 @@
                         <td>{{ contrato.valor_cuota_mensual }}</td>
                         <td rowspan="4" class="q-gutter-xs">
                           <q-btn dense icon="edit" outline color="blue" style="display: block;"
-                          @click="openDialogEditarContratoParcela(agregarEditarData.id, index)" />                            
+                          @click="openDialogEditarContratoParcela(agregarEditarData.id, index)" />
                           <q-btn dense icon="delete" outline color="negative" style="display: block;"
                             @click="eliminarContratoParcela(agregarEditarData.id, contrato.contrato_tipo_id)" />
                         </td>
@@ -192,7 +192,7 @@
   </q-dialog>
 
   <!-- Eliminar -->
-  <q-dialog v-model="dialogEliminar" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogEliminar" class="j-dialog">
     <q-card class="q-pa-md text-center">
       <q-card-section>
         <div class="text-h6">Eliminar contrato</div>
@@ -212,7 +212,7 @@
   </q-dialog>
 
   <!-- Agregar contrato -->
-  <q-dialog v-model="dialogAgregarEditarContrato" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="dialogAgregarEditarContrato" class="j-dialog">
     <q-card class="q-pa-md text-center">
       <q-form @submit="handleAgregarEditarContrato(agregarEditarContratoData.parcela_tipo_id)">
         <q-card-section>
@@ -480,7 +480,7 @@ const eliminarContratoParcela = (parcelaId, contratoId) => {
 
   const index = parcelas.value.findIndex(p => p.id == parcelaId);
   if (index < 0) return;
-  
+
   let postData = {
     parcela_tipo_id: parcelas.value[index].id,
     contrato_tipo_id: contratoId,

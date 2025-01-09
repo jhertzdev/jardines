@@ -187,7 +187,7 @@
 
 
                   <q-table :columns="[
-                    { name: 'codigo_parcela', label: 'Cód. parcela', field: 'codigo_parcela', sortable: false, align: 'center' },
+                    { name: 'codigo_parcela', label: 'Ubicación', field: 'codigo_parcela', sortable: false, align: 'center' },
                     { name: 'estatus', label: 'Estatus', field: 'estatus', sortable: false, align: 'center' },
                     { name: 'pagado_hasta', label: 'Pagado hasta', field: 'pagado_hasta', sortable: false, align: 'center' },
                   ]" :visible-columns="contratoData.tipo_actividad == 'mantenimiento_parcelas' && contratoData.etiqueta != 'Donado' ? ['codigo_parcela', 'estatus', 'pagado_hasta'] : ['codigo_parcela', 'estatus']" :rows="contratoData.parcelas" row-key="id" separator="cell" selection="multiple"
@@ -351,7 +351,7 @@
     <q-card class="q-pa-md scroll">
       <q-form ref="agregarCremacionForm" @submit="handleSubmitAgregarCremacion" @validation-error="onValidationError">
         <q-card-section>
-          <div class="text-h6">Agregar cremación</div>
+          <div class="text-h6">{{ agregarCremacionData.id ? 'Editar' : 'Agregar' }} cremación</div>
         </q-card-section>
         <q-card-section>
           <div class="row q-col-gutter-md">
@@ -389,13 +389,15 @@
               <QSelectCliente dense v-model="agregarCremacionData.difunto_id" outlined clearable label="Difunto" required @selected="val => handleCremacionSelectDifunto(val)" @clear="handleCremacionSelectDifunto(null)" />
               <template v-if="parseInt(agregarCremacionData.difunto_id)">
                 <q-btn flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit" color="primary" @click="(e) =>
-                  agregarClienteDialog.openDialog(agregarCremacionData.difunto_id, null, {
+                  agregarDifuntoDialog.openDialog(agregarCremacionData.difunto_id, null, {
                     onUpdate: (data) => handleCremacionSelectDifunto(data),
-                    onCreate: (data) => handleCremacionSelectDifunto(data),
                   })"/>
               </template>
               <span>¿El difunto no existe?</span> <q-btn flat dense class="q-ml-sm" size="sm" label="Agregar"
-                color="primary" @click="agregarDifuntoDialog.openDialog()" />
+                color="primary" @click="(e) =>
+                agregarDifuntoDialog.openDialog(agregarCremacionData.difunto_id, null, {
+                  onCreate: (data) => handleCremacionSelectDifunto(data),
+                })"/>
             </div>
             <div class="col-6 col-md-3">
               <q-input dense v-model="agregarCremacionData.difunto_doc_identidad" outlined label="Nacionalidad" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly />
@@ -404,13 +406,13 @@
               <q-input dense v-model="agregarCremacionData.difunto_doc_numero" outlined label="N° ident. (difunto)" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly />
             </div>
             <div class="col-6 col-md-5">
-              <QSelectDatetime dense stack-label outlined v-model="agregarCremacionData.difunto_fecha_nacimiento" label="Fecha nacim." ref="difuntoCremacionFechaNacimiento" />
+              <q-input type="date" dense stack-label outlined v-model="agregarCremacionData.difunto_fecha_nacimiento" label="Fecha nacim." />
             </div>
-            <div class="col-12 col-md-4">
-              <QSelectDatetime dense stack-label outlined v-model="agregarCremacionData.difunto_fecha_muerte" label="Fecha muerte" ref="difuntoCremacionFechaMuerte"/>
+            <div class="col-12 col-md-5">
+              <q-input type="datetime-local" dense stack-label outlined v-model="agregarCremacionData.difunto_fecha_muerte" label="Fecha muerte" />
             </div>
-            <div class="col-6 col-md-4">
-              <q-input dense v-model="agregarCremacionData.difunto_certificado_defuncion" outlined label="N° de certificado" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space />
+            <div class="col-6 col-md-3">
+              <q-input dense v-model="agregarCremacionData.difunto_certificado_defuncion" outlined label="N° certificado" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space />
             </div>
             <div class="col-6 col-md-4">
               <q-input dense v-model="agregarCremacionData.difunto_doctor_firmante" outlined label="Doctor firmante" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space />
@@ -440,14 +442,26 @@
                     onCreate: (data) => handleCremacionSelectTestigo1(data),
                   })" />
             </div>
-            <div class="col-12 col-md-4">
-              <q-input dense v-model="agregarCremacionData.testigo_1_identidad" outlined label="#1) N° de identidad" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Identidad" />
+            <div class="col-12 col-md-4 cursor-pointer" @click="(e) =>
+                agregarClienteDialog.openDialog(agregarCremacionData.testigo_1_id, null, {
+                  onUpdate: (data) => handleCremacionSelectTestigo1(data),
+                  onCreate: (data) => handleCremacionSelectTestigo1(data),
+                })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_1_identidad" outlined label="#1) N° de identidad" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Identidad" />
             </div>
-            <div class="col-12 col-md-8">
-              <q-input dense v-model="agregarCremacionData.testigo_1_nombre" outlined label="#1) Nombre del testigo" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Nombre" />
+            <div class="col-12 col-md-8" @click="(e) =>
+              agregarClienteDialog.openDialog(agregarCremacionData.testigo_1_id, null, {
+                onUpdate: (data) => handleCremacionSelectTestigo1(data),
+                onCreate: (data) => handleCremacionSelectTestigo1(data),
+              })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_1_nombre" outlined label="#1) Nombre del testigo" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Nombre" />
             </div>
-            <div class="col-12 col-md-4">
-              <q-input dense v-model="agregarCremacionData.testigo_1_telefono" outlined label="#1) N° de teléfono" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Telefono" />
+            <div class="col-12 col-md-4" @click="(e) =>
+              agregarClienteDialog.openDialog(agregarCremacionData.testigo_1_id, null, {
+                onUpdate: (data) => handleCremacionSelectTestigo1(data),
+                onCreate: (data) => handleCremacionSelectTestigo1(data),
+              })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_1_telefono" outlined label="#1) N° de teléfono" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo1Telefono" />
             </div>
 
             <div class="col-12">
@@ -467,14 +481,26 @@
                     onCreate: (data) => handleCremacionSelectTestigo2(data),
                   })" />
             </div>
-            <div class="col-12 col-md-4">
-              <q-input dense v-model="agregarCremacionData.testigo_2_identidad" outlined label="#1) N° de identidad" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Identidad" />
+            <div class="col-12 col-md-4" @click="(e) =>
+              agregarClienteDialog.openDialog(agregarCremacionData.testigo_2_id, null, {
+                onUpdate: (data) => handleCremacionSelectTestigo2(data),
+                onCreate: (data) => handleCremacionSelectTestigo2(data),
+              })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_2_identidad" outlined label="#2) N° de identidad" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Identidad" />
             </div>
-            <div class="col-12 col-md-8">
-              <q-input dense v-model="agregarCremacionData.testigo_2_nombre" outlined label="#1) Nombre del testigo" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Nombre" />
+            <div class="col-12 col-md-8" @click="(e) =>
+              agregarClienteDialog.openDialog(agregarCremacionData.testigo_2_id, null, {
+                onUpdate: (data) => handleCremacionSelectTestigo2(data),
+                onCreate: (data) => handleCremacionSelectTestigo2(data),
+              })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_2_nombre" outlined label="#2) Nombre del testigo" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Nombre" />
             </div>
-            <div class="col-12 col-md-4">
-              <q-input dense v-model="agregarCremacionData.testigo_2_telefono" outlined label="#1) N° de teléfono" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Telefono" />
+            <div class="col-12 col-md-4" @click="(e) =>
+              agregarClienteDialog.openDialog(agregarCremacionData.testigo_2_id, null, {
+                onUpdate: (data) => handleCremacionSelectTestigo2(data),
+                onCreate: (data) => handleCremacionSelectTestigo2(data),
+              })">
+              <q-input class="cursor-pointer" dense v-model="agregarCremacionData.testigo_2_telefono" outlined label="#2) N° de teléfono" required lazy-rules :rules="[val => val && val.length > 0]" hide-bottom-space readonly ref="testigo2Telefono" />
             </div>
 
             <div class="col-12">
@@ -492,7 +518,7 @@
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn color="primary" label="Agregar cremación" :loading="isLoadingSubmit" @click="agregarCremacionForm.submit()"/>
+          <q-btn color="primary" label="Guardar" :loading="isLoadingSubmit" @click="agregarCremacionForm.submit()"/>
         </q-card-actions>
       </q-form>
     </q-card>
@@ -506,7 +532,7 @@
         </q-card-section>
         <q-card-section class="q-py-none">
           <q-table class="q-mb-lg" :columns="[
-            { name: 'codigo_parcela', label: 'Cód. parcela', field: 'codigo_parcela', sortable: false, align: 'center' },
+            { name: 'codigo_parcela', label: 'Ubicación', field: 'codigo_parcela', sortable: false, align: 'center' },
             { name: 'pagado_hasta', label: 'Pagado hasta', field: 'pagado_hasta', sortable: false, align: 'center' },
           ]" :rows="selectedProducts" row-key="id" separator="cell"
             :pagination="{rowsPerPage: -1}" hide-bottom
@@ -575,10 +601,6 @@ const editarContratosForm = ref(null)
 const actualizarFechasForm = ref(null)
 const agregarCremacionForm = ref(null)
 
-const cremacionFechaServicio = ref(null)
-const difuntoCremacionFechaNacimiento = ref(null)
-const difuntoCremacionFechaMuerte = ref(null)
-
 const selectedProducts = ref([])
 const addProducts = ref([])
 
@@ -609,11 +631,7 @@ const openDialogCremacion = (cremacionId = null, params = {}) => {
             }
 
             if (key === 'difunto_fecha_nacimiento') {
-              difuntoCremacionFechaNacimiento.value.setDateValue(response.data[key] || '')
-            }
-
-            if (key === 'difunto_fecha_muerte') {
-              difuntoCremacionFechaMuerte.value.setDateValue(response.data[key] || '')
+              agregarCremacionData.value[key] = (response.data[key] || '').substr(0, 10)
             }
           }
         }
@@ -837,19 +855,11 @@ const handleCremacionSelectCliente = (cliente) => {
 }
 
 const handleCremacionSelectDifunto = (difunto) => {
+  agregarCremacionData.value.difunto_id = difunto?.id || ''
   agregarCremacionData.value.difunto_doc_numero = difunto?.doc_numero || ''
   agregarCremacionData.value.difunto_doc_identidad = difunto?.doc_identidad || ''
-
-  if (difuntoCremacionFechaNacimiento.value) {
-    agregarCremacionData.value.difunto_fecha_nacimiento = difunto?.fecha_nacimiento || ''
-    difuntoCremacionFechaNacimiento.value.setDateValue(difunto?.fecha_nacimiento || '')
-  }
-
-  if (difuntoCremacionFechaMuerte.value) {
-    agregarCremacionData.value.difunto_fecha_muerte = difunto?.fecha_muerte || ''
-    difuntoCremacionFechaMuerte.value.setDateValue(difunto?.fecha_muerte || '')
-  }
-
+  agregarCremacionData.value.difunto_fecha_nacimiento = (difunto?.fecha_nacimiento || '').substr(0, 10)
+  agregarCremacionData.value.difunto_fecha_muerte = difunto?.fecha_muerte || ''
   agregarCremacionData.value.difunto_causa_muerte = difunto?.causa_muerte || ''
   agregarCremacionData.value.difunto_certificado_defuncion = difunto?.certificado_defuncion || ''
   agregarCremacionData.value.difunto_doctor_firmante = difunto?.doctor_firmante || ''

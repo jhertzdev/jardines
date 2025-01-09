@@ -111,6 +111,10 @@ const openDialog = (id = null, parameters = {}) => {
       dialog.value = true
     })
   } else {
+    data.value = {
+      incluir_mantenimiento: false,
+      entrega_parcela: false
+    }
     loadDataFromParams(parameters)
     dialog.value = true
   }

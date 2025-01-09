@@ -160,7 +160,7 @@
           <div class="row q-col-gutter-md q-mb-md">
             <div class="col-md-4">
               <QSelectCliente dense outlined v-model="reciboData.cliente_id" clearable required
-                rule="Este campo es requerido." :filters="{ difunto: 0 }" label="Cliente relacionado" />
+                rule="Este campo es requerido." :filters="{ difunto: 0 }" label="Cliente relacionado" @clear="reciboData.contrato_id = null; handleSelectContrato(null)" />
               <div class="text-right text-caption text-grey-6">
                 <template v-if="parseInt(reciboData.cliente_id)">
                   <q-btn id="btnEditInvoiceClient" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
@@ -234,6 +234,12 @@
               </q-td>
             </template>
 
+            <template v-slot:body-cell-acciones="props">
+              <q-td :props="props" class="q-px-none" style="width: 1px; padding: 0 0 0 .5rem;">
+                <q-btn dense flat color="negative" icon="delete" @click="deleteRow(props.row)"/>
+              </q-td>
+            </template>
+
             <template v-slot:body-cell-descripcion="props">
               <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" :colspan="!!props.row.tipo ? 1 : 2">
                 <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" :readonly="!!props.row.tipo">
@@ -289,7 +295,29 @@
                       <q-input class="bg-green-1 text-white" style="border-radius: 3px !important" label="Nuevo pago" type="date" stack-label placeholder="--" dense v-model="ubicacion.nuevo_pagado_hasta" @update:model-value="val => handleRellenarDescripcion(props.row)" />
                     </div>
                     <div style="flex: 1 0 3em" v-if="props.row.tipo?.tipo_producto == 'Mantenimiento'">
-                      <q-input class="bg-green-1 text-white" style="border-radius: 3px !important" :label="props.row['pago_por_cuotas'] ? 'Meses' : 'Años'" type="number" step="1" min="0" stack-label dense v-model="ubicacion.cuotas" @update:model-value="val => handleRecalcularLinea(props.row, val)" required />
+                      <q-input class="bg-green-1 text-white" style="border-radius: 3px !important"
+                        :label="props.row['pago_por_cuotas'] ? 'Meses' : (props.row['pago_fraccionado'] ? 'Días' : 'Años')"
+                        type="number" step="1" min="0" stack-label dense
+                        v-model="ubicacion.cuotas" @update:model-value="val => handleRecalcularLinea(props.row, val)" required>
+                        <template v-slot:append>
+                          <q-btn flat dense size="sm" icon="calculate" color="primary" v-if="props.row['pago_fraccionado'] && !props.row['separar_pagos']" @click="ubicacion.moneda_seleccionada = selectedMoneda?.simbolo">
+                            <q-popup-proxy>
+                              <q-banner>
+                                <div class="row">
+                                  <div class="col-12">
+                                    <q-input type="number" step="0.01" label="Monto pagado" v-model="ubicacion.monto_transferido" @keyup="val => handleCalcularPagoFraccionado(props.row, ubicacion)" stack-label/>
+                                  </div>
+                                </div>
+                                <div class="row q-mt-sm">
+                                  <div class="col" v-for="moneda in monedas">
+                                    <q-radio dense v-model="ubicacion.moneda_seleccionada" :val="moneda.simbolo" :label="moneda.simbolo" @change="val => handleCalcularPagoFraccionado(props.row, ubicacion) " />
+                                  </div>
+                                </div>
+                              </q-banner>
+                            </q-popup-proxy>
+                          </q-btn>
+                        </template>
+                      </q-input>
                     </div>
                   </div>
 
@@ -298,8 +326,11 @@
                       <q-checkbox size="sm" dense v-model="props.row['separar_pagos']" @update:model-value="handleRecalcularLinea(props.row)" />
                       <span style="font-size:.6rem; color:#444; margin-left: 2px">Separar pagos</span>
 
-                      <q-checkbox size="sm" dense v-model="props.row['pago_por_cuotas']" @update:model-value="handleRecalcularLinea(props.row)" />
-                      <span style="font-size:.6rem; color:#444; margin-left: 2px">Pago por cuotas</span>
+                      <q-checkbox size="sm" dense v-model="props.row['pago_por_cuotas']" @update:model-value="props.row.pago_fraccionado = false; handleRecalcularLinea(props.row)" />
+                      <span style="font-size:.6rem; color:#444; margin-left: 2px">Por meses</span>
+
+                      <q-checkbox size="sm" dense v-model="props.row['pago_fraccionado']" @update:model-value="props.row.pago_por_cuotas = false; handleRecalcularLinea(props.row)" />
+                      <span style="font-size:.6rem; color:#444; margin-left: 2px">Fraccionado</span>
 
                   </div>
 
@@ -432,7 +463,7 @@
   <DialogAgregarDifunto ref="agregarDifuntoDialog" :difunto="true" />
   <DialogAgregarOcupante ref="agregarOcupanteDialog" />
 
-  <q-dialog v-model="showModalAsignarPuestos" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="showModalAsignarPuestos" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md">
       <q-card-section>
         <div class="text-h6">Asignar puestos</div>
@@ -521,7 +552,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showModalGenerarRecibo" class="j-dialog j-dialog-xl">
+  <q-dialog allow-focus-outside v-model="showModalGenerarRecibo" class="j-dialog j-dialog-xl">
     <q-card>
       <q-card-section class="q-pa-none">
         <div class="row">
@@ -687,7 +718,7 @@
   import QSelectParcelasLinea from "src/components/selects/QSelectParcelasLinea.vue";
   import QSelectDatetime from "src/components/selects/QSelectDatetime.vue";
 
-  import { add, addMonths, lastDayOfMonth, getDate, getMonth, format } from "date-fns";
+  import { add, addMonths, lastDayOfMonth, getDate, getMonth, format, differenceInYears, differenceInMonths, differenceInDays } from "date-fns";
 
   const handleSelectContrato = (value) => {
     console.log('handleSelectContrato', value);
@@ -978,6 +1009,12 @@
 
   const tableColumns = [
     {
+      name: 'acciones',
+      label: '',
+      align: 'left',
+      field: 'acciones',
+    },
+    {
       name: 'descripcion',
       required: true,
       label: 'Descripción',
@@ -1038,7 +1075,6 @@
 
   const tableData = ref([
     { "tipo": "", "descripcion": "", "cantidad": 1, "precio": 0, "impuesto": 0, "descuento": 0, "impuesto_incluido": false, "descuento_incluido": false }
-    /*{ "tipo": { "id": "19", "nombre_producto": "Mantenimiento de parcelas", "tipo_producto": "Mantenimiento", "tipo_ubicacion": "Parcela", "descripcion": "Pago de mantenimiento desde ___ hasta ___ (Parcela ___)", "precio_ref": "200.0000", "disponible": "1", "gestiona_stock": "0", "stock": "0", "requiere_ubicaciones": "1", "pagable_cuotas": "1", "cantidad_cuotas": "12", "empresa_id": "13", "usuario_id": "2", "created_at": "2024-04-28 19:40:37", "updated_at": "2024-06-09 14:45:18", "deleted_at": null }, "descripcion": "Pago de mantenimiento desde ___ hasta ___ (Parcela ___)", "cantidad": 3, "precio": 200, "impuesto": 0, "descuento": 0, "impuesto_incluido": false, "descuento_incluido": false, "cantidad_cuotas": 1, "total": 0, "pago_por_cuotas": false, "separar_pagos": false, "ubicaciones": [ { "codigo_parcela": "AR-001", "estatus": "Vendido", "num_parcela": "001", "id": "8116", "tipo_parcela_id": "1", "propietario_id": "20729", "pariente_mas_cercano": null, "codigo_seccion": "AR", "num_fila": "1", "precio": null, "es_compartida": "1", "orientacion": null, "descripcion": null, "notas": null, "pos_x": "0", "pos_y": "0", "created_at": { "date": "2024-04-26 22:19:40.000000", "timezone_type": 3, "timezone": "UTC" }, "updated_at": { "date": "2024-06-12 15:24:06.000000", "timezone_type": 3, "timezone": "UTC" }, "deleted_at": null, "pagado_hasta": null }, { "codigo_parcela": "AR-002", "estatus": "Vendido", "num_parcela": "002", "id": "8117", "tipo_parcela_id": "1", "propietario_id": "20729", "pariente_mas_cercano": null, "codigo_seccion": "AR", "num_fila": "1", "precio": null, "es_compartida": "1", "orientacion": null, "descripcion": null, "notas": null, "pos_x": "2", "pos_y": "0", "created_at": { "date": "2024-04-26 22:19:40.000000", "timezone_type": 3, "timezone": "UTC" }, "updated_at": { "date": "2024-06-12 15:24:06.000000", "timezone_type": 3, "timezone": "UTC" }, "deleted_at": null, "pagado_hasta": null }, { "codigo_parcela": "AR-003", "estatus": "Vendido", "num_parcela": "003", "id": "8118", "tipo_parcela_id": "1", "propietario_id": "20729", "pariente_mas_cercano": null, "codigo_seccion": "AR", "num_fila": "1", "precio": null, "es_compartida": "1", "orientacion": null, "descripcion": null, "notas": null, "pos_x": "4", "pos_y": "0", "created_at": { "date": "2024-04-26 22:19:40.000000", "timezone_type": 3, "timezone": "UTC" }, "updated_at": { "date": "2024-06-12 15:24:06.000000", "timezone_type": 3, "timezone": "UTC" }, "deleted_at": null, "pagado_hasta": null } ] }*/
   ])
 
   const totalsColumns = [
@@ -1187,6 +1223,13 @@
   const metodosPago = ref([])
 
   function initializePage() {
+
+    tableData.value = [
+      { "tipo": "", "descripcion": "", "cantidad": 1, "precio": 0, "impuesto": 0, "descuento": 0, "impuesto_incluido": false, "descuento_incluido": false }
+    ];
+
+    metodosPagoSelected.value = []
+
     api.get('servicios')
       .then(response => {
         if (response.data) {
@@ -1373,6 +1416,7 @@
           pagado_hasta: row.pagado_hasta,
           separar_pagos: row.separar_pagos,
           pago_por_cuotas: row.pago_por_cuotas,
+          pago_fraccionado: row.pago_fraccionado,
         }
       })
     }
@@ -1417,6 +1461,7 @@
       row.descripcion_plantilla = row.tipo.descripcion
       row.precio = parseFloat(row.tipo.precio_ref)
       row.pago_por_cuotas = false
+      row.pago_fraccionado = false
       row.separar_pagos = false
 
       if (!!parseInt(row.tipo.requiere_ubicaciones)){
@@ -1453,7 +1498,8 @@
     if (row.tipo?.pagable_cuotas == 1) {
 
       let cantidadCuotas = parseInt(val);
-      let precioPorCuota = row.pago_por_cuotas ? row.tipo.precio_ref / row.tipo.cantidad_cuotas : row.tipo.precio_ref;
+      let precioPorCuota = (row.pago_por_cuotas || row.pago_fraccionado) ? row.tipo.precio_ref / row.tipo.cantidad_cuotas : row.tipo.precio_ref;
+      let precioFraccionado = Math.ceil(row.tipo.precio_ref / row.tipo.cantidad_cuotas) / 30;
 
       row.ubicaciones.forEach(ubicacion => {
 
@@ -1466,10 +1512,23 @@
           ultimoPagadoHasta = new Date(contratoSelected.value.fecha_emision || null);
         }
 
-        //ubicacion.pagado_hasta = ultimoPagadoHasta.toISOString().substr(0, 10);
+        let nuevoPagadoHasta, difInYears, difInMonths, nuevoUltimoPagadoHasta, difInDays;
 
         if (row.pago_por_cuotas) {
           ubicacion.nuevo_pagado_hasta = agregarPorFechaCorte(ultimoPagadoHasta, new Date(contratoSelected.value.fecha_emision), parseInt(ubicacion.cuotas))
+        } else if (row.pago_fraccionado) {
+          nuevoPagadoHasta = add(ultimoPagadoHasta, { days: parseInt(ubicacion.cuotas) })
+
+          difInYears = differenceInYears(new Date(nuevoPagadoHasta), new Date(ultimoPagadoHasta))
+          difInMonths = differenceInMonths(new Date(nuevoPagadoHasta), new Date(ultimoPagadoHasta)) - difInYears * 12
+          nuevoUltimoPagadoHasta = add(ultimoPagadoHasta, { years: difInYears, months: difInMonths })
+          difInDays = differenceInDays(new Date(nuevoPagadoHasta), new Date(nuevoUltimoPagadoHasta))
+
+          ubicacion.difInYears = difInYears;
+          ubicacion.difInMonths = difInMonths;
+          ubicacion.difInDays = difInDays;
+
+          ubicacion.nuevo_pagado_hasta = add(ultimoPagadoHasta, { days: parseInt(ubicacion.cuotas) }).toISOString().substr(0, 10);
         } else {
           ubicacion.nuevo_pagado_hasta = add(ultimoPagadoHasta, { years: parseInt(ubicacion.cuotas) }).toISOString().substr(0, 10);
         }
@@ -1477,13 +1536,61 @@
       })
 
       let totalCuotas = row.ubicaciones.reduce((acc, ubicacion) => acc + parseInt(ubicacion.cuotas || 0), 0);
-      row.total = precioPorCuota * totalCuotas
+
+      if (row.pago_fraccionado) {
+        let precioTotal = 0
+
+        row.ubicaciones.forEach(ubicacion => {
+          if (ubicacion.difInYears) precioTotal += ubicacion.difInYears * row.tipo.precio_ref;
+          if (ubicacion.difInMonths) precioTotal += ubicacion.difInMonths * precioPorCuota;
+          if (ubicacion.difInDays) precioTotal += ubicacion.difInDays * precioFraccionado;
+        })
+
+        row.total = precioTotal;
+      } else {
+        row.total = precioPorCuota * totalCuotas
+      }
 
     } else {
       row.total = row.precio * row.cantidad
     }
 
     handleRellenarDescripcion(row)
+  }
+
+  const handleCalcularPagoFraccionado = (row, ubicacion) => {
+    let precioAnual = row.tipo.precio_ref * (row.ubicaciones?.length || 1)
+    let precioMensual = precioAnual / 12
+    let precioDiario = Math.ceil(precioMensual) / 30
+
+    // Calcular cuánto cubre el monto pagado en años, meses y días
+    let monedaSeleccionada = ubicacion.moneda_seleccionada || selectedMoneda.value.simbolo
+    let tasaSeleccionada = Number(monedas.value.find(moneda => moneda.simbolo == monedaSeleccionada).tasa)
+    let montoPagadoRef = (Number(ubicacion.monto_transferido) + 0.01) / tasaSeleccionada
+
+    let difInYears = Math.floor(montoPagadoRef / precioAnual)
+    montoPagadoRef -= difInYears * precioAnual
+
+    let difInMonths = Math.floor(montoPagadoRef / precioMensual)
+    montoPagadoRef -= difInMonths * precioMensual
+
+    let difInDays = Math.floor(montoPagadoRef / precioDiario)
+    montoPagadoRef -= difInDays * precioDiario
+
+    // Obtener la última fecha de la ubicación actual
+    let ultimoPagadoHasta = new Date(ubicacion.pagado_hasta || contratoSelected.value.fecha_emision);
+    if (ultimoPagadoHasta == 'Invalid Date') {
+      ultimoPagadoHasta = new Date(contratoSelected.value.fecha_emision || null);
+    }
+
+    let nuevoUltimoPagadoHasta = add(ultimoPagadoHasta, { years: difInYears, months: difInMonths, days: difInDays })
+    let totalDifInDays = differenceInDays(nuevoUltimoPagadoHasta, ultimoPagadoHasta)
+
+    console.log(difInYears, difInMonths, difInDays, montoPagadoRef, nuevoUltimoPagadoHasta.toISOString().substr(0, 10), ultimoPagadoHasta.toISOString().substr(0, 10), totalDifInDays)
+
+    handleRecalcularLinea(row, totalDifInDays)
+
+    row.total = ubicacion.monto_transferido / tasaSeleccionada
   }
 
   const dateToDMY = (datestring) => {
@@ -1602,6 +1709,14 @@
     fecha_emision: new Date().toISOString().substr(0, 10),
     fecha_vencimiento: new Date().toISOString().substr(0, 10),
   })
+
+  // Watch route and see if query params changed
+  watch(
+    () => route.query,
+    () => {
+      initializePage()
+    }
+  )
 
   watch(() => parcelasSelected.value, (newVal, oldVal) => {
     if (oldVal?.length != newVal?.length) {

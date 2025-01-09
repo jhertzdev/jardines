@@ -133,7 +133,7 @@
                   </template>
                 </div>
 
-                <div class="col-12 q-mt-md" v-if="data.ubicacion?.puestos?.length > 1">
+                <div class="col-12 q-mt-md">
                   <q-input type="textarea" rows="3" v-model="data.leyenda" dense outlined label="Leyenda" />
                   <div class="q-field__bottom text-right">
                     <div class="q-field__counter">{{ data.leyenda?.replace(/\s/g, "")?.length || 0 }} caracteres</div>

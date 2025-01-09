@@ -9,6 +9,7 @@
         <q-tab name="contratos" icon="document_scanner" label="Contratos" />
         <q-tab name="productos" icon="yard" label="Productos" />
         <q-tab name="configuracion" icon="settings" label="Configuración" />
+        <q-tab name="exportar" icon="archive" label="Exportar" />
       </q-tabs>
     </template>
 
@@ -94,13 +95,36 @@
           <QTabPanelConfiguracionContent />
         </q-tab-panel>
 
+        <q-tab-panel name="exportar">
+          <div class="row q-col-gutter-lg">
+            <div class="col-12 col-md-6">
+              <q-card class="q-pa-md">
+                <q-card-section class="flex justify-between items-center">
+                  <div class="text-h6">Difuntos</div>
+                  <q-btn label="Exportar" icon="archive" color="primary" @click="handleExportarDifuntos" :loading="isLoadingExportar" />
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-12 col-md-6">
+              <q-card class="q-pa-md">
+                <q-card-section class="flex justify-between items-center">
+                  <div class="text-h6">Mapa</div>
+                  <q-btn label="Exportar" icon="archive" color="primary" @click="handleExportarMapa" :loading="isLoadingExportar" />
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+
+
+        </q-tab-panel>
+
       </q-tab-panels>
     </template>
 
     <!-- Modals -->
 
     <!-- Crear empresa -->
-    <q-dialog v-model="dialogAgregarEmpresa" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogAgregarEmpresa" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleAgregarEmpresa">
           <q-card-section>
@@ -127,7 +151,7 @@
     </q-dialog>
 
     <!-- Editar empresa -->
-    <q-dialog v-model="dialogEditarEmpresa" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogEditarEmpresa" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleEditarEmpresa">
           <q-card-section>
@@ -154,7 +178,7 @@
     </q-dialog>
 
     <!-- Eliminar empresa -->
-    <q-dialog v-model="dialogEliminarEmpresa" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogEliminarEmpresa" class="j-dialog">
       <q-card class="q-pa-md text-center">
         <q-card-section>
           <div class="text-h6">Eliminar empresa</div>
@@ -176,7 +200,7 @@
     </q-dialog>
 
     <!-- Crear / Editar area -->
-    <q-dialog v-model="dialogAgregarEditarArea" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogAgregarEditarArea" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleAgregarEditarArea">
           <q-card-section>
@@ -198,7 +222,7 @@
 
     <!-- Eliminar area -->
 
-    <q-dialog v-model="dialogEliminarArea" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogEliminarArea" class="j-dialog">
       <q-card class="q-pa-md text-center">
         <q-card-section>
           <div class="text-h6">Eliminar sección</div>
@@ -219,7 +243,7 @@
     </q-dialog>
 
     <!-- Crear / Editar sección -->
-    <q-dialog v-model="dialogAgregarEditarSeccion" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogAgregarEditarSeccion" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleAgregarEditarSeccion">
           <q-card-section>
@@ -247,7 +271,7 @@
 
     <!-- Eliminar sección -->
 
-    <q-dialog v-model="dialogEliminarSeccion" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="dialogEliminarSeccion" class="j-dialog">
       <q-card class="q-pa-md text-center">
         <q-card-section>
           <div class="text-h6">Eliminar sección</div>
@@ -315,9 +339,65 @@ import QTabPanelConfiguracionContent from 'src/components/configuracion/QTabPane
 
 const $q = useQuasar()
 
-const tab = ref('configuracion')
+const tab = ref('exportar')
 const splitterModel = ref(20)
 const selectedEmpresa = ref(null)
+const isLoadingExportar = ref(false)
+
+const downloadJson = (data, fileName) => {
+  const jsonString = JSON.stringify(data);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+const handleExportarDifuntos = () => {
+  let publicUrl = api.defaults.baseURL.replace('api', '')
+
+  isLoadingExportar.value = true
+
+  api.get('parcelas/exportar', { timeout: 60000 })
+    .then(response => {
+      fetch(publicUrl + 'difuntos.json')
+        .then(response => response.json())
+        .then(data => {
+          downloadJson(data, 'difuntos.json')
+        })
+        .catch(error => qNotify(error, 'error'))
+        .finally(() => {
+          isLoadingExportar.value = false
+        })
+    })
+    .catch(error => {
+      isLoadingExportar.value = false
+      qNotify(error, 'error')
+    });
+
+}
+
+const handleExportarMapa = () => {
+
+  isLoadingExportar.value = true
+
+  api.get('parcelas/mapa', { timeout: 60000 })
+    .then(response => {
+      if (response.data) {
+        downloadJson(response.data, 'mapa.json')
+      }
+    })
+    .catch(error => {
+      qNotify(error, 'error')
+    })
+    .finally(() => {
+      isLoadingExportar.value = false
+    })
+}
+
 
 /**
  * EMPRESAS

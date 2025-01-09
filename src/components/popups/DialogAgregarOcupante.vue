@@ -22,7 +22,7 @@
               @click="(e) => agregarDifuntoDialog.openDialog(null, e)" />
           </div>
           <div class="col-12">
-            <QSelectDatetime dense outlined stack-label label="Fecha de inhumación"
+            <q-input type="datetime-local" dense outlined stack-label label="Fecha de inhumación"
               v-model="agregarOcupanteData.fecha_inhumacion" />
           </div>
         </div>

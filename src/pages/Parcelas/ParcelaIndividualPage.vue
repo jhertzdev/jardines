@@ -347,7 +347,7 @@
   <DialogAsignarParcela ref="asignarParcelaDialog" />
   <DialogGenerarContratosIndividual ref="generarContratosDialog" @created="handleGenerarContratos"
     :params="contratosParams" />
-  <q-dialog v-model="agregarOcupanteDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="agregarOcupanteDialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Agregar ocupante</div>
@@ -382,7 +382,7 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="modificarPuestoDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="modificarPuestoDialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Modificar puesto</div>
@@ -412,7 +412,7 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="reasignarFallecidoDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="reasignarFallecidoDialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Reasignar fallecido</div>
@@ -442,7 +442,7 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="liberarParcelaDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="liberarParcelaDialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Liberar parcela</div>
@@ -462,7 +462,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="exhumarPuestoDialog" class="j-dialog">
+  <q-dialog allow-focus-outside v-model="exhumarPuestoDialog" class="j-dialog">
     <q-card>
       <q-card-section>
         <div class="text-h6">Exhumar puesto</div>

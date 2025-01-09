@@ -649,7 +649,7 @@ const handleSubmitGenerarContratos = () => {
 
   })
 
-  console.log(postData)
+  console.log('Lotes!!', postData)
 
   api.post('contratos/lotes', postData)
     .then(response => {

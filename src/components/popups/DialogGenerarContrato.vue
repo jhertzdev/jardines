@@ -545,6 +545,8 @@ const handleSubmitGenerarContratos = () => {
 
   let postData = JSON.parse(JSON.stringify(Object.values(contratosData.value)))
 
+  console.log('generarcontratos', postData)
+
   postData.forEach( (contrato, key) => {
     if (contrato.generar_recibo && contrato.recibo) {
 

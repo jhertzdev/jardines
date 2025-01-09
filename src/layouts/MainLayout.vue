@@ -8,11 +8,44 @@
           {{ route.meta.viewName || 'Jardines Santa Ana' }}
         </q-toolbar-title>
 
+        <q-btn flat dense round icon="calculate" aria-label="Calculadora" @click="calculadoraDialog.openDialog()" />
+
+        <q-btn-dropdown flat dense no-caps class="dropdown-menu-notifications q-mr-sm" auto-close>
+          <template v-slot:label>
+            <q-badge floating color="red" rounded :label="parseInt(appStore.notifications.length)" v-if="appStore.notifications.length" />
+            <q-icon name="notifications" />
+          </template>
+          <q-list bordered separator wrap>
+            <q-item style="width: 300px" class="bg-green-1" v-if="authStore.can('configuracion')">
+              <q-item-section>
+                <q-item-label caption class="text-center">
+                  <q-btn flat dense icon="add" color="primary" label="Agregar alerta" @click="agregarEditarAlertaDialog.openDialog()" />
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            <NotificacionItem v-for="(notification, index) in appStore.notifications" :key="index"
+              :id="notification.id"
+              :message="notification.message"
+              :importance="notification.importance"
+              :created_at="notification.created_at"
+              @vercontrato="(data) => verContratosDialog.openDialog(data.num_contrato, data.tipo_parcela)"
+              @editar="(id) => agregarEditarAlertaDialog.openDialog(id)"
+            />
+            <q-item v-if="appStore.notifications.length === 0" style="width: 300px">
+              <q-item-section>
+                <q-item-label caption class="text-center">No hay notificaciones que mostrar.</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
+        <DialogAlerta ref="agregarEditarAlertaDialog" />
+
         <q-btn flat dense round icon="search" aria-label="Buscar" @click="searchBar.toggleOpen()" />
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
+    <q-drawer v-model="leftDrawerOpen" :show-if-above="false" bordered behavior="mobile">
       <div class="q-py-lg text-center q-gutter-md">
         <q-avatar size="100px" font-size="82px" color="primary" text-color="white" icon="person" />
         <div class="text-h6">{{ authStore.user.username }}</div>
@@ -49,8 +82,10 @@
           <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer" v-if="router.options.history.state.back !== '/auth/login'"/>
           <q-breadcrumbs-el :label="route.meta.viewName" :icon="route.meta.viewIcon" v-if="route.meta.viewName"/>
         </q-breadcrumbs>
-        <router-view :leftDrawerOpen="leftDrawerOpen"/>
+        <router-view @toggleDrawer="val => leftDrawerOpen = val"/>
       </q-page>
+      <DialogVerContratos ref="verContratosDialog" />
+      <DialogCalculadora ref="calculadoraDialog" />
     </q-page-container>
   </q-layout>
 </template>
@@ -178,9 +213,9 @@
   z-index: 6001;
   transition: 0.2s;
   position: fixed;
-  width: calc(100% - 80px);
+  width: calc(100% - 50px);
   top: 70px;
-  left: 40px;
+  left: 25px;
   height: 160px;
 }
 
@@ -208,7 +243,7 @@
   z-index: 6001;
 }
 
-.left-drawer-open:not(.q-body--prevent-scroll) .card-busqueda {
+.left-drawer-open .card-busqueda {
   width: calc(100% - 350px);
   left: 325px;
 }
@@ -304,6 +339,10 @@
   padding-right: 3px;
 }
 
+.dropdown-menu-notifications .q-btn-dropdown__arrow-container {
+  display: none;
+}
+
 </style>
 
 <style lang="scss">
@@ -321,7 +360,7 @@ table.info-table {
 </style>
 
 <script setup>
-import { ref, watch, toRef, onMounted } from 'vue'
+import { ref, watch, toRef, onMounted, onUnmounted } from 'vue'
 import MenuLink from 'src/components/MenuLink.vue'
 import { useAuthStore } from 'src/stores/auth.store'
 import { useRoute, useRouter } from 'vue-router';
@@ -329,11 +368,19 @@ import { useQuasar } from 'quasar'
 import { useAppStore } from 'src/stores/app.store';
 import SearchBar from 'src/components/SearchBar.vue';
 
+import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
+import DialogCalculadora from "src/components/popups/DialogCalculadora.vue";
+import DialogAlerta from "src/components/popups/DialogAlerta.vue";
+import NotificacionItem from "src/components/NotificacionItem.vue";
+
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
 const searchBar = ref(null)
+const verContratosDialog = ref(null)
+const calculadoraDialog = ref(null)
+const agregarEditarAlertaDialog = ref(null)
 
 const showSectionBusqueda = ref(false)
 const busqueda = ref('')
@@ -445,7 +492,9 @@ watch(leftDrawerOpen, (value) => {
 
 watch(router.currentRoute, () => {
   appStore.getNotificaciones()
-})
+  leftDrawerOpen.value = false
+  document.body.classList.remove('left-drawer-open');
+}, { immediate: true })
 
 const $q = useQuasar();
 
@@ -461,7 +510,57 @@ watch(toRef(appStore, 'modalMessage'), () => {
   }
 });
 
+const handleTokenExpired = () => {
+  if (appStore.modalIsVisible) return;
+
+  appStore.modalIsVisible = true
+  $q.dialog({
+    title: 'Sesión expirada',
+    message: 'Su sesión ha expirado. Por favor, vuelva a iniciar sesión.',
+    persistent: false,
+    cancel: true,
+    ok: {
+      label: 'Volver a iniciar sesión',
+      color: 'primary',
+      flat: true,
+      icon: 'login'
+    },
+    cancel: {
+      label: 'Cerrar',
+      flat: true,
+    }
+  }).onOk(() => {
+    router.push('/auth/login')
+    appStore.modalIsVisible = false
+  }).onDismiss(() => {
+    appStore.modalIsVisible = false
+  })
+
+}
+
+const handleNetworkError = () => {
+  if (appStore.modalIsVisible) return;
+
+  appStore.modalIsVisible = true
+  $q.dialog({
+    title: 'Error de conexión',
+    message: 'No se pudo conectar con el servidor. Por favor, vuelva a intentarlo.',
+    persistent: false,
+    ok: {
+      label: 'Cerrar',
+      color: 'primary',
+      flat: true,
+    }
+  }).onOk(() => {
+    appStore.modalIsVisible = false
+  })
+
+}
+
 onMounted(() => {
+  window.addEventListener('TokenExpired', handleTokenExpired);
+  window.addEventListener('NetworkError', handleNetworkError);
+
   appStore.getNotificaciones()
   showSectionBusqueda.value = false;
   document.body.classList.remove('section-busqueda-open');
@@ -470,12 +569,9 @@ onMounted(() => {
   }
 })
 
-/*watch(showSectionBusqueda, () => {
-  if (showSectionBusqueda.value) {
-    document.body.classList.add('section-busqueda-open');
-  } else {
-    document.body.classList.remove('section-busqueda-open');
-  }
-});*/
+onUnmounted(() => {
+  window.removeEventListener('TokenExpired', handleTokenExpired);
+  window.removeEventListener('NetworkError', handleNetworkError);
+})
 
 </script>

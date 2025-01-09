@@ -96,11 +96,11 @@ a:hover {
 }
 
 .body--dark .q-list.drawer-menu-list .q-item:not(.q-router-link--active):not(:hover) {
-  opacity: 0.2;
+  /*opacity: 0.2;*/
 }
 
 .q-list.drawer-menu-list .q-item:not(.q-router-link--active):not(:hover) {
-  opacity: 0.4;
+  /*opacity: 0.4;*/
   font-weight: 400;
 }
 

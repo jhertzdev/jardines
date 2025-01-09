@@ -71,9 +71,9 @@
                           </q-badge>
                         </td>
                         <td>
-                          <q-badge v-for="ubicacion in row.ubicaciones || []">
+                          <q-badge v-for="ubicacion in row.ubicaciones || []" :style="ubicacion.estatus == 'Donado' ? 'background-color: #800080' : ''">
                             <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(ubicacion.id)" class="text-white">
-                              {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }}
+                              {{ ubicacion.codigo_seccion }}{{ ubicacion.num_parcela }} {{ ubicacion.estatus == 'Donado' ? '(Donado)' : '' }}
                             </a>
                           </q-badge>
                         </td>
@@ -81,11 +81,11 @@
                           <template v-for="contrato in row.contratos || []">
                             <div class="badge-contrato">
                               <span :style="{
-                                'background-color': contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828',
-                                'border-color': contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828',
+                                'background-color': contrato.etiqueta == 'Donado' ? '#800080' : (contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828'),
+                                'border-color': contrato.etiqueta == 'Donado' ? '#800080' : (contrato.estatus == 'Activo' ? 'var(--q-primary)' : '#c62828'),
                               }">
                                 <a href="javascript:void(0)" @click="verContratosDialog.openDialog(contrato.num_contrato, contrato.tipo_parcela)" class="text-white">
-                                  {{ contrato.codigo_contrato }}{{ contrato.num_contrato }}
+                                  {{ contrato.codigo_contrato }}{{ contrato.num_contrato }} {{ contrato.etiqueta == 'Donado' ? '(Donado)' : '' }}
                                   <template v-if="contrato.num_serie">
                                     <span>
                                       -{{ contrato.num_serie }}
@@ -98,7 +98,16 @@
                           </template>
                         </td>
                         <td style="font-size:.7rem; letter-spacing: -0.2px;">
-                          {{ row.notas }}
+                          <template v-if="row.descripcion_nota">
+                            <div>
+                              <q-badge :class="`badge-status-${slugify(row.estatus_nota)}`" class="q-mr-xs q-mt-xs text-black" style="border: 1px solid #ccc; white-space: wrap; max-width: 320px;">
+                                {{ row.fecha_ultima_nota ? format(new Date(row.fecha_ultima_nota), 'dd/MM/yyyy') : '' }}:
+                                {{ row.descripcion_nota }}
+                              </q-badge>
+                              <q-separator class="q-my-xs"></q-separator>
+                            </div>
+                          </template>
+                          <p>{{ row.notas }}</p>
                         </td>
                       </tr>
                     </tbody>
@@ -299,6 +308,49 @@
                     <div class="text-grey-5 text-caption">No hay ubicaciones que mostrar.</div>
                   </template>
                 </div>
+                <div class="col-12" v-if="filtrosBusqueda.includes('servicios')">
+                  <div class="text-body text-weight-bold text-primary">Servicios</div>
+                  <template v-if="resultados?.servicios?.length">
+                    <q-markup-table flat bordered separator="cell" wrap-cells class="results-table q-mb-sm">
+                      <thead>
+                        <tr>
+                          <th>Tipo</th>
+                          <th>Difunto</th>
+                          <th>Ubicación</th>
+                          <th>Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="servicio in resultados.servicios" :key="servicio.id">
+                          <td class="text-center" style="width: 170px">
+                            <div class="badge-contrato">
+                              <span style="font-size: 13px">
+                                {{ servicio.clase_servicio }}
+                              </span>
+                              <span style="font-size: 13px"> {{ servicio.tipo_servicio }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            {{ servicio.difunto }}
+                          </td>
+                          <td class="text-center" style="width: 80px">
+                            <q-badge v-if="servicio.ubicacion_id">
+                              <a href="javascript:void(0)" @click="editarParcelaDialog.openDialog(servicio.ubicacion_id)" class="text-white">
+                                {{ servicio.ubicacion }}
+                              </a>
+                            </q-badge>
+                          </td>
+                          <td class="text-center" style="width: 80px">
+                            {{ servicio.fecha_asignado }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </q-markup-table>
+                  </template>
+                  <template v-else>
+                    <div class="text-grey-5 text-caption">No hay ubicaciones que mostrar.</div>
+                  </template>
+                </div>
               </div>
             </template>
           </div>
@@ -341,7 +393,8 @@
   import { useAppStore } from "src/stores/app.store";
   import { useRouter } from "vue-router";
   import { api } from "src/boot/axios";
-  import { qNotify } from "src/boot/jardines";
+  import { qNotify, slugify } from "src/boot/jardines";
+  import { format } from 'date-fns';
 
   import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
   import DialogAgregarDifunto from "src/components/popups/DialogAgregarCliente.vue";
@@ -380,12 +433,14 @@
     'fallecidos',
     'contratos',
     'ubicaciones',
+    'servicios',
   ])
   const filtrosBusquedaOptions = [
     { label: 'Clientes', value: 'clientes' },
     { label: 'Fallecidos', value: 'fallecidos' },
     { label: 'Contratos', value: 'contratos' },
     { label: 'Ubicaciones', value: 'ubicaciones' },
+    { label: 'Servicios', value: 'servicios' },
   ]
 
   const showBusquedaAvanzada = ref(false)
@@ -456,6 +511,8 @@
       desde: fechaCreadoDesde.value || null,
       hasta: fechaCreadoHasta.value || null,
     }
+
+    console.log(params)
 
     api.post('busqueda', params)
       .then(response => {

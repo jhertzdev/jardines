@@ -55,10 +55,10 @@
                     </div>
                     <template v-if="props.difunto">
                       <div class="col-sm-6 col-12">
-                        <QSelectDatetime dense outlined stack-label label="Fecha de nacimiento" v-model="data.fecha_nacimiento"/>
+                        <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento" />
                       </div>
                       <div class="col-sm-6 col-12">
-                        <QSelectDatetime dense outlined stack-label label="Fecha de muerte" v-model="data.fecha_muerte"/>
+                        <q-input type="datetime-local" dense outlined v-model="data.fecha_muerte" label="Fecha de muerte" />
                       </div>
                       <div class="col-12">
                         <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado" />
@@ -106,7 +106,37 @@
                       <q-input dense outlined v-model="data.etiqueta_texto" label="Etiqueta" clearable @clear="data.etiqueta_color = null"/>
                     </div>
                     <div class="col-12">
-                      <q-input dense type="textarea" class="no-resize" outlined v-model="data.notas" rows="2" label="Notas" clearable autogrow />
+                      <q-input dense type="textarea" class="no-resize" outlined v-model="data.notas" rows="2" label="Observaciones" clearable autogrow />
+                    </div>
+                    <div class="col-12">
+
+
+                      <template v-if="data?.notas_cobro?.length">
+                        <div style="border: 1px solid rgba(0,0,0,.24); border-radius: 4px; padding: 3px;">
+                          <div style="max-height: 250px; overflow-y: auto; ">
+                            <q-chat-message
+                              class="cursor-pointer"
+                              :name="`<span class='q-badge text-${getColorFromStatus(nota.estatus)} bg-transparent font-bold' style='font-size: 0.65rem'>${nota.estatus} • <span class='text-grey-8'>${nota.nombre_completo}</span></span>`"
+                              name-html
+                              :text="[nota.nota]"
+                              :stamp="format(new Date(nota.fecha_creado), 'dd/MM/yyyy HH:mm aaaa')"
+                              :bg-color="`${getColorFromStatus(nota.estatus)}-1`"
+                              v-for="(nota, index) in data.notas_cobro || []"
+                              :key="'nota' + index"
+                              @click="(e) => agregarNotasCobroDialog.openDialog(data.id, { nombre_completo: `${data.nombre} ${data.apellido}` })"
+                            ></q-chat-message>
+                          </div>
+                        </div>
+                      </template>
+
+                      <template v-else>
+                        <div class="text-center q-py-xl bg-green-1" style="border: 1px dashed var(--q-primary); border-radius: 5px">
+                          <q-btn type="button" color="primary" label="Agregar nota" icon="add" @click="agregarNotasCobroDialog.openDialog(data.id)" />
+                        </div>
+                      </template>
+
+
+
                     </div>
                     <div class="col-12">
                       <q-checkbox v-model="data.estado_gerencia" true-value="1" false-value="0" label="Estado de gerencia"
@@ -157,7 +187,7 @@
                     <q-input dense outlined v-model="data.ciudad" label="Ciudad" />
                   </div>
                   <div class="col-sm-6 col-12">
-                    <QSelectDatetime dense outlined stack-label label="Fecha de nacimiento" v-model="data.fecha_nacimiento"/>
+                    <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento" />
                   </div>
                   <div class="col-sm-6 col-12">
                     <q-select dense :options="['Soltero/a ', 'Casado/a', 'Divorciado/a', 'Viudo/a']" outlined
@@ -179,7 +209,7 @@
                     </div>
                     <template v-if="parseInt(data.difunto)">
                       <div class="col-sm-6 col-12">
-                        <QSelectDatetime dense outlined stack-label label="Fecha de muerte" v-model="data.fecha_muerte"/>
+                        <q-input type="datetime-local" dense outlined stack-label label="Fecha de muerte" v-model="data.fecha_muerte"/>
                       </div>
                       <div class="col-sm-6 col-12">
                         <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado" />
@@ -356,6 +386,8 @@
 
     <DialogAgregarRelacionado ref="agregarRelacionadoDialog" :relacionado="true" @created="(cliente) => relacionData.relacion_id = cliente.id" />
     <DialogCambiarTitular ref="cambiarTitularDialog" :relacionado="true" />
+    <DialogAgregarNotasCobro ref="agregarNotasCobroDialog" @created="() => loadNotasCliente()" @updated="() => loadNotasCliente() "/>
+
   </template>
 
 </template>
@@ -388,15 +420,28 @@ import { useQuasar } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { useAuthStore } from 'src/stores/auth.store';
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue';
-import QSelectDatetime from 'src/components/selects/QSelectDatetime.vue';
 import DialogAgregarRelacionado from './DialogAgregarCliente.vue';
 import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
+import DialogAgregarNotasCobro from "src/components/popups/DialogAgregarNotasCobro.vue";
+
+import { format } from 'date-fns';
 
 const $q = useQuasar()
 const dialog = ref(false)
 const dialogAgregarRelacion = ref(false)
 const step = ref(1)
 const authStore = useAuthStore()
+
+const loadNotasCliente = () => {
+  console.log('Loading notas clientes!')
+  api.get('clientes/' + data.id + '/notas')
+    .then(response => {
+      if (response.data) {
+        data.notas_cobro = response.data
+      }
+    })
+    .catch(error => qNotify(error, 'error'))
+}
 
 const props = defineProps({
   difunto: {
@@ -409,9 +454,20 @@ const props = defineProps({
   }
 })
 
+const getColorFromStatus = (estatus) => {
+  let colors = {
+    'Contactado': 'blue',
+    'No contactado': 'red',
+    'Respondido': 'green',
+  }
+
+  return colors[estatus] || 'grey'
+}
+
 const customParams = ref({})
 const agregarRelacionadoDialog = ref(null)
 const cambiarTitularDialog = ref(null)
+const agregarNotasCobroDialog = ref(null)
 
 const titularFallecidoContratosActivos = computed(() => {
   return tieneContratosActivos.value && !!parseInt(props.difunto || data.difunto)
@@ -677,6 +733,7 @@ const data = reactive({
   estado_cuenta: null,
   estado_cliente: null,
   notas: null,
+  notas_cobro: [],
   etiqueta_color: null,
   etiqueta_texto: null,
   // Contacto
@@ -735,7 +792,7 @@ const openDialog = (id, event = null, params = {}) => {
   buttonTargetId.value = event?.target?.closest('.q-btn, .q-item--clickable')?.id || null;
 
   Object.keys(data).forEach((i) => {
-    data[i] = (i === 'relaciones') ? [] :
+    data[i] = (i === 'relaciones' || i === 'notas_cobro') ? [] :
       (i === 'difunto' ? (props.difunto ? '1' : '0') :
         (i === 'estado_gerencia' ? '0' : null)
       )
@@ -750,6 +807,7 @@ const openDialog = (id, event = null, params = {}) => {
         if (response.data) {
 
 
+
           if (response.data.contratos.filter(contrato => contrato.estatus != 'Inactivo').length) {
             tieneContratosActivos.value = true
           }
@@ -760,6 +818,8 @@ const openDialog = (id, event = null, params = {}) => {
               data[i] = response.data[i]
             }
           })
+
+          data.fecha_nacimiento = response.data.fecha_nacimiento ? response.data.fecha_nacimiento.split(' ')[0] : null
 
         }
       })

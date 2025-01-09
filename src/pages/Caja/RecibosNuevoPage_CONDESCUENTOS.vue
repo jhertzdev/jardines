@@ -502,7 +502,7 @@
   <DialogAgregarDifunto ref="agregarDifuntoDialog" :difunto="true" />
   <DialogAgregarOcupante ref="agregarOcupanteDialog" />
 
-  <q-dialog v-model="showModalAsignarPuestos" class="j-dialog j-dialog-lg">
+  <q-dialog allow-focus-outside v-model="showModalAsignarPuestos" class="j-dialog j-dialog-lg">
     <q-card class="q-pa-md">
       <q-card-section>
         <div class="text-h6">Asignar puestos</div>
@@ -591,7 +591,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="showModalGenerarRecibo" class="j-dialog j-dialog-xl">
+  <q-dialog allow-focus-outside v-model="showModalGenerarRecibo" class="j-dialog j-dialog-xl">
     <q-card>
       <q-card-section class="q-pa-none">
         <div class="row">

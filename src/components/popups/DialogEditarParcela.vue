@@ -2,9 +2,11 @@
   <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xl">
     <q-card class="q-pa-md">
       <div class="text-h6 text-center">
-        Parcela {{ parcelaDetalles.codigo_seccion }}-{{
+        {{ parcelaData?.tipo_parcela?.tipo_parcela || 'Ubicación' }} {{ parcelaDetalles.codigo_seccion }}-{{
           parcelaDetalles.num_parcela
         }}
+
+
       </div>
       <q-splitter v-model="splitterModel" horizontal>
         <template v-slot:before>
@@ -48,8 +50,8 @@
                       <span class="text-grey-8">Pariente más cercano
                         <q-icon name="help_outline">
                           <q-tooltip anchor="top middle" self="bottom middle" max-width="240px">
-                            Opcional. Es el principal beneficiario de la parcela y
-                            controla los derechos de entierro del propietario
+                            Opcional. Es el principal beneficiario de esta ubicación y
+                            controla los derechos de inhumación del propietario
                             después de su muerte.
                           </q-tooltip>
                         </q-icon>
@@ -61,7 +63,7 @@
                   </div>
                   <div class="row q-col-gutter-sm q-mb-md">
                     <div class="col-sm-4 col-12 flex column justify-center">
-                      <span class="text-grey-8">Estatus de la parcela</span>
+                      <span class="text-grey-8">Estatus</span>
                     </div>
                     <div class="col-sm-8 col-12">
                       <QSelectEstatusParcela dense outlined required v-model="parcelaDetalles.estatus" />
@@ -111,7 +113,7 @@
                       <table class="full-width text-center">
                         <thead>
                           <tr>
-                            <th>Tipo de parcela</th>
+                            <th>Tipo de ubicación</th>
                             <th>Largo &times; Ancho &times; Alto</th>
                             <th>Puestos</th>
                           </tr>
@@ -157,7 +159,7 @@
             </q-tab-panel>
             <q-tab-panel name="puestos">
               <div class="full-width q-pa-lg text-center" v-if="!parcelaData.puestos?.length">
-                <p>No hay puestos asociados a esta parcela.</p>
+                <p>No hay puestos asociados a esta ubicación.</p>
               </div>
 
               <div class="q-pa-md" v-else>
@@ -179,14 +181,29 @@
                   <div class="col-sm col-12">
                     <div class="row q-col-gutter-sm">
                       <div class="col-12 col-md-6">
-                        <template v-if="parseInt(puestosData[puesto.id].ocupado)">
-                          <q-input readonly dense outlined label="Ocupante" :model-value="`${puestosData[puesto.id].ocupante_nombre} (${puestosData[puesto.id].ocupante_identidad
-                            })`" stack-label />
-                        </template>
+
+
+
+                        <q-field label="Ocupante" outlined dense stack-label v-if="parseInt(puestosData[puesto.id].ocupado)">
+                          <template v-slot:control>
+                            {{ `${puestosData[puesto.id].ocupante_nombre} (${puestosData[puesto.id].ocupante_identidad })` }}
+                          </template>
+                          <template v-slot:append>
+                            <q-btn flat dense icon="edit" color="primary" @click="(e) => agregarDifuntoDialog.openDialog(puestosData[puesto.id].ocupante_id, e)" />
+                          </template>
+                        </q-field>
+
+
                       </div>
                       <div class="col-12 col-md">
-                        <q-input type="datetime-local" readonly dense outlined stack-label label="Fecha de inhumación"
-                          v-model="puestosData[puesto.id].fecha_inhumacion" v-if="parseInt(puestosData[puesto.id].ocupado)" />
+                        <q-field label="Fecha de inhumación" outlined dense stack-label v-if="parseInt(puestosData[puesto.id].ocupado)">
+                          <template v-slot:control>
+                            {{ format(new Date(puestosData[puesto.id].fecha_inhumacion), 'dd/MM/yyyy hh:mm aaaa') }}
+                          </template>
+                          <template v-slot:append>
+                            <q-btn flat dense icon="edit" color="primary" @click="modificarPuestoOpenDialog(puesto.id)"/>
+                          </template>
+                        </q-field>
                       </div>
                       <div class="col-12 col-md-auto flex flex-column items-center">
                         <q-btn-dropdown dense size="sm" color="primary" :loading="isLoadingPuestos"
@@ -214,12 +231,6 @@
                               </q-item-section>
                               <q-item-section>Modificar puesto</q-item-section>
                             </q-item>
-                            <q-item clickable @click="reasignarFallecidoOpenDialog(puesto.id)" v-close-popup>
-                              <q-item-section side>
-                                <q-icon color="black" name="wrong_location" />
-                              </q-item-section>
-                              <q-item-section>Reasignar fallecido</q-item-section>
-                            </q-item>
                           </q-list>
                         </q-btn-dropdown>
                       </div>
@@ -227,16 +238,24 @@
                   </div>
                 </div>
                 <div class="text-right q-gutter-sm">
-                  <q-btn @click="liberarParcelaDialog = true" label="Liberar parcela" icon="lock_open" color="primary"
-                    :loading="isLoadingPuestos" />
+                  <q-btn @click="liberarParcelaDialog = true" label="Liberar ubicación" icon="lock_open" color="primary"
+                    :loading="isLoadingPuestos" :disabled="!parcelaData.contratos?.length">
+                      <q-tooltip v-if="!parcelaData.contratos?.length">
+                        No hay contratos asociados a esta ubicación.
+                      </q-tooltip>
+                  </q-btn>
                   <q-btn @click="agregarOcupanteDialog = true; agregarOcupanteData.generar_servicio = true" label="Agregar ocupante" icon="add" color="primary"
-                    :loading="isLoadingPuestos" />
+                    :loading="isLoadingPuestos" :disabled="!parcelaData.contratos?.length">
+                    <q-tooltip v-if="!parcelaData.contratos?.length">
+                      No hay contratos asociados a esta ubicación.
+                    </q-tooltip>
+                  </q-btn>
                 </div>
               </div>
             </q-tab-panel>
             <q-tab-panel name="contratos">
               <div class="full-width q-pa-lg text-center" v-if="!parcelaData.contratos?.length">
-                <p>No hay contratos asociados a esta parcela.</p>
+                <p>No hay contratos asociados a esta ubicación.</p>
                 <q-btn color="primary" label="Generar contratos" to="/app/contratos" />
                 <!--<q-btn color="primary" label="Generar contratos" @click="openDialogGenerarContratos" />-->
               </div>
@@ -328,7 +347,10 @@
                 </thead>
                 <tbody>
                   <tr v-for="recibo in parcelaData.recibos" :key="recibo.id" :class="recibo.deleted_at ? 'bg-red-3 text-red-9' : ''">
-                    <td>{{ recibo.num_transaccion }} <q-badge v-if="recibo.deleted_at" class="bg-red-9 text-white" style="font-size: 10px; margin-left: 5px;">ANULADO</q-badge></td>
+                    <td style="max-width: 120px; white-space: wrap">{{ recibo.num_transaccion }}
+                      <q-badge v-if="recibo.deleted_at" class="bg-red-9 text-white" style="font-size: 10px; margin-left: 5px;">ANULADO</q-badge>
+                      <q-badge v-if="!!parseInt(recibo.pago_fraccionado)" class="bg-purple-9 text-white" style="font-size: 10px; margin-left: 5px;">FRACCIONADO</q-badge>
+                    </td>
                     <td>{{ recibo.num_contrato }}</td>
                     <td>{{ new Date(recibo.created_at).toLocaleDateString() }}</td>
                     <td>{{ recibo.estatus }}</td>
@@ -541,6 +563,7 @@ import { api } from "src/boot/axios";
 import { useQuasar } from "quasar";
 import { useRoute } from "vue-router";
 import { qNotify, obtenerParcelaExhumableId } from "src/boot/jardines";
+import { format } from 'date-fns';
 import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
 import DialogGenerarContratosIndividual from "src/components/popups/DialogGenerarContratosIndividual.vue";
 import DialogCambiarTitular from "src/components/popups/DialogCambiarTitular.vue";
@@ -580,13 +603,15 @@ const dataId = ref(null)
 
 const cambiarTitularDialog = ref(null)
 
+const closeDialog = () => dialog.value = false;
+
 const openDialog = (id, event = null) => {
   dataId.value = id;
   getData();
   dialog.value = true
 }
 
-defineExpose({ openDialog })
+defineExpose({ openDialog, closeDialog })
 
 const handleCreatedCliente = (data, targetId) => {
   if (targetId === 'btnAddNewOccupant' && data.id) {
@@ -742,9 +767,10 @@ const handleSubmitLiberarParcela = () => {
       if (response.data) {
         getData();
         $q.notify({
-          message: "Parcela liberada exitosamente.",
+          message: "Ubicación liberada exitosamente.",
           color: "positive",
         });
+        liberarParcelaDialog.value = false
         emit('updated', response.data)
       }
     })
@@ -904,6 +930,8 @@ function getData() {
 
   parcelaData.value.recibos = []
   parcelaData.value.mantenimientos = []
+
+  if (!dataId.value) return;
 
   api
     .get("parcelas/" + dataId.value)

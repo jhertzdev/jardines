@@ -86,6 +86,7 @@
             ref="transaccionesTableRef" v-model:pagination="transaccionesTablePagination" :loading="transaccionesTableLoading"
             :filter="transaccionesTableFilter" @request="transaccionesTableRequest">
             <template v-slot:top-right>
+              <q-btn dense icon="search" color="primary" label="Buscar pagos" class="q-pr-sm q-mr-md" @click="showDialogBuscarPagos = true" />
               <q-input dense debounce="300" v-model="transaccionesTableFilter" placeholder="Buscar...">
                 <template v-slot:append>
                   <q-icon name="search" />
@@ -93,7 +94,7 @@
               </q-input>
             </template>
             <template v-slot:body-cell-estatus="props">
-              <q-td :props="props" style="padding-right: 0;">
+              <q-td :props="props" style="padding-right: 0;" :class="props.row.deleted_at && 'highlighted'">
                 <!-- lowercase and replace spaces with hyphens -->
                 <q-badge :class="'badge-status-' + props.row.estatus.toLowerCase().replace(/\s/g, '-')">
                   {{ props.row.estatus }}
@@ -168,7 +169,7 @@
       </template>
     </template>
 
-    <q-dialog v-model="showModalAgregarPago" class="j-dialog j-dialog-xl">
+    <q-dialog allow-focus-outside v-model="showModalAgregarPago" class="j-dialog j-dialog-xl">
       <q-card>
         <q-card-section class="q-pa-none">
           <div class="row">
@@ -261,7 +262,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showModalAbrirCaja" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="showModalAbrirCaja" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleSubmitAbrirCaja" :class="isLoadingSubmit && 'form-disabled'">
           <q-card-section>
@@ -290,7 +291,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showModalCerrarCaja" class="j-dialog">
+    <q-dialog allow-focus-outside v-model="showModalCerrarCaja" class="j-dialog">
       <q-card class="q-pa-md">
         <q-form @submit="handleSubmitCerrarCaja" :class="isLoadingSubmit && 'form-disabled'">
           <q-card-section>
@@ -308,12 +309,31 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showModalHistorialIngresos" class="j-dialog j-dialog-xl">
+    <q-dialog allow-focus-outside v-model="showModalHistorialIngresos" class="j-dialog j-dialog-xl">
       <q-card class="q-pa-md">
         <q-card-section>
           <div class="text-h6">Historial de ingresos</div>
         </q-card-section>
         <q-card-section>
+          <div class="flex items-center justify-end">
+            <q-input class="q-mr-sm" label="Reporte del mes" dense flat v-model="filterMonth" mask="####-##" :hide-bottom-space="true" outlined readonly clearable style="width: 180px; display: inline-flex">
+              <template v-slot:append>
+                <q-icon v-if="filterMonth" name="close" class="cursor-pointer" @click="filterMonth = ''"></q-icon>
+                <q-icon name="event" class="cursor-pointer">
+                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                    <q-date v-model="filterMonth" default-view="Months" emit-immediately v-close-popup="filterDateClosePopup"
+                      @update:model-value="filterDateClosePopup = true" @navigation="filterDateClosePopup = false"
+                      :default-year-month="(filterMonth || new Date().toISOString().substr(0, 7)).replace('-', '/')" years-in-month-view>
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Close" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                  </q-icon>
+              </template>
+            </q-input>
+            <q-btn color="primary" label="Ver reporte mensual" icon="print" @click="handleDescargarReporteIngresosMensual(filterMonth)" :disable="filterMonth == ''" />
+          </div>
           <q-markup-table flat>
             <thead>
               <tr>
@@ -339,7 +359,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showModalEditarLineaRecibo" class="j-dialog j-dialog-lg">
+    <q-dialog allow-focus-outside v-model="showModalEditarLineaRecibo" class="j-dialog j-dialog-lg">
       <q-card>
         <q-card-section>
           <div class="text-h6">Editar línea de recibo</div>
@@ -371,7 +391,47 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showDialogVerPagos" class="j-dialog j-dialog-lg">
+    <q-dialog allow-focus-outside v-model="showDialogBuscarPagos" class="j-dialog j-dialog-lg">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Buscar pagos</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input dense outlined v-model="buscarReferenciaPago" debounce="300" label="Buscar referencia de pago" class="q-mb-md" clearable @update:model-value="val => handleBuscarReferenciaPago(val)" />
+          <q-separator class="q-my-md" />
+          <q-markup-table flat separator="cell" dense v-if="buscarReferenciaPago">
+            <thead>
+              <tr>
+                <th>N° recibo</th>
+                <th>Fecha de emisión</th>
+                <th>Monto</th>
+                <th>Referencia</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pago in pagosEncontrados" :key="pago.id">
+                <td class="text-center"><a href="javascript:void(0)" class="text-weight-bold text-green-9" @click="openDialogAgregarPago(pago.transaccion_id)">{{ pago.num_transaccion }}</a></td>
+                <td class="text-center">{{ pago.fecha_emision.substr(0, 10) }}</td>
+                <td class="text-center">{{ monedas.find(m => m.id == pago.moneda_id)?.simbolo }} {{ $dinero(pago.monto) }}</td>
+                <td class="text-center">{{ pago.referencia }}</td>
+                <td style="white-space: break-spaces;">{{ pago.descripcion }}</td>
+              </tr>
+              <tr v-if="pagosEncontrados.length == 0">
+                <td colspan="5" class="text-center">No se encontraron pagos.</td>
+              </tr>
+            </tbody>
+          </q-markup-table>
+          <template v-else>
+            <div class="text-center q-py-xl bg-green-1 text-grey-7" style="border: 1px dashed var(--q-primary); border-radius: 5px">
+              Escribe una referencia de pago para buscar.
+            </div>
+          </template>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog allow-focus-outside v-model="showDialogVerPagos" class="j-dialog j-dialog-lg">
       <q-card>
         <q-card-section>
           <div class="text-h6">Detalle de pagos</div>
@@ -418,6 +478,11 @@
   color: #000;
 }
 
+.badge-status-anulado {
+  background-color: var(--q-negative);
+  color: #fff;
+}
+
 .custom-btn-toggle .q-btn {
   padding: .285em 8px;
 }
@@ -438,12 +503,16 @@
   const appStore = useAppStore();
   const router = useRouter()
 
+  const filterMonth = ref(new Date().toISOString().substr(0, 7))
+  const filterDateClosePopup = ref(false)
+
   const authStore = useAuthStore();
 
   const tipoTransaccion = ref('Pendiente')
   const verAnulados = ref(false)
 
   const showModalEditarLineaRecibo = ref(false)
+  const showDialogBuscarPagos = ref(false)
   const agregarEditarLineaRecibo = ref({})
   const isLoadingEditarLineaRecibo = ref(false)
   const servicios = ref([])
@@ -779,6 +848,24 @@
     });
   };
 
+  const handleDescargarReporteIngresosMensual = (mes) => {
+
+    let endpoint = `caja/reportes/ingresos?mes=${mes}&tipo=mensual&print=1`
+
+    api.get(endpoint, { responseType: "blob" })
+    .then((response) => {
+      console.log(response);
+      window.open(URL.createObjectURL(response.data));
+    })
+    .catch(async (error) => {
+      console.log(error);
+      error.response.data = JSON.parse(await error.response.data.text());
+      qNotify(error, "error", {
+        callback: () => handleDescargarReporteIngresosMensual(mes),
+      });
+    });
+  }
+
   const selectedCaja = ref({})
 
   const isLoading = ref(false)
@@ -806,6 +893,17 @@
     { name: 'total', label: 'Total', align: 'left', field: 'total', format: (val) => $dinero(val), sortable: true },
     { name: 'balance', label: 'Balance', align: 'left', field: 'balance', format: (val) => $dinero(val), sortable: true },
   ]
+
+  const buscarReferenciaPago = ref('')
+  const pagosEncontrados = ref([])
+  const handleBuscarReferenciaPago = (val) => {
+    pagosEncontrados.value = []
+    api.post('caja/transacciones/verificarReferencia', { referencia: val })
+      .then(response => {
+        pagosEncontrados.value = response.data?.data || []
+      })
+      .catch(error => qNotify(error, 'error'))
+  }
 
   const transacciones = ref([])
 
@@ -869,7 +967,10 @@
     api.get(endpoint)
       .then(response => {
         if (response.data) {
-          transacciones.value = response.data.data
+          transacciones.value = response.data.data.map(row => {
+            row.estatus = row.deleted_at ? 'Anulado' : row.estatus
+            return row
+          })
           transaccionesTablePagination.value.page = response.data.pager.currentPage
           transaccionesTablePagination.value.rowsPerPage = response.data.pager.perPage
           transaccionesTablePagination.value.rowsNumber = response.data.pager.total

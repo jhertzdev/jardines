@@ -250,7 +250,7 @@
             <tr>
               <td class="text-bold" width="20%">CONTRATO</td>
               <td width="20%">{{ calcularDeudaContrato.num_contrato }}</td>
-              <td class="text-bold text-italic text-right">{{ format(new Date().toISOString().slice(0, 10), "d 'de' MMMM 'de' yyyy", { locale: es }) }}</td>
+              <td class="text-bold text-italic text-right">{{ format(new Date().toISOString().slice(0, 10) + ' 12:00', "d 'de' MMMM 'de' yyyy", { locale: es }) }}</td>
             </tr>
             <tr>
               <td class="text-bold" width="20%">TITULAR</td>
@@ -266,6 +266,7 @@
               <td class="text-bold" width="20%">{{ calcularDeudaContrato?.tipo_parcela?.toUpperCase() }}</td>
               <td width="20%">
                 <q-checkbox v-model="parcela.selected" dense size="sm" color="primary" class="q-mr-xs" v-for="parcela in calcularDeudaContrato.parcelas" :label="parcela.codigo_parcela" @update:model-value="recalcularDeudaContrato()"></q-checkbox>
+                <q-btn size="sm" dense color="primary" icon="edit" outline @click="showDialogParcelas = true" />
               </td>
             </tr>
           </tbody>
@@ -282,6 +283,12 @@
               <td width="20%">{{ format(fecha.hasta, 'dd/MM/yyyy') }}</td>
               <td>
                 <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="fecha.precio" @update:model-value="handleUpdatePrecio(fecha.precio, fechaIndex)" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="5" class="q-gutter-x-xs text-right">
+                <q-btn size="sm" class="q-px-sm" dense color="negative" icon="remove" outline @click="quitarAnualidadFecha()" />
+                <q-btn size="sm" class="q-px-sm" dense color="primary" icon="add" outline @click="agregarAnualidadFecha()" />
               </td>
             </tr>
             <tr>
@@ -320,6 +327,54 @@
 
   <DialogEditarNotas ref="editarNotasDialog" @updated="getData()"/>
 
+  <q-dialog allow-focus-outside v-model="showDialogParcelas" class="j-dialog j-dialog-lg">
+    <q-card class="q-pa-md">
+      <q-card-section class="q-py-none">
+        <div class="text-h6">Seleccionar ubicaciones</div>
+      </q-card-section>
+      <q-card-section>
+        <q-markup-table flat separator="none" dense v-if="calcularDeudaContrato.parcelas.length">
+          <thead>
+            <tr>
+              <th>Ubicación</th>
+              <th>Pagado hasta</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody class="text-center">
+            <tr v-for="parcela in calcularDeudaContrato.parcelas" :key="parcela.id">
+              <td>{{ parcela.codigo_parcela }}</td>
+              <td>{{ new Date(parcela.pagado_hasta).toLocaleString().split(',')[0] }}</td>
+              <td>
+                <q-btn size="sm" dense color="primary" icon="delete" outline @click="calcularDeudaContrato.parcelas.splice(calcularDeudaContrato.parcelas.indexOf(parcela), 1); recalcularDeudaContrato()" />
+              </td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+        <div class="text-center q-py-md" v-else>
+          <p class="q-mb-none">No hay ubicaciones asociadas.</p>
+        </div>
+        <q-separator class="q-my-md" />
+        <div class="row q-col-gutter-md">
+          <div class="col-4">
+            <q-input v-model="agregarParcelaData.codigo_parcela" outlined label="Ubicación" />
+          </div>
+          <div class="col-8">
+            <q-input type="date" v-model="agregarParcelaData.pagado_hasta" outlined label="Pagado hasta">
+              <template v-slot:append>
+                <q-btn color="primary" flat label="Agregar" icon="add" :disable="!agregarParcelaData.codigo_parcela || !agregarParcelaData.pagado_hasta" @click="calcularDeudaContrato.parcelas.push({
+                  codigo_parcela: agregarParcelaData.codigo_parcela,
+                  pagado_hasta: agregarParcelaData.pagado_hasta + ' 00:00:00',
+                  selected: true,
+                }); agregarParcelaData.codigo_parcela = ''; agregarParcelaData.pagado_hasta = ''; recalcularDeudaContrato()" />
+              </template>
+            </q-input>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
 </template>
 
 <style>
@@ -335,7 +390,7 @@ import { ref, computed } from 'vue';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import es from 'date-fns/locale/es';
-import { format, differenceInMonths } from 'date-fns';
+import { format, differenceInMonths, differenceInCalendarDays, lastDayOfMonth } from 'date-fns';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.store';
 
@@ -356,6 +411,12 @@ const isLoading = ref(false)
 const appStore = useAppStore();
 const authStore = useAuthStore()
 
+const agregarParcelaData = ref({
+  codigo_parcela: '',
+  pagado_hasta: '',
+  selected: true,
+})
+
 const contratos = ref([])
 const router = useRouter()
 
@@ -369,6 +430,7 @@ const verClienteDialog = ref(null)
 const editarNotasDialog = ref(null)
 const editarParcelaDialog = ref(null)
 const actualizarFechasDialog = ref(null)
+const showDialogParcelas = ref(false)
 
 const handleUpdatePrecio = (precio, i) => {
   for (let index = i; index < calcularDeudaContrato.value.fechas.length; index++) {
@@ -460,6 +522,24 @@ const calcularDeudaPrecioMantenimiento = ref(0)
 const calcularDeudaContrato = ref({})
 const calcularDeudaContratoSelectedParcelas = computed(() => calcularDeudaContrato.value?.parcelas?.filter(parcela => parcela.selected))
 
+const quitarAnualidadFecha = () => {
+  if (calcularDeudaContrato.value.fechas.length <= 1) {
+    qNotify('No se puede eliminar la última fecha.', 'error')
+    return
+  }
+
+  calcularDeudaContrato.value.fechas.pop()
+}
+
+const agregarAnualidadFecha = () => {
+  let ultimaFechaHasta = calcularDeudaContrato.value.fechas[calcularDeudaContrato.value.fechas.length - 1].hasta
+  calcularDeudaContrato.value.fechas.push({
+    desde: ultimaFechaHasta,
+    hasta: new Date(ultimaFechaHasta.getFullYear() + 1, ultimaFechaHasta.getMonth(), ultimaFechaHasta.getDate()),
+    precio: calcularDeudaPrecioMantenimiento.value
+  })
+}
+
 const recalcularDeudaContrato = () => {
 
   let vigenteHasta = calcularDeudaContratoSelectedParcelas.value[0]?.pagado_hasta
@@ -474,9 +554,86 @@ const recalcularDeudaContrato = () => {
   let fechaHasta = null;
   let isLast = false;
 
+  // Revisar si hay que hacer un ajuste de días en la primera fecha
+  let diaFechaInicio = fechaInicio.getDate()
+  let mesFechaInicio = fechaInicio.getMonth()
+  let yearFechaInicio = fechaInicio.getFullYear()
+
+  let diasDeAjuste = 0;
+
+  let mesFechaAjuste = diaFechaCorte < diaFechaInicio ? mesFechaInicio + 1 : mesFechaInicio
+  let yearFechaAjuste;
+
+  if (mesFechaAjuste > 11) {
+    mesFechaAjuste = 0
+    yearFechaAjuste = yearFechaInicio + 1
+  } else {
+    yearFechaAjuste = yearFechaInicio
+  }
+
+  let fechaAjuste = new Date(yearFechaAjuste, mesFechaAjuste, diaFechaCorte)
+
+  // Si el día de la fecha corte no se puede alcanzar en el mes actual, no se calculará la diferencia en días
+  let isLastDayOfMonth = fechaInicio.getDate() == lastDayOfMonth(fechaInicio).getDate()
+  if (isLastDayOfMonth && diaFechaCorte > diaFechaInicio) {
+    diasDeAjuste = 0
+  } else {
+    // Calcular la diferencia en días entre la fecha de ajuste y la fecha inicial
+    diasDeAjuste = differenceInCalendarDays(fechaAjuste, fechaInicio)
+
+
+    if (diaFechaCorte < diaFechaInicio) {
+      // Verificar que la fecha de ajuste no haya quedado dos meses más adelante
+      let nuevoMesAjuste = fechaAjuste.getMonth()
+      if (nuevoMesAjuste > 11) {
+        nuevoMesAjuste = 0
+      }
+
+      console.log(diaFechaCorte < diaFechaInicio, diaFechaCorte, diaFechaInicio, fechaAjuste, yearFechaAjuste, mesFechaAjuste, diaFechaInicio, mesFechaInicio + 1, (mesFechaInicio + 1) % 12, nuevoMesAjuste)
+
+      if ((mesFechaInicio + 1) % 12 != nuevoMesAjuste) {
+        fechaAjuste = lastDayOfMonth(new Date(yearFechaAjuste, mesFechaAjuste, 1))
+        console.log('Nueva fecha ajuste:', fechaAjuste)
+      }
+    }
+  }
+
+  console.log(
+    ['diaFechaCorte', diaFechaCorte],
+    ['mesFechaCorte', mesFechaCorte],
+    ['anioHasta', anioHasta],
+    ['fechaInicio', fechaInicio],
+    ['fechaDesde', fechaDesde],
+    ['fechaHasta', fechaHasta],
+    ['isLast', isLast],
+    ['diaFechaInicio', diaFechaInicio],
+    ['fechaAjuste', fechaAjuste],
+    ['diasDeAjuste', diasDeAjuste],
+    ['isLastDayOfMonth', isLastDayOfMonth],
+  )
+
   calcularDeudaContrato.value.fechas = []
 
   for (let index = 0; index < 30; index++) {
+
+    if (diasDeAjuste > 0) {
+      fechaDesde = fechaInicio
+      fechaHasta = fechaAjuste
+
+      calcularDeudaContrato.value.fechas.push({
+        desde: fechaDesde,
+        hasta: fechaHasta,
+        precio: 0,
+        diasAjuste: diasDeAjuste
+      })
+
+      fechaDesde = null
+      diasDeAjuste = 0
+
+      // Reconfigurar fecha inicio con el día de la fecha corte
+      fechaInicio = fechaAjuste
+    }
+
     if (fechaDesde == null) {
       fechaDesde = fechaInicio
       fechaHasta = new Date(anioHasta, mesFechaCorte, diaFechaCorte)
@@ -486,25 +643,37 @@ const recalcularDeudaContrato = () => {
       fechaHasta = new Date(fechaHasta.getFullYear() + 1, mesFechaCorte, diaFechaCorte)
     }
 
-    calcularDeudaContrato.value.fechas.push({
-      desde: fechaDesde,
-      hasta: fechaHasta,
-      precio: 0
-    })
+    if (fechaDesde.toISOString() !== fechaHasta.toISOString()) {
+      calcularDeudaContrato.value.fechas.push({
+        desde: fechaDesde,
+        hasta: fechaHasta,
+        precio: 0
+      })
+    }
 
     isLast = fechaHasta.getTime() > new Date().getTime();
 
     if (isLast) break;
   }
 
-  calcularDeudaContrato.value.mora = calcularDeudaContrato.value.fechas.length >= 4 ? true : false
+  let cantidadFechas = calcularDeudaContrato.value.fechas?.length
+  if (calcularDeudaContrato.value.fechas[0].diasAjuste) {
+    cantidadFechas -= 1
+  }
+
+  calcularDeudaContrato.value.mora = cantidadFechas >= 4 ? true : false
   calcularDeudaContrato.value.total_mora = 100
 
   let precioTotal = (calcularDeudaContratoSelectedParcelas.value?.length || 0) * calcularDeudaPrecioMantenimiento.value
 
   calcularDeudaContrato.value.fechas.forEach(fecha => {
-    let diff = differenceInMonths(fecha.hasta, fecha.desde)
-    fecha.precio = precioTotal / 12 * diff
+    if (fecha.diasAjuste) {
+      let precioFraccionado = Math.ceil(precioTotal / 12) / 30
+      fecha.precio = precioFraccionado * fecha.diasAjuste
+    } else {
+      let diff = differenceInMonths(fecha.hasta, fecha.desde)
+      fecha.precio = precioTotal / 12 * diff
+    }
   });
 
 }
@@ -602,6 +771,8 @@ const openDialog = (numContrato, tipoContrato) => {
 
   contratoNum.value = numContrato
   contratoTipo.value = tipoContrato
+
+  tipoContrato = tipoContrato.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
 
   if (tipoContrato == 'Cremacion') {
     columnasVisibles.value = ['actions', 'num_contrato', 'fecha_emision', 'fecha_vencimiento', 'estatus', 'cliente', 'cremaciones', 'notas']

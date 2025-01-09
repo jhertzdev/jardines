@@ -30,7 +30,8 @@ body.section-busqueda-open .q-page-container {
             </q-icon>
           </template>
         </q-input>
-        <q-btn label="Agregar servicio" icon="add" color="primary" @click="showDialogAgregarServicio = true" />
+        <q-btn label="Agregar servicio" icon="add" color="primary" @click="agregarEditarServicioDialog.openDialog(null)" />
+        <q-btn label="Imprimir resumen" icon="print" color="primary" @click="handlePrintResumen()" />
       </div>
     </template>
     <template v-slot:top-right>
@@ -64,7 +65,7 @@ body.section-busqueda-open .q-page-container {
     </template>
     <template v-slot:body-cell-num_contrato="props">
       <q-td :props="props" style="max-width: 150px;">
-        <a href="javascript:void(0)" @click="verContratosDialog.openDialog(props.row.num_contrato, props.row.tipo_contrato)" v-if="props.row.num_contrato">
+        <a href="javascript:void(0)" @click="verContratosDialog.openDialog(props.row.num_contrato, props.row.tipo_contrato || props.row.clase_servicio)" v-if="props.row.num_contrato">
           {{ props.row.num_contrato }}
         </a>
       </q-td>
@@ -124,9 +125,9 @@ body.section-busqueda-open .q-page-container {
       </q-td>
     </template>
     <template v-slot:body-cell-vigente_hasta="props">
-      <q-td :props="props" style="" :class="props.row.ubicacion.vigente_hasta ? new Date(props.row.ubicacion.vigente_hasta) < startOfMonth(new Date(props.row.fecha_vencimiento)) ? 'text-red-4 bg-red-1' : '' : ''">
-        <template v-if="props.row.ubicacion?.vigente_hasta && new Date(props.row.ubicacion.vigente_hasta) != 'Invalid Date'">
-          {{ format(props.row.ubicacion.vigente_hasta, 'dd/MM/yyyy') }}
+      <q-td :props="props" style="" :class="props.row.vigente_hasta ? new Date(props.row.vigente_hasta) < startOfMonth(new Date(props.row.fecha_servicio)) ? 'text-red-4 bg-red-1' : '' : ''">
+        <template v-if="props.row.vigente_hasta && new Date(props.row.vigente_hasta) != 'Invalid Date'">
+          {{ format(props.row.vigente_hasta, 'dd/MM/yyyy') }}
         </template>
         <template v-else>
           <span>-</span>
@@ -179,7 +180,24 @@ body.section-busqueda-open .q-page-container {
   const editarParcelaDialog = ref(null)
   const agregarEditarServicioDialog = ref(null)
 
-  const showDialogAgregarServicio = ref(false)
+  const handlePrintResumen = () => {
+    let mes = filterDate.value?.mes || '';
+
+    api.get('parque/servicios/resumen?mes=' + mes, { responseType: "blob" })
+      .then(response => {
+        if (response.data) {
+          window.open(URL.createObjectURL(response.data));
+        }
+      })
+      .catch(async (error) => {
+        console.log('error', error)
+        error.response.data = JSON.parse(await error.response.data.text());
+        qNotify(error, "error", {
+          callback: () => handlePrintResumen(),
+        });
+      });
+
+  }
 
   const filterDateClosePopup = ref(false)
 
@@ -215,6 +233,7 @@ body.section-busqueda-open .q-page-container {
     { name: 'difunto', label: 'Difunto', align: 'left', field: 'difunto' },
     { name: 'estatus', label: 'Estatus', align: 'center', field: 'estatus', headerStyle: 'width: 100px' },
     { name: 'num_contrato', label: 'Contrato', align: 'left', field: 'num_contrato' },
+    { name: 'vigente_hasta', label: 'Fecha venc.', align: 'left', field: 'vigente_hasta' },
     { name: 'observaciones', label: 'Observaciones', align: 'left', field: 'observaciones' },
   ]
 
@@ -302,6 +321,7 @@ body.section-busqueda-open .q-page-container {
 
     api.get(endpoint)
       .then(response => {
+        console.log('response', response.data.data);
         if (response.data) {
           tableData.value = response.data.data
           tablePagination.value.page = response.data.pager.currentPage

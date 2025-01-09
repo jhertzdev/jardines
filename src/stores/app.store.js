@@ -31,6 +31,7 @@ export const useAppStore = defineStore('app', {
         .then(response => {
           if (response.data) {
             this.menuNotifications = response.data
+            this.notifications = response.data?.notificaciones || []
           }
         })
         .catch(e => console.log(e))
