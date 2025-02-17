@@ -248,6 +248,7 @@ const imprimirTablaCobros = () => {
       { label: 'Fecha vencim.', value: 'fecha_vencimiento' },
     ],
     content: parcelas.value.map(row => {
+      row = JSON.parse(JSON.stringify(row))
       row.num_contrato = row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato
       row.ubicacion = row.parcelas_posiciones?.find(p => p.id == row.ubicacion_id)?.codigo_seccion + '-' + row.parcelas_posiciones?.find(p => p.id == row.ubicacion_id)?.num_parcela
       row.fecha_ultimo_mantenimiento = row.fecha_ultimo_mantenimiento ? format(new Date(row.fecha_ultimo_mantenimiento), 'dd/MM/yyyy') : '-'

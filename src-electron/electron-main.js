@@ -31,7 +31,22 @@ function createWindow () {
 
   mainWindow.setMenuBarVisibility(false)
   mainWindow.loadURL(process.env.APP_URL)
-  mainWindow.maximize()
+  /*mainWindow.maximize()*/
+
+  mainWindow.webContents.on('input-event', (event, input) => {
+
+    if (input.type === 'keyUp' && input.modifiers.includes('control') && ['+', '-', '0'].includes(input.key)) {
+      let zoomFactor = mainWindow.webContents.getZoomFactor()
+      if (input.key === '+') {
+        mainWindow.webContents.setZoomFactor(zoomFactor + 0.1)
+      } else if (input.key === '-') {
+        mainWindow.webContents.setZoomFactor(zoomFactor - 0.1)
+      } else if (input.key === '0') {
+        mainWindow.webContents.setZoomFactor(1)
+      }
+    }
+
+  })
 
   if (process.env.DEBUGGING) {
     // if on DEV or Production with debug enabled

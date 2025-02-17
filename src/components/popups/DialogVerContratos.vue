@@ -194,6 +194,9 @@
                       </q-badge>
                     </template>
                   </a>
+                  <q-icon name="warning" class="q-ml-xs text-negative" v-if="props.row.parcelas?.some(ubicacion => !verificarFechaParcela(ubicacion, props.row.fecha_emision))">
+                    <q-tooltip max-width="200px" class="bg-black">La fecha de emisión no coincide con la fecha de vencimiento de alguna ubicación.</q-tooltip>
+                  </q-icon>
                 </template>
                 <template v-else>
                   <span class="text-italic text-grey-6">{{ props.row.fecha_vencimiento && new Date(props.row.fecha_vencimiento) != 'Invalid Date' ? format(props.row.fecha_vencimiento, 'dd/MM/yyyy') : '-' }}</span>
@@ -390,7 +393,7 @@ import { ref, computed } from 'vue';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import es from 'date-fns/locale/es';
-import { format, differenceInMonths, differenceInCalendarDays, lastDayOfMonth } from 'date-fns';
+import { format, differenceInMonths, differenceInCalendarDays, lastDayOfMonth, getDate } from 'date-fns';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.store';
 
@@ -416,6 +419,21 @@ const agregarParcelaData = ref({
   pagado_hasta: '',
   selected: true,
 })
+
+const verificarFechaParcela = (parcela, fechaCorte) => {
+  let pagadoHasta = new Date(parcela.pagado_hasta || fechaCorte)
+
+  let ultimoDiaDelMesVigente = getDate(lastDayOfMonth(pagadoHasta))
+  let diaPagadoHasta = getDate(pagadoHasta)
+  let diaFechaCorte = getDate(fechaCorte)
+
+  // Si no se puede alcanzar el día de la corte en el mes actual,
+  // se considera que igualmente el contrato está al día
+  let fechaCorteCoincide = diaFechaCorte == diaPagadoHasta
+  let vigenteHastaFinDeMes = diaFechaCorte > ultimoDiaDelMesVigente && diaPagadoHasta == ultimoDiaDelMesVigente
+
+  return fechaCorteCoincide || vigenteHastaFinDeMes
+}
 
 const contratos = ref([])
 const router = useRouter()
@@ -812,7 +830,7 @@ const handleDownloadPdf = (contratoId) => {
     });
 };
 
-defineExpose({ openDialog })
+defineExpose({ openDialog, handleDownloadPdf })
 const emit = defineEmits(['updated'])
 
 </script>

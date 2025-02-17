@@ -101,38 +101,41 @@
                 </q-badge>
               </q-td>
             </template>
+            <template v-slot:body-cell-num_contrato="props">
+              <q-td :props="props">
+                <a href="javascript:void(0)" @click="verContratosDialog.openDialog(props.row.contrato.num_contrato, props.row.contrato.tipo_parcela)">
+                  {{ props.row.contrato.codnum_contrato }}
+                </a>
+              </q-td>
+            </template>
             <template v-slot:body-cell-acciones="props">
               <q-td :props="props" class="q-gutter-x-xs">
-                <q-btn color="primary" size="sm" dense icon="print" @click="handleDownloadPdf(props.row.id)" :disable="props.row.estatus !== 'Pagado'" />
+                <q-btn color="primary" size="sm" dense icon="print" :loading="isLoadingPrint" @click="handleDownloadPdf(props.row.id, props.row.contrato)" :disable="props.row.estatus !== 'Pagado'" v-if="!props.row.deleted_at">
+                  <template v-if="props.row.contrato.tipo_actividad == 'mantenimiento_parcelas' &&
+                    props.row.contrato.tipo_parcela != 'Cremacion' &&
+                    props.row.contrato?.fecha_vencimiento &&
+                    props.row.contrato?.vigente_hasta
+                  ">
+                    <q-icon v-if="new Date(props.row.contrato.vigente_hasta) >= add(props.row.contrato.fecha_vencimiento, { years: 1})" name="warning" color="yellow-2">
+                      <q-tooltip max-width="200px" class="text-center bg-black">
+                        Debes renovar el contrato antes de imprimir el recibo.
+                      </q-tooltip>
+                    </q-icon>
+                  </template>
+                </q-btn>
                 <q-btn color="primary" size="sm" dense icon="credit_card" @click="openDialogAgregarPago(props.row.id)" />
-                <q-btn-dropdown dense v-if="authStore.user.role_perms.includes('cajas.*')" color="primary" flat>
-                  <q-list>
-                    <q-item clickable @click="handleEliminarTransaccion(props.row.id)" v-close-popup>
-                      <q-item-section side>
-                        <q-icon color="black" name="archive" />
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label>Archivar</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable @click="handleEditarTransaccion(props.row.id, { estatus: 'Pagado' })" v-close-popup v-if="props.row.estatus != 'Pagado'">
-                      <q-item-section side>
-                        <q-icon color="black" name="check" />
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label>Marcar como pagado</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item clickable @click="handleEditarTransaccion(props.row.id, { estatus: 'Pendiente' })" v-close-popup v-if="props.row.estatus != 'Pendiente'">
-                      <q-item-section side>
-                        <q-icon color="black" name="timer" />
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label>Marcar como pendiente</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
+                <template v-if="!props.row.deleted_at">
+                  <span>|</span>
+                  <q-btn color="negative" size="sm" dense icon="archive" @click="handleVerificarEliminarTransaccion(props.row.id)">
+                    <q-tooltip class="bg-black">Anular transacción</q-tooltip>
+                  </q-btn>
+                  <q-btn color="primary" size="sm" dense icon="check" @click="handleEditarTransaccion(props.row.id, { estatus: 'Pagado' })" v-if="props.row.estatus != 'Pagado'">
+                    <q-tooltip class="bg-black">Marcar como pagado</q-tooltip>
+                  </q-btn>
+                  <q-btn color="warning" size="sm" dense icon="timer" @click="handleEditarTransaccion(props.row.id, { estatus: 'Pendiente' })" v-if="props.row.estatus != 'Pendiente'">
+                    <q-tooltip class="bg-black">Marcar como pendiente</q-tooltip>
+                  </q-btn>
+                </template>
               </q-td>
             </template>
           </q-table>
@@ -179,9 +182,7 @@
                 <q-item v-for="item in transaccionData?.lineas || []">
                   <q-item-section style="display: block">
                     <span>
-                      <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')">
-                        <q-btn size="sm" dense icon="edit" color="primary" @click="handleEditLineaRecibo(item)" />
-                      </template>
+                      <q-btn size="sm" dense icon="edit" color="primary" @click="handleEditLineaRecibo(item)" />
                       {{ item.descripcion }}
                     </span>
                     <span class="text-grey text-caption">x {{ item.cantidad }}</span>
@@ -440,7 +441,7 @@
           <q-markup-table flat separator="cell" dense>
             <thead>
               <tr>
-                <th v-if="authStore.user.role_perms.includes('cajas.*')"></th>
+                <th></th>
                 <th>Fecha registrado</th>
                 <th>Método de pago</th>
                 <th>Moneda</th>
@@ -450,7 +451,7 @@
             </thead>
             <tbody>
               <tr v-for="pago in transaccionData.pagos" :key="pago.id">
-                <td v-if="authStore.user.role_perms.includes('cajas.*')">
+                <td>
                   <q-btn size="sm" dense color="negative" icon="delete" @click="handleEliminarPago(pago.id)" />
                 </td>
                 <td>{{ pago.created_at.substr(0, 10) }}</td>
@@ -470,6 +471,11 @@
 
 
   </q-page>
+
+  <DialogVerContratos ref="verContratosDialog" />
+  <DialogRenovarContrato ref="renovarContratoDialog" @done="handleRenovarContrato" />
+  <DialogActualizarFechas ref="actualizarFechasDialog" />
+
 </template>
 
 <style>
@@ -495,10 +501,14 @@
   import { $dinero, qNotify } from 'src/boot/jardines';
   import { useAppStore } from "src/stores/app.store";
   import { useAuthStore } from "src/stores/auth.store";
-  import { format } from "date-fns";
+  import { format, add } from "date-fns";
   import { useQuasar } from 'quasar';
 
   import QSelectUbicacion from "src/components/selects/QSelectUbicacion.vue";
+
+  import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
+  import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
+  import DialogActualizarFechas from "src/components/popups/DialogActualizarFechas.vue";
 
   const appStore = useAppStore();
   const router = useRouter()
@@ -508,13 +518,16 @@
 
   const authStore = useAuthStore();
 
-  const tipoTransaccion = ref('Pendiente')
+  const tipoTransaccion = ref('Pendiente');
   const verAnulados = ref(false)
 
   const showModalEditarLineaRecibo = ref(false)
   const showDialogBuscarPagos = ref(false)
   const agregarEditarLineaRecibo = ref({})
   const isLoadingEditarLineaRecibo = ref(false)
+  const verContratosDialog = ref(null)
+  const renovarContratoDialog = ref(null)
+  const actualizarFechasDialog = ref(null)
   const servicios = ref([])
 
   const $q = useQuasar()
@@ -557,18 +570,18 @@
 
   const isLoadingEliminarTransaccion = ref(false)
 
-  const handleEliminarTransaccion = (id, confirm = false) => {
+  const handleVerificarEliminarTransaccion = (id, confirm = false, params = {}) => {
     if (!confirm) {
       $q.dialog({
-        title: 'Eliminar transacción',
+        title: 'Anular transacción',
         message: '¿Estás seguro de que quieres anular esta transacción?',
         cancel: true,
         persistent: true,
         ok: {
-          label: 'Eliminar',
-          color: 'primary',
-          flat: true,
-          icon: 'delete'
+          label: 'Anular',
+          color: 'negative',
+          flat: false,
+          icon: 'archive'
         },
         cancel: {
           label: 'Cancelar',
@@ -577,23 +590,58 @@
           icon: 'cancel'
         }
       }).onOk(() => {
-        handleEliminarTransaccion(id, true)
+        handleVerificarEliminarTransaccion(id, true)
       })
     } else {
       isLoadingEliminarTransaccion.value = true
-      api.delete('caja/transacciones/' + id)
+
+      let endpoint = 'caja/transacciones/verificar/' + id
+
+      api.delete(endpoint)
         .then(response => {
           if (response.data) {
             $q.notify({ message: 'Transacción anulada exitosamente.', color: 'positive' })
             transaccionesTableRef.value.requestServerInteraction()
           }
         })
-        .catch(error => qNotify(error, 'error', { callback: () => handleEliminarTransaccion(id) }))
+        .catch(error => {
+          if (error.response?.data?.messages?.contrato) {
+            let contrato = error.response.data.messages.contrato
+
+            actualizarFechasDialog.value.openDialog({
+              contrato_id: contrato?.id,
+              rows: contrato?.parcelas || [],
+              transaccion: error.response.data.messages.transaccion,
+              callback: () => handleEliminarTransaccion(id)
+            })
+
+            qNotify('Actualiza la última fecha de pago antes de anular el recibo.', 'error')
+            return
+          }
+
+          qNotify(error, 'error', { callback: () => handleVerificarEliminarTransaccion(id, true) })
+        })
         .finally(() => isLoadingEliminarTransaccion.value = false)
     }
   }
 
+  const handleEliminarTransaccion = (id) => {
+    isLoadingEliminarTransaccion.value = true
+    api.delete('caja/transacciones/' + id)
+      .then(response => {
+        if (response.data) {
+          $q.notify({ message: 'Transacción eliminada exitosamente.', color: 'positive' })
+          transaccionesTableRef.value.requestServerInteraction()
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarTransaccion(id) }))
+      .finally(() => isLoadingEliminarTransaccion.value = false)
+  }
+
   const handleEditarTransaccion = (id, data = {}) => {
+
+    isLoading.value = true
+
     api.post('caja/transacciones/update/' + id, data)
       .then(response => {
         if (response.data) {
@@ -601,8 +649,8 @@
           transaccionesTableRef.value.requestServerInteraction()
         }
       })
-      .catch(error => qNotify(error, 'error', { callback: () => handleEliminarTransaccion(id) }))
-      .finally(() => isLoadingEliminarTransaccion.value = false)
+      .catch(error => qNotify(error, 'error', { callback: () => handleEditarTransaccion(id, data) }))
+      .finally(() => isLoading.value = false)
   }
 
   const showDialogVerPagos = ref(false)
@@ -732,20 +780,69 @@
       });
   }
 
-  const handleDownloadPdf = (id) => {
+  const handleRenovarContrato = (contrato) => {
+    transaccionesTableRef.value.requestServerInteraction()
+    if (contrato?.reciboId) {
+      handleDownloadPdf(contrato.reciboId, contrato, () => {
+        verContratosDialog.value.handleDownloadPdf(contrato.id)
+      })
+    }
+  }
+
+  const isLoadingPrint = ref(false)
+
+  const handleDownloadPdf = (id, contrato = null, callback = null) => {
+
+    isLoadingPrint.value = true;
+
+    if (contrato?.id) {
+      api.get('contratos/' + contrato.id)
+      .then(response => {
+        if (response.data) {
+          contrato = response.data
+          if (
+            contrato.tipo_actividad == 'mantenimiento_parcelas' &&
+            contrato.tipo_parcela != 'Cremacion' &&
+            contrato?.fecha_vencimiento &&
+            contrato?.vigente_hasta
+          ) {
+            if (new Date(contrato.vigente_hasta) >= add(contrato.fecha_vencimiento, { years: 1})) {
+              $q.notify({ message: 'Debes renovar el contrato antes de imprimir el recibo.', color: 'negative', icon: 'warning' })
+              return renovarContratoDialog.value.openDialog(contrato.id, { reciboId: id})
+            } else {
+              return _handleDownloadPdf(id, callback);
+            }
+          } else {
+            return _handleDownloadPdf(id, callback);
+          }
+        }
+      })
+      .finally(() => {
+        isLoadingPrint.value = false
+      })
+    } else {
+      return _handleDownloadPdf(id, callback);
+    }
+
+  };
+
+  const _handleDownloadPdf = (id, callback = null) => {
+    isLoadingPrint.value = false
     api
       .get("caja/transacciones/imprimir/" + id, { responseType: "blob" })
       .then((response) => {
         console.log(response);
         window.open(URL.createObjectURL(response.data));
+
+        if (callback) callback()
       })
       .catch(async (error) => {
         error.response.data = JSON.parse(await error.response.data.text());
         qNotify(error, "error", {
-          callback: () => handleDownloadPdf(contratoId),
+          callback: () => _handleDownloadPdf(id, callback),
         });
       });
-  };
+  }
 
   const showModalAbrirCaja = ref(false)
   const showModalCerrarCaja = ref(false)
@@ -887,7 +984,7 @@
     { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => format(new Date(val), 'dd/MM/yyyy HH:mm') },
     { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true, style: 'width: 200px; white-space: break-spaces; line-height: 1.15' },
     { name: 'ident_cliente', label: 'Cédula', align: 'left', field: 'ident_cliente', sortable: true },
-    { name: 'contrato', label: 'Contrato', align: 'left', format: (_, row) => `${row.codigo_contrato}-${row.num_contrato}`, sortable: true },
+    { name: 'num_contrato', label: 'Contrato', align: 'left', sortable: true },
     { name: 'fecha_pagado', label: 'Fecha pagado', align: 'left', format: (_, row) => row?.ultimo_pago?.created_at ? format(new Date(row?.ultimo_pago?.created_at), 'dd/MM/yyyy') : '-', sortable: true },
     { name: 'num_transaccion', label: 'N° recibo', align: 'left', field: 'num_transaccion', sortable: true },
     { name: 'total', label: 'Total', align: 'left', field: 'total', format: (val) => $dinero(val), sortable: true },
@@ -939,6 +1036,7 @@
     );
 
     searchParams.append('with[]', 'data');
+    searchParams.append('with[]', 'contrato');
 
     if (transaccionesTableFilter.value) {
       searchParams.append('s', transaccionesTableFilter.value)

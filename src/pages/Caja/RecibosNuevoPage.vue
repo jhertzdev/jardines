@@ -1515,7 +1515,7 @@
         let nuevoPagadoHasta, difInYears, difInMonths, nuevoUltimoPagadoHasta, difInDays;
 
         if (row.pago_por_cuotas) {
-          ubicacion.nuevo_pagado_hasta = agregarPorFechaCorte(ultimoPagadoHasta, new Date(contratoSelected.value.fecha_emision), parseInt(ubicacion.cuotas))
+          agregarPorFechaCorte(ultimoPagadoHasta, new Date(contratoSelected.value.fecha_emision), ubicacion)
         } else if (row.pago_fraccionado) {
           nuevoPagadoHasta = add(ultimoPagadoHasta, { days: parseInt(ubicacion.cuotas) })
 
@@ -1658,26 +1658,27 @@
 
   }
 
-  const agregarPorFechaCorte = (lastDate, baseDate, months) => {
-    let newDate = add(lastDate, { months })
+  const agregarPorFechaCorte = (pagadoHasta, fechaCorte, ubicacion) => {
+    let months = parseInt(ubicacion.cuotas)
+    let nuevoPagadoHasta = add(pagadoHasta, { months })
 
-    let diaFechaActual = getDate(newDate)
-    let diaFechaCorte = getDate(baseDate)
-    let ultimoDiaDelMes = getDate(lastDayOfMonth(newDate))
+    let ultimoDiaDelMesVigente = getDate(lastDayOfMonth(pagadoHasta))
+    let ultimoDiaDelMesActual = getDate(lastDayOfMonth(nuevoPagadoHasta))
+    let diaPagadoHasta = getDate(pagadoHasta)
+    let diaFechaCorte = getDate(fechaCorte)
 
-    if (diaFechaActual < diaFechaCorte && diaFechaActual < ultimoDiaDelMes) {
-      let maxDiaPosible = diaFechaCorte > ultimoDiaDelMes ? ultimoDiaDelMes : diaFechaCorte;
-      let diferenciaDias = maxDiaPosible - diaFechaActual
+    // Si no se puede alcanzar el día de la corte en el mes actual,
+    // se considera que igualmente el contrato está al día
+    if (diaFechaCorte > ultimoDiaDelMesVigente && diaPagadoHasta == ultimoDiaDelMesVigente) {
+      let maxDiaPosible = diaFechaCorte > ultimoDiaDelMesActual ? ultimoDiaDelMesActual : diaFechaCorte;
+      let diferenciaDias = maxDiaPosible - diaPagadoHasta
 
-      newDate = add(newDate, { days: diferenciaDias })
+      nuevoPagadoHasta = add(nuevoPagadoHasta, { days: diferenciaDias })
     }
 
-    //console.log(newDate.toISOString().substr(0, 10), diaFechaActual, diaFechaCorte, ultimoDiaDelMes)
+    nuevoPagadoHasta = nuevoPagadoHasta.toISOString().substr(0, 10)
 
-    newDate = newDate.toISOString().substr(0, 10)
-
-    console.log(newDate, lastDate, baseDate, months)
-    return newDate
+    ubicacion.nuevo_pagado_hasta = nuevoPagadoHasta
   };
 
   const agregarServicio = () => {

@@ -198,7 +198,9 @@
                       <div class="col-12 col-md">
                         <q-field label="Fecha de inhumación" outlined dense stack-label v-if="parseInt(puestosData[puesto.id].ocupado)">
                           <template v-slot:control>
-                            {{ format(new Date(puestosData[puesto.id].fecha_inhumacion), 'dd/MM/yyyy hh:mm aaaa') }}
+                            {{ puestosData[puesto.id]?.fecha_inhumacion && new Date(puestosData[puesto.id].fecha_inhumacion) != 'Invalid Date' ?
+                              format(new Date(puestosData[puesto.id].fecha_inhumacion), 'dd/MM/yyyy hh:mm aaaa') : null
+                             }}
                           </template>
                           <template v-slot:append>
                             <q-btn flat dense icon="edit" color="primary" @click="modificarPuestoOpenDialog(puesto.id)"/>

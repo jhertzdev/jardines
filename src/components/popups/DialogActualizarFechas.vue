@@ -11,6 +11,22 @@
           <div class="text-h6">Actualizar fechas</div>
         </q-card-section>
         <q-card-section class="q-py-none">
+          <q-card v-if="props?.transaccion" style="width: 100%; max-width: 100%" class="q-mb-md" bordered flat>
+            <q-card-section>
+              <q-banner class="bg-red-3 q-mb-md" style="display: flex; flex-flow: row;">
+                <template v-slot:avatar>
+                  <q-icon class="q-mt-md" size="sm" name="warning" color="black" />
+                </template>
+                <p style="font-size: 0.8rem; margin-bottom: 0; line-height: 1;">
+                  Revisa la información del recibo y actualiza la fechas de pago de las ubicaciones. Si vas a anular un recibo que fue marcado como pagado, puedes volver a una fecha anterior.
+                </p>
+              </q-banner>
+              <div class="text-h6">Recibo #{{ props.transaccion.num_transaccion }}</div>
+            </q-card-section>
+            <q-card-section class="q-pt-none">
+              {{ props.transaccion.descripcion }}
+            </q-card-section>
+          </q-card>
           <q-table class="q-mb-lg" :columns="[
             { name: 'codigo_parcela', label: 'Ubicación', field: 'codigo_parcela', sortable: false, align: 'center' },
             { name: 'pagado_hasta', label: 'Pagado hasta', field: 'pagado_hasta', sortable: false, align: 'center' },
@@ -105,6 +121,8 @@ const handleSubmitActualizarFechas = () => {
         dialog.value = false
         emit('updated', response.data)
         $q.notify({ message: 'Fechas actualizadas exitosamente.', color: 'positive' })
+
+        if (props.value?.callback) props.value.callback()
       }
     })
     .catch((error) => qNotify(error, 'error', handleSubmitActualizarFechas))

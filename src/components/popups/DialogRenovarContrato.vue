@@ -129,6 +129,8 @@ const props = defineProps({
 const selectRenovarContratos = ref([])
 const contratoData = ref(null)
 
+const extraData = ref(null)
+
 const { getScrollTarget, setVerticalScrollPosition } = scroll
 const onValidationError = (ref) => {
   const el = ref.$el
@@ -207,7 +209,7 @@ const handleSubmitRenovarContratos = () => {
         console.log(response.data);
         dialog.value = false
         $q.notify({ message: 'Contrato renovado exitosamente.', color: 'positive' })
-        emit('done', response.data)
+        emit('done', { ...response.data, ...extraData.value })
       }
     })
     .catch((error) => qNotify(error, 'error', handleSubmitRenovarContratos))
@@ -218,8 +220,10 @@ const handleSubmitRenovarContratos = () => {
 const isLoadingSubmit = ref(false)
 const isLoadingContrato = ref(true)
 
-const openDialog = (id) => {
+const openDialog = (id, parameters = null) => {
   isLoadingContrato.value = true
+  extraData.value = parameters
+
   api.get('contratos/' + id + '?with[]=sigNumSerie')
     .then(response => {
       if (response.data) {
