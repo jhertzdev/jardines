@@ -94,7 +94,7 @@
                       </q-item-section>
                       <q-item-section>Contrato de mant.</q-item-section>
                     </q-item>
-                    <q-item :clickable="props.row.esta_vigente || !props.row.fecha_vencimiento" @click="handleDownloadPdf(props.row.id)" v-close-popup :disable="!props.row.esta_vigente && !!props.row.fecha_vencimiento" v-if="!EstadosDesactivados.includes(props.row.estatus)">
+                    <q-item :clickable="props.row.esta_vigente || !props.row.fecha_vencimiento" @click="handleDownloadPdf(props.row)" v-close-popup :disable="!props.row.esta_vigente && !!props.row.fecha_vencimiento" v-if="!EstadosDesactivados.includes(props.row.estatus)">
                       <q-item-section side>
                         <q-icon color="black" name="print" />
                       </q-item-section>
@@ -242,88 +242,101 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog allow-focus-outside v-model="calcularDeudaContratoDialog" class="j-dialog j-dialog-lg">
-    <q-card class="q-pa-md text-center">
-      <q-card-section class="q-pa-none">
+  <q-dialog allow-focus-outside v-model="calcularDeudaContratoDialog" class="j-dialog j-dialog-xl">
+      <q-card class="q-pa-md text-center">
+      <div class="row">
+        <div class="col-4 text-center" style="border-radius: 5px;" v-if="srcQrcode && calcularDeudaContratoDialog">
+          <h6 class="q-mb-none">Ver deuda</h6>
+          <div class="q-pa-md" style="padding: 5px; width: 100%; max-width: 240px; margin: auto">
+            <img class="q-mx-auto" :src="srcQrcode" alt="Deuda QR" style="width: 100%"  />
+          </div>
+        </div>
+        <div class="col">
+          <q-card-section class="q-pa-none">
 
 
 
-        <q-markup-table flat separator="none" dense>
-          <tbody class="text-left">
-            <tr>
-              <td class="text-bold" width="20%">CONTRATO</td>
-              <td width="20%">{{ calcularDeudaContrato.num_contrato }}</td>
-              <td class="text-bold text-italic text-right">{{ format(new Date().toISOString().slice(0, 10) + ' 12:00', "d 'de' MMMM 'de' yyyy", { locale: es }) }}</td>
-            </tr>
-            <tr>
-              <td class="text-bold" width="20%">TITULAR</td>
-              <td width="20%">{{ calcularDeudaContrato.cliente?.nombre_completo }}</td>
-              <td></td>
-            </tr>
-            <tr>
-              <td class="text-bold" width="20%">CÉDULA</td>
-              <td width="20%">{{ calcularDeudaContrato.cliente?.num_identidad }}</td>
-              <td></td>
-            </tr>
-            <tr>
-              <td class="text-bold" width="20%">{{ calcularDeudaContrato?.tipo_parcela?.toUpperCase() }}</td>
-              <td width="20%">
-                <q-checkbox v-model="parcela.selected" dense size="sm" color="primary" class="q-mr-xs" v-for="parcela in calcularDeudaContrato.parcelas" :label="parcela.codigo_parcela" @update:model-value="recalcularDeudaContrato()"></q-checkbox>
-                <q-btn size="sm" dense color="primary" icon="edit" outline @click="showDialogParcelas = true" />
-              </td>
-            </tr>
-          </tbody>
-        </q-markup-table>
-        <q-markup-table class="q-mt-md deuda-table" flat separator="none" dense>
-          <tbody class="text-left">
-            <tr>
-              <td class="text-bold" colspan="5">MANTENIMIENTO</td>
-            </tr>
-            <tr v-for="(fecha, fechaIndex) in calcularDeudaContrato.fechas" :key="fecha.desde">
-              <td class="text-bold" width="10%">DESDE: </td>
-              <td width="20%">{{ format(fecha.desde, 'dd/MM/yyyy') }}</td>
-              <td class="text-bold" width="10%">HASTA: </td>
-              <td width="20%">{{ format(fecha.hasta, 'dd/MM/yyyy') }}</td>
-              <td>
-                <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="fecha.precio" @update:model-value="handleUpdatePrecio(fecha.precio, fechaIndex)" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="5" class="q-gutter-x-xs text-right">
-                <q-btn size="sm" class="q-px-sm" dense color="negative" icon="remove" outline @click="quitarAnualidadFecha()" />
-                <q-btn size="sm" class="q-px-sm" dense color="primary" icon="add" outline @click="agregarAnualidadFecha()" />
-              </td>
-            </tr>
-            <tr>
-              <td class="text-bold text-right" colspan="4"> <q-checkbox v-model="calcularDeudaContrato.mora" /> TOTAL MORA:</td>
-              <td>
-                <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-bold text-right" colspan="4">TOTAL DEUDA:</td>
-              <td class="text-bold text-right" style="font-size: 1.5rem">${{ ( calcularDeudaContrato?.fechas?.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (calcularDeudaContrato.mora ? parseFloat(calcularDeudaContrato.total_mora) : 0) ).toFixed(2) }}</td>
-            </tr>
-          </tbody>
-        </q-markup-table>
-      </q-card-section>
+            <q-markup-table flat separator="none" dense>
+              <tbody class="text-left">
+                <tr>
+                  <td class="text-bold" width="20%">CONTRATO</td>
+                  <td width="20%">{{ calcularDeudaContrato.num_contrato }}</td>
+                  <td class="text-bold text-italic text-right">{{ format(new Date().toISOString().slice(0, 10) + ' 12:00', "d 'de' MMMM 'de' yyyy", { locale: es }) }}</td>
+                </tr>
+                <tr>
+                  <td class="text-bold" width="20%">TITULAR</td>
+                  <td width="20%">{{ calcularDeudaContrato.cliente?.nombre_completo }}</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="text-bold" width="20%">CÉDULA</td>
+                  <td width="20%">{{ calcularDeudaContrato.cliente?.num_identidad }}</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="text-bold" width="20%">{{ calcularDeudaContrato?.tipo_parcela?.toUpperCase() }}</td>
+                  <td width="20%">
+                    <q-checkbox v-model="parcela.selected" dense size="sm" color="primary" class="q-mr-xs" v-for="parcela in calcularDeudaContrato.parcelas" :label="parcela.codigo_parcela" @update:model-value="recalcularDeudaContrato()"></q-checkbox>
+                    <q-btn size="sm" dense color="primary" icon="edit" outline @click="showDialogParcelas = true" />
+                  </td>
+                </tr>
+              </tbody>
+            </q-markup-table>
+            <q-markup-table class="q-mt-md deuda-table" flat separator="none" dense>
+              <tbody class="text-left">
+                <tr>
+                  <td class="text-bold" colspan="5">MANTENIMIENTO</td>
+                </tr>
+                <tr v-for="(fecha, fechaIndex) in calcularDeudaContrato.fechas" :key="fecha.desde">
+                  <td class="text-bold" width="10%">DESDE: </td>
+                  <td width="20%">{{ format(fecha.desde, 'dd/MM/yyyy') }}</td>
+                  <td class="text-bold" width="10%">HASTA: </td>
+                  <td width="20%">{{ format(fecha.hasta, 'dd/MM/yyyy') }}</td>
+                  <td>
+                    <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="fecha.precio" @update:model-value="handleUpdatePrecio(fecha.precio, fechaIndex)" />
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="5" class="q-gutter-x-xs text-right">
+                    <q-btn size="sm" class="q-px-sm" dense color="negative" icon="remove" outline @click="quitarAnualidadFecha()" />
+                    <q-btn size="sm" class="q-px-sm" dense color="primary" icon="add" outline @click="agregarAnualidadFecha()" />
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-bold text-right" colspan="4" style="vertical-align: top"> <q-checkbox v-model="calcularDeudaContrato.mora" /> TOTAL MORA:</td>
+                  <td style="vertical-align: top">
+                    <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-bold text-right" colspan="4">TOTAL DEUDA:</td>
+                  <td class="text-bold text-right" style="font-size: 1.5rem">${{ ( calcularDeudaContrato?.fechas?.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (calcularDeudaContrato.mora ? parseFloat(calcularDeudaContrato.total_mora) : 0) ).toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </q-markup-table>
+          </q-card-section>
 
-      <template v-if="calcularDeudaContratoSelectedParcelas?.every(parcela => parcela.pagado_hasta === calcularDeudaContratoSelectedParcelas[0].pagado_hasta)">
-        <q-card-actions class="justify-end">
-          <q-btn flat label="Cancelar" v-close-popup />
-          <q-btn label="Imprimir" icon="print" color="primary" @click="handlePrintCalcularDeuda()"
-            :loading="isLoadingCalcularDeuda" />
-        </q-card-actions>
-      </template>
+          <template v-if="calcularDeudaContratoSelectedParcelas?.every(parcela => parcela.pagado_hasta === calcularDeudaContratoSelectedParcelas[0].pagado_hasta)">
+            <q-card-actions class="justify-end">
 
-      <template v-else>
-        <q-banner class="bg-red-3 q-pb-md">
-          <template v-slot:avatar>
-            <q-icon class="q-mt-sm" name="warning" color="black" />
+                <q-btn flat label="Cancelar" v-close-popup />
+                <q-btn label="Imprimir" icon="print" color="primary" @click="handlePrintCalcularDeuda()"
+                  :loading="isLoadingCalcularDeuda" />
+
+            </q-card-actions>
           </template>
-          <div class="text-h6">Las fechas de pago no coinciden.</div>
-        </q-banner>
-      </template>
+
+          <template v-else>
+            <q-banner class="bg-red-3 q-pb-md">
+              <template v-slot:avatar>
+                <q-icon class="q-mt-sm" name="warning" color="black" />
+              </template>
+              <div class="text-h6">Las fechas de pago no coinciden.</div>
+            </q-banner>
+          </template>
+        </div>
+      </div>
+
 
     </q-card>
   </q-dialog>
@@ -389,11 +402,12 @@
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import es from 'date-fns/locale/es';
 import { format, differenceInMonths, differenceInCalendarDays, lastDayOfMonth, getDate } from 'date-fns';
+import QRCode from 'qrcode';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.store';
 
@@ -722,30 +736,89 @@ const openDialogCalcularDeuda = (contratoId) => {
     .catch(error => qNotify(error, 'error', { callback: () => openDialogCalcularDeuda(contratoId) }))
 }
 
-const handlePrintCalcularDeuda = () => {
-  let postData = {
+const deudaData = computed(() => {
+  if (!calcularDeudaContrato.value.num_contrato) return {};
+
+  let data = {
     data: {
       num_contrato: calcularDeudaContrato.value.num_contrato,
       nombre_completo: calcularDeudaContrato.value.cliente?.nombre_completo,
       num_identidad: calcularDeudaContrato.value.cliente?.num_identidad,
-      ubicaciones: calcularDeudaContratoSelectedParcelas.value.map(parcela => parcela.codigo_parcela).join(', '),
-      tipo_parcela: calcularDeudaContrato.value.tipo_parcela,
+      ubicaciones: calcularDeudaContratoSelectedParcelas.value?.map(parcela => parcela.codigo_parcela).join(', '),
+      tipo_parcela: calcularDeudaContrato.value?.tipo_parcela,
     },
-    fechas: calcularDeudaContrato.value.fechas.map(fecha => {
+    fechas: calcularDeudaContrato.value.fechas?.map(fecha => {
       return {
         desde: format(fecha.desde, 'dd/MM/yyyy'),
         hasta: format(fecha.hasta, 'dd/MM/yyyy'),
         precio: parseFloat(fecha.precio),
       }
-    }),
-  }
+    }) || [],
+  };
 
   if (calcularDeudaContrato.value.mora) {
-    postData.mora = calcularDeudaContrato.value.total_mora
+    data.mora = calcularDeudaContrato.value.total_mora
   }
 
-  console.log(postData)
+  data.total = data.fechas.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (data.mora || 0)
 
+  return data
+})
+
+const srcQrcode = ref('')
+
+function trimDecimals(input, decimals) {
+  // Convert the input to a float if it's a string
+  let number = parseFloat(input);
+
+  // Check if the conversion was successful
+  if (isNaN(number)) {
+    return null; // Invalid input
+  }
+
+  // Check if the number has decimals
+  if (Number.isInteger(number)) {
+    return number; // Return the integer as is
+  }
+
+  // Trim to three decimal places and preserve formatting
+  let trimmedNumber = number.toFixed(decimals);
+
+  // Return as a number or string, depending on preference
+  return parseFloat(trimmedNumber)
+}
+
+watch(deudaData, () => {
+  let jsonData = JSON.parse(JSON.stringify(deudaData.value))
+
+  jsonData = [
+    jsonData.data.num_contrato || '',
+    jsonData.data.nombre_completo || '',
+    jsonData.data.num_identidad || '',
+    jsonData.data.ubicaciones || '',
+    jsonData.data.tipo_parcela || '',
+    jsonData.fechas?.map(fecha => [
+      fecha.desde,
+      fecha.hasta,
+      trimDecimals(fecha.precio, 3)
+    ]) || [],
+    jsonData.mora ? trimDecimals(jsonData.mora, 3) : '',
+    jsonData.total ? trimDecimals(jsonData.total, 3) : '',
+  ]
+
+  let url = "https://updclientdata-jsantana.netlify.app/deuda.html?d=" + JSON.stringify(jsonData);
+
+  QRCode.toDataURL(url, { errorCorrectionLevel: 'L', margin: 1, scale: 10 })
+    .then(url => {
+      srcQrcode.value = url
+    })
+    .catch(err => {
+      console.error(err)
+    })
+})
+
+const handlePrintCalcularDeuda = () => {
+  let postData = deudaData.value
 
   api.post('contratos/imprimirDeuda', postData, { responseType: "blob" })
   .then((response) => {
@@ -815,17 +888,32 @@ const getData = () => {
   dialog.value = true
 }
 
-const handleDownloadPdf = (contratoId) => {
+const handleDownloadPdf = (contrato) => {
+
+  let clienteIncompleto = false;
+  // Verificar que el cliente tiene su información completa
+  ['nombre', 'apellido', 'direccion_habitacion', 'direccion_trabajo', 'telefono_principal', 'telefono_secundario', 'doc_identidad', 'doc_numero'].forEach(key => {
+    if (!contrato.cliente[key]) {
+      clienteIncompleto = true;
+    }
+  });
+
+  if (clienteIncompleto) {
+    qNotify('Debes completar la información del cliente para imprimir el contrato.', 'error');
+    return;
+  }
+
   api
-    .get("contratos/" + contratoId + "/pdf", { responseType: "blob" })
+    .get("contratos/" + contrato.id + "/pdf", { responseType: "blob" })
     .then((response) => {
       console.log(response);
       window.open(URL.createObjectURL(response.data));
+
     })
     .catch(async (error) => {
       error.response.data = JSON.parse(await error.response.data.text());
       qNotify(error, "error", {
-        callback: () => handleDownloadPdf(contratoId),
+        callback: () => handleDownloadPdf(contrato),
       });
     });
 };

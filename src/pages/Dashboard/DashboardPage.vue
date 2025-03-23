@@ -1,106 +1,106 @@
 <template>
-  <div class="row q-col-gutter-md">
-    <div class="col-md-12">
-      <q-card class="q-mb-md">
-        <q-card-section class="bg-primary text-white flex justify-between items-center">
-          <div class="text-h6">Gestión de cobro</div>
-          <div class="flex items-center q-gutter-sm">
-            <q-btn label="Calculadora" icon="calculate" flat @click="calculadoraDialog.openDialog()" />
-            <q-btn label="Imprimir" icon="print" flat @click="() => imprimirTablaCobros()" />
-            <q-field label="Fecha de vencimiento" dark readonly stack-label dense outlined style="width: 275px;">
-              <template v-slot:control>
-                <div class="self-center full-width no-outline" tabindex="0">{{ fechaVencimientoLabel }}</div>
-              </template>
-              <template v-slot:append>
-                <q-icon v-if="fechaVencimiento" name="close" class="cursor-pointer" @click="fechaVencimiento = ''"></q-icon>
-                <q-icon name="event" class="cursor-pointer">
-                  <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                    <q-date v-model="fechaVencimiento" range default-view="Months" emit-immediately
-                      v-close-popup="filterDateClosePopup"
-                      @update:model-value="cargarParcelasVigentesPorFecha()"
-                      years-in-month-view
-                      subtitle="Selecciona rango o pulsa doble click">
-                      <div class="row items-center justify-end">
-                        <q-btn v-close-popup label="Close" color="primary" flat />
-                      </div>
-                    </q-date>
-                  </q-popup-proxy>
-                </q-icon>
-              </template>
-            </q-field>
-          </div>
-        </q-card-section>
-        <q-card-section>
-          <template v-if="isLoading">
-            <div class="text-center q-py-xl">
-              <q-spinner size="xl" color="primary" />
-            </div>
-          </template>
-          <template v-else>
-            <q-virtual-scroll
-              type="table"
-              style="max-height: 50vh"
-              dense flat
-              separator="cell"
-              :virtual-scroll-item-size="48"
-              :virtual-scroll-sticky-size-start="48"
-              :virtual-scroll-sticky-size-end="32"
-              :items="parcelas"
-            >
-              <template v-slot:before>
-                <thead class="thead-sticky text-left">
-                  <tr>
-                    <th v-for="col in Object.keys(columns)" :key="col" style="max-width: 1px; padding-left: 8px; padding-right: 8px; text-align: center">
-                      {{ columns[col] }}
-                    </th>
-                  </tr>
-                </thead>
-              </template>
-              <template v-slot="{ item: row, index }">
-                <tr :key="index">
-                  <td style="max-width: 50px; text-align: center; padding-left: 8px;">
-                    <a href="javascript:void(0)" @click="(e) => verContratosDialog.openDialog(row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato, row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.tipo_parcela)">
-                      {{ row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato }}
-                    </a>
-                  </td>
-                  <td style="max-width: 150px; white-space: break-spaces; line-height: 1.15;">
-                    <a href="javascript:void(0)" @click="(e) => editarClienteDialog.openDialog(row.propietario_id)">
-                      {{ row.cliente_nombre }}
-                    </a>
-                  </td>
-                  <td style="max-width: 50px; text-align: center;">
-                    <a href="javascript:void(0)" @click="(e) => editarParcelaDialog.openDialog(row.id)">
-                      {{ row.codigo_parcela }}
-                    </a>
-                  </td>
-                  <td style="max-width: 150px; white-space: break-spaces; line-height: 1.15;">
-                    {{ row.puestos.filter(p => !!parseInt(p.ocupado)).map(p => p.ocupante_nombre).join(', ') }}
-                  </td>
-                  <td style="max-width: 100px; text-align: center; padding-right: 8px;" :class="{ 'bg-red-2 text-red': row.proximo_mantenimiento == 0, 'bg-yellow-2 text-orange': row.proximo_mantenimiento == 2 }">
-                    {{ row.fecha_ultimo_mantenimiento && new Date(row.fecha_ultimo_mantenimiento) != 'Invalid Date' ? format(new Date(row.fecha_ultimo_mantenimiento), 'dd/MM/yyyy') : '-' }}
-                  </td>
-                  <td style="max-width: 100px; text-align: center;">
-                    {{ row.vigente_hasta && new Date(row.vigente_hasta) != 'Invalid Date' ? format(new Date(row.vigente_hasta), 'dd/MM/yyyy') : '-' }}
-                  </td>
-                  <td style="max-width: 100px;">
-                    <template v-if="row.fecha_ultima_nota">
-                      <q-badge class="cursor-pointer bg-green-1 text-black column" style="white-space: wrap; align-items: end;" :class="`badge-status badge-status-${slugify(row.estatus_nota)}`" @click="(e) => agregarNotasCobroDialog.openDialog(row.propietario_id, { nombre_completo: row.cliente_nombre })">
-                        {{ row.descripcion_nota }} <span class="text-grey-6" style="font-size: .65rem">{{ new Date(row.fecha_ultima_nota) ? format(new Date(row.fecha_ultima_nota), 'dd/MM/yyyy HH:mm') : '-' }}</span>
-                      </q-badge>
-                    </template>
-                    <template v-else>
-                      <q-btn outline color="primary" icon="add" label="Agregar nota" size="xs" class="q-px-sm" @click="(e) => agregarNotasCobroDialog.openDialog(row.propietario_id, { nombre_completo: row.cliente_nombre })"/>
-                    </template>
-                  </td>
-                </tr>
-              </template>
-            </q-virtual-scroll>
-          </template>
-        </q-card-section>
-      </q-card>
-    </div>
 
-  </div>
+  <q-card class="q-mb-md">
+    <q-card-section class="bg-primary text-white flex justify-between items-center">
+      <div class="text-h6">Gestión de cobro</div>
+      <div class="flex items-center q-gutter-sm">
+        <q-btn label="Calculadora" icon="calculate" flat @click="calculadoraDialog.openDialog()" />
+        <q-btn label="Imprimir" icon="print" flat @click="() => imprimirTablaCobros()" />
+        <q-field label="Fecha de vencimiento" dark readonly stack-label dense outlined style="width: 275px;">
+          <template v-slot:control>
+            <div class="self-center full-width no-outline" tabindex="0">{{ fechaVencimientoLabel }}</div>
+          </template>
+          <template v-slot:append>
+            <q-icon v-if="fechaVencimiento" name="close" class="cursor-pointer" @click="fechaVencimiento = ''"></q-icon>
+            <q-icon name="event" class="cursor-pointer">
+              <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                <q-date v-model="fechaVencimiento" range default-view="Months" emit-immediately
+                  v-close-popup="filterDateClosePopup"
+                  @update:model-value="cargarParcelasVigentesPorFecha()"
+                  years-in-month-view
+                  subtitle="Selecciona rango o pulsa doble click">
+                  <div class="row items-center justify-end">
+                    <q-btn v-close-popup label="Close" color="primary" flat />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-field>
+      </div>
+    </q-card-section>
+    <q-card-section class="q-pa-none">
+      <template v-if="isLoading">
+        <div class="text-center q-py-xl">
+          <q-spinner size="xl" color="primary" />
+        </div>
+      </template>
+      <template v-else>
+        <q-virtual-scroll
+          type="table"
+          style="max-height: 50vh"
+          dense flat
+          separator="cell"
+          :virtual-scroll-item-size="48"
+          :virtual-scroll-sticky-size-start="48"
+          :virtual-scroll-sticky-size-end="32"
+          :items="parcelas"
+        >
+          <template v-slot:before>
+            <thead class="thead-sticky text-left">
+              <tr>
+                <th v-for="col in Object.keys(columns)" :key="col" style="max-width: 1px; padding-left: 8px; padding-right: 8px; text-align: center">
+                  {{ columns[col] }}
+                </th>
+              </tr>
+            </thead>
+          </template>
+          <template v-slot="{ item: row, index }">
+            <tr :key="index">
+              <td style="max-width: 50px; text-align: center; padding-left: 8px;">
+                <a href="javascript:void(0)" @click="(e) => verContratosDialog.openDialog(row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato, row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.tipo_parcela)">
+                  {{ row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato }}
+                </a>
+              </td>
+              <td style="max-width: 150px; white-space: break-spaces; line-height: 1.15;">
+                <a href="javascript:void(0)" @click="(e) => editarClienteDialog.openDialog(row.propietario_id)">
+                  {{ row.cliente_nombre }}
+                </a>
+              </td>
+              <td style="max-width: 50px; text-align: center;">
+                <a href="javascript:void(0)" @click="(e) => editarParcelaDialog.openDialog(row.id)">
+                  {{ row.codigo_parcela }}
+                </a>
+              </td>
+              <td style="max-width: 150px; white-space: break-spaces; line-height: 1.15;">
+                {{ row.puestos.filter(p => !!parseInt(p.ocupado)).map(p => p.ocupante_nombre).join(', ') }}
+              </td>
+              <td style="max-width: 100px; text-align: center; padding-right: 8px;" :class="{ 'bg-red-2 text-red': row.proximo_mantenimiento == 0, 'bg-yellow-2 text-orange': row.proximo_mantenimiento == 2 }">
+                {{ row.fecha_ultimo_mantenimiento && new Date(row.fecha_ultimo_mantenimiento) != 'Invalid Date' ? format(new Date(row.fecha_ultimo_mantenimiento), 'dd/MM/yyyy') : '-' }}
+              </td>
+              <td style="max-width: 100px; text-align: center;">
+                {{ row.vigente_hasta && new Date(row.vigente_hasta) != 'Invalid Date' ? format(new Date(row.vigente_hasta), 'dd/MM/yyyy') : '-' }}
+              </td>
+              <td style="max-width: 100px; padding: 4px 2px 6px;">
+                <template v-if="row.fecha_ultima_nota">
+                  <q-badge class="cursor-pointer bg-green-1 text-black column" style="align-items: start; max-width: 100%;" :class="`badge-status badge-status-${slugify(row.estatus_nota)}`" @click="(e) => agregarNotasCobroDialog.openDialog(row.propietario_id, { nombre_completo: row.cliente_nombre })">
+                    <span class="text-grey-6 q-mb-xs" style="font-size: .65rem">{{ new Date(row.fecha_ultima_nota) ? format(new Date(row.fecha_ultima_nota), 'dd/MM/yyyy HH:mm') : '-' }}</span>
+                    <div style="max-width: 100%; white-space: break-spaces; line-height: 1.15;">
+                      {{ row.descripcion_nota }}
+                    </div>
+                  </q-badge>
+                </template>
+                <template v-else>
+                  <q-btn outline color="primary" icon="add" label="Agregar nota" size="xs" class="q-px-sm" @click="(e) => agregarNotasCobroDialog.openDialog(row.propietario_id, { nombre_completo: row.cliente_nombre })"/>
+                </template>
+              </td>
+            </tr>
+          </template>
+        </q-virtual-scroll>
+      </template>
+    </q-card-section>
+  </q-card>
+
 
   <DialogVerContratos ref="verContratosDialog" />
   <DialogEditarParcela ref="editarParcelaDialog" />

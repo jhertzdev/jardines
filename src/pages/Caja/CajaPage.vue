@@ -64,9 +64,6 @@
             </template>
           </q-input>-->
 
-
-
-
           <div class="flex justify-between q-mb-md">
             <div class="q-gutter-xs">
               <q-btn-toggle class="custom-btn-toggle" dense v-model="tipoTransaccion" toggle-color="primary" :options="[
@@ -76,9 +73,9 @@
               <q-btn dense color="negative" :flat="!verAnulados" label="Ver anulados" icon="archive" @click="verAnulados = true; tipoTransaccion = null, transaccionesTableRef.requestServerInteraction()" />
             </div>
             <div class="q-gutter-sm">
-              <q-btn dense class="q-px-sm" color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" />
+              <q-btn dense class="q-px-sm" color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" v-if="!authStore.user.role_perms.find((role) => role == 'cajas.verFiscal')" />
               <q-btn dense class="q-px-sm" color="primary" label="Relación de ingresos" icon="assessment" to="caja/reportes/ingresos" />
-              <q-btn dense class="q-px-sm" color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')" />
+              <q-btn dense class="q-px-sm" color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*' || role == 'cajas.verFiscal')" />
             </div>
           </div>
 
@@ -101,6 +98,18 @@
                 </q-badge>
               </q-td>
             </template>
+            <template v-slot:body-cell-fiscal="props">
+              <q-td :props="props" style="padding-right: 0;" :class="props.row.deleted_at && 'highlighted'">
+                <q-checkbox v-model="props.row.es_fiscal" dense size="sm" color="primary" class="q-mr-xs" true-value="1" false-value="0"
+                @update:model-value="handleSetEstatusFiscal(props.row.id, props.row.es_fiscal)"
+                :disable="!authStore.user.role_perms.find((role) => role == 'cajas.fiscal' || role == 'cajas.*')"
+
+                />
+                <pre v-if="false">
+                  {{ props.row.contrato.cliente }}
+                </pre>
+              </q-td>
+            </template>
             <template v-slot:body-cell-num_contrato="props">
               <q-td :props="props">
                 <a href="javascript:void(0)" @click="verContratosDialog.openDialog(props.row.contrato.num_contrato, props.row.contrato.tipo_parcela)">
@@ -116,7 +125,12 @@
                     props.row.contrato?.fecha_vencimiento &&
                     props.row.contrato?.vigente_hasta
                   ">
-                    <q-icon v-if="new Date(props.row.contrato.vigente_hasta) >= add(props.row.contrato.fecha_vencimiento, { years: 1})" name="warning" color="yellow-2">
+                    <q-icon v-if="checkClienteIncompleto(props.row.contrato.cliente)" name="person" color="yellow-2">
+                      <q-tooltip max-width="200px" class="text-center bg-black">
+                        La información del cliente está incompleta.
+                      </q-tooltip>
+                    </q-icon>
+                    <q-icon v-else-if="new Date(props.row.contrato.vigente_hasta) >= add(props.row.contrato.fecha_vencimiento, { years: 1})" name="warning" color="yellow-2">
                       <q-tooltip max-width="200px" class="text-center bg-black">
                         Debes renovar el contrato antes de imprimir el recibo.
                       </q-tooltip>
@@ -342,6 +356,7 @@
                 <th style="text-align: left">Caja</th>
                 <th style="text-align: left">Cerrado por</th>
                 <th style="text-align: left">Imprimir relación</th>
+                <th style="text-align: left">Observaciones</th>
               </tr>
             </thead>
             <tbody>
@@ -350,8 +365,33 @@
                 <td>{{ cierre.nombre_caja }}</td>
                 <td style="max-width: 150px; line-height: 1.15; white-space: break-spaces">{{ cierre.nombre_completo }} ({{ cierre.username }})</td>
                 <td class="q-gutter-x-xs">
-                  <q-btn color="primary" size="sm" label="General" icon="print" @click="handleDescargarReportePorCierre(cierre.id)" />
-                  <q-btn color="primary" size="sm" label="Por usuario" icon="print" @click="handleDescargarReportePorCierre(cierre.id, true)" />
+                  <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.*')">
+                    <q-btn color="primary" size="sm" class="q-px-sm" label="General" icon="print" @click="handleDescargarReportePorCierre(cierre.id)" />
+                    <q-btn color="primary" size="sm" class="q-px-sm" label="Por usuario" icon="print" @click="handleDescargarReportePorCierre(cierre.id, 'por_usuario')" />
+                    <q-btn color="primary" size="sm" class="q-px-sm" label="Fiscal" icon="print" @click="handleDescargarReportePorCierre(cierre.id, 'fiscal')" />
+                  </template>
+                  <template v-if="authStore.user.role_perms.find((role) => role == 'cajas.verFiscal')">
+                    <q-btn color="primary" size="sm" class="q-px-sm" label="General" icon="print" @click="handleDescargarReportePorCierre(cierre.id, 'fiscal')" />
+                  </template>
+                </td>
+                <td style="max-width: 200px; line-height: 1.15; white-space: break-spaces">
+                  <template v-if="cierre.notas?.length">
+                    <ul class="q-pl-none q-mt-none">
+                      <li v-for="(nota, index) in cierre.notas" :key="nota + '-' + index">{{ nota }}</li>
+                    </ul>
+                    <a class="block q-my-xs" href="javascript:void(0)" @click="openDialogEditarObservacionCierre(cierre)">
+                      <q-badge outline color="primary">
+                        <q-icon name="edit" class="q-mr-xs"></q-icon> Editar
+                      </q-badge>
+                    </a>
+                  </template>
+                  <span v-else>
+                    <a class="block q-my-xs" href="javascript:void(0)" @click="openDialogEditarObservacionCierre(cierre)">
+                      <q-badge outline color="primary">
+                        <q-icon name="add" class="q-mr-xs"></q-icon> Agregar
+                      </q-badge>
+                    </a>
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -453,6 +493,7 @@
               <tr v-for="pago in transaccionData.pagos" :key="pago.id">
                 <td>
                   <q-btn size="sm" dense color="negative" icon="delete" @click="handleEliminarPago(pago.id)" />
+                  <q-btn size="sm" dense color="primary" icon="edit" @click="showDialogEditarPago = true; dialogEditarPagoData = pago" />
                 </td>
                 <td>{{ pago.created_at.substr(0, 10) }}</td>
                 <td>{{ metodosPago.find(m => m.id == pago.metodo_pago_id)?.metodo || pago.metodo_pago_id }}</td>
@@ -469,12 +510,71 @@
       </q-card>
     </q-dialog>
 
+    <q-dialog v-model="showDialogEditarObservacionCierre" class="j-dialog j-dialog-lg">
+      <q-card v-if="dialogObservacionesCierreData.id">
+        <q-card-section>
+          <div class="text-h6">{{ dialogObservacionesCierreData.nombre_caja }} ({{ dialogObservacionesCierreData.created_at.substr(0, 10) }})</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="row q-col-gutter-md q-mb-sm" v-for="(nota, index) in dialogObservacionesCierreData.notas" :key="'nota-' + index">
+            <div class="col-auto" style="display: flex;align-items: center;">
+              <q-btn color="negative" icon="delete" size="sm" @click="dialogObservacionesCierreData.notas.splice(index, 1)" :disable="dialogObservacionesCierreData.notas.length == 1"></q-btn>
+            </div>
+            <div class="col">
+              <q-input v-model="dialogObservacionesCierreData.notas[index]" outlined></q-input>
+            </div>
+          </div>
+          <div class="text-center q-mt-md">
+            <q-btn color="primary" label="Agregar observación" icon="add" @click="dialogObservacionesCierreData.notas.push('')" />
+          </div>
+        </q-card-section>
+        <q-separator></q-separator>
+        <q-card-actions align="right">
+          <q-btn color="primary" type="submit" label="Guardar" icon="save" @click="handleEditarObservacionesCierre(dialogObservacionesCierreData.id, dialogObservacionesCierreData.notas)" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="showDialogEditarPago" class="j-dialog j-dialog-lg">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Editar pago</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="row q-col-gutter-sm">
+            <div class="col-6">
+              <q-input type="number" step="0.01" v-model="dialogEditarPagoData.monto" label="Monto" clearable outlined dense />
+            </div>
+            <div class="col-6">
+              <q-input type="number" step="0.01" v-model="dialogEditarPagoData.referencia" label="Referencia" clearable outlined dense />
+            </div>
+            <div class="col-3">
+              <q-select v-model="dialogEditarPagoData.metodo_pago_id" :options="metodosPago.map(m => { return { label: m.metodo, value: m.id } })" label="Método de pago" clearable outlined dense map-options emit-value  />
+            </div>
+            <div class="col-6">
+              <QSelectMoneda v-model="dialogEditarPagoData.moneda_id" label="Moneda" outlined dense @update:model-value="monedaId => {
+                let monedaSeleccionada = appStore.monedas.find(m => m.id == monedaId)
+                dialogEditarPagoData.tasa_ref = monedaSeleccionada.tasa
+              }" />
+            </div>
+            <div class="col-3">
+              <q-input type="number" step="0.01" v-model="dialogEditarPagoData.tasa_ref" label="Tasa" clearable outlined dense />
+            </div>
+          </div>
+        </q-card-section>
+        <q-separator></q-separator>
+        <q-card-actions align="right">
+          <q-btn color="primary" type="submit" label="Guardar" icon="save" @click="handleEditarPago()" :loading="isLoadingEditarLineaRecibo" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
   </q-page>
 
   <DialogVerContratos ref="verContratosDialog" />
   <DialogRenovarContrato ref="renovarContratoDialog" @done="handleRenovarContrato" />
   <DialogActualizarFechas ref="actualizarFechasDialog" />
+  <DialogAgregarCliente ref="editarClienteDialog" @updated="transaccionesTableRef.requestServerInteraction()" />
 
 </template>
 
@@ -489,13 +589,25 @@
   color: #fff;
 }
 
+.badge-status-contactado {
+  background-color: #e3f2fd !important
+}
+
+.badge-status-no-contactado {
+  background-color: #ffebee !important
+}
+
+.badge-status-respondido {
+  background-color: #e8f5e9 !important
+}
+
 .custom-btn-toggle .q-btn {
   padding: .285em 8px;
 }
 </style>
 
 <script setup>
-  import { ref, computed, onMounted, watch, toRef } from "vue";
+  import { ref, computed, onMounted, onBeforeMount, watch, toRef } from "vue";
   import { api } from "src/boot/axios";
   import { useRouter } from "vue-router";
   import { $dinero, qNotify } from 'src/boot/jardines';
@@ -505,7 +617,10 @@
   import { useQuasar } from 'quasar';
 
   import QSelectUbicacion from "src/components/selects/QSelectUbicacion.vue";
+  import QSelectMoneda from "src/components/selects/QSelectMoneda.vue";
+  import QSelectMetodosPago from "src/components/selects/QSelectMetodosPago.vue";
 
+  import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue";
   import DialogVerContratos from "src/components/popups/DialogVerContratos.vue";
   import DialogRenovarContrato from "src/components/popups/DialogRenovarContrato.vue";
   import DialogActualizarFechas from "src/components/popups/DialogActualizarFechas.vue";
@@ -523,14 +638,47 @@
 
   const showModalEditarLineaRecibo = ref(false)
   const showDialogBuscarPagos = ref(false)
+  const showDialogEditarPago = ref(false)
   const agregarEditarLineaRecibo = ref({})
   const isLoadingEditarLineaRecibo = ref(false)
+
   const verContratosDialog = ref(null)
   const renovarContratoDialog = ref(null)
   const actualizarFechasDialog = ref(null)
+  const editarClienteDialog = ref(null)
+
   const servicios = ref([])
 
   const $q = useQuasar()
+
+  const dialogEditarPagoData = ref({})
+  const handleEditarPago = () => {
+    const postData = {
+      id: dialogEditarPagoData.value.id,
+      metodo_pago_id: dialogEditarPagoData.value.metodo_pago_id,
+      monto: dialogEditarPagoData.value.monto,
+      tasa_ref: dialogEditarPagoData.value.tasa_ref,
+      referencia: dialogEditarPagoData.value.referencia,
+      moneda_id: dialogEditarPagoData.value.moneda_id,
+      cliente_id: dialogEditarPagoData.value.cliente_id,
+      transaccion_id: dialogEditarPagoData.value.transaccion_id,
+    }
+
+    isLoadingEditarLineaRecibo.value = true
+
+    api.post('caja/transacciones/editarPago/' + dialogEditarPagoData.value.id, postData)
+      .then(response => {
+        if (response.data) {
+          $q.notify({ message: 'Pago editado correctamente.', color: 'positive' })
+          showDialogVerPagos.value = false
+          showDialogEditarPago.value = false
+          showModalAgregarPago.value = false
+          transaccionesTableRef.value.requestServerInteraction()
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleEditarPago() }))
+      .finally(() => isLoadingEditarLineaRecibo.value = false)
+  }
 
   const handleEditLineaRecibo = (linea) => {
     console.log(linea)
@@ -547,6 +695,16 @@
         }
       })
     }
+  }
+
+  const handleSetEstatusFiscal = (id, es_fiscal) => {
+    api.post('caja/transacciones/fiscal/' + id, { es_fiscal })
+      .then(response => {
+        if (response.data) {
+          $q.notify({ message: 'Estatus actualizado correctamente.', color: 'positive' })
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleSetEstatusFiscal(id, estatus) }))
   }
 
   const handleSubmitEditarLineaRecibo = () => {
@@ -657,6 +815,42 @@
 
   const openDialogVerPagos = () => {
     showDialogVerPagos.value = true
+  }
+
+  const showDialogEditarObservacionCierre = ref(false)
+  const dialogObservacionesCierreData = ref({
+    id: null,
+    notas: [],
+    created_at: '',
+    nombre_caja: '',
+  })
+
+  const openDialogEditarObservacionCierre = (cierre) => {
+    showDialogEditarObservacionCierre.value = true
+    dialogObservacionesCierreData.value = {
+      id: cierre.id,
+      notas: JSON.parse(JSON.stringify(cierre.notas.length ? cierre.notas : [''])),
+      created_at: cierre.created_at,
+      nombre_caja: cierre.nombre_caja,
+    }
+  }
+
+  const isLoadingSubmitEditarObservacionesCierre = ref(false)
+
+  const handleEditarObservacionesCierre = (cierreId, notas) => {
+    notas = notas.filter(nota => nota.length) || []
+    isLoadingSubmitEditarObservacionesCierre.value = true
+
+    api.post('caja/movimientos/' + cierreId + '/notas', { notas })
+      .then(response => {
+        if (response.data) {
+          showDialogEditarObservacionCierre.value = false
+          $q.notify({ message: 'Observaciones guardadas.', color: 'positive' })
+          openDialogHistorialIngresos()
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: () => handleEditarObservacionesCierre(cierreId, notas) }))
+      .finally(() => isLoadingSubmitEditarObservacionesCierre.value = false)
   }
 
   const handleEliminarPago = (id, confirm = false) => {
@@ -784,7 +978,7 @@
     transaccionesTableRef.value.requestServerInteraction()
     if (contrato?.reciboId) {
       handleDownloadPdf(contrato.reciboId, contrato, () => {
-        verContratosDialog.value.handleDownloadPdf(contrato.id)
+        verContratosDialog.value.handleDownloadPdf(contrato)
       })
     }
   }
@@ -806,7 +1000,10 @@
             contrato?.fecha_vencimiento &&
             contrato?.vigente_hasta
           ) {
-            if (new Date(contrato.vigente_hasta) >= add(contrato.fecha_vencimiento, { years: 1})) {
+            if (checkClienteIncompleto(contrato.cliente)) {
+              $q.notify({ message: 'Debes completar la información del cliente para imprimir el contrato.', color: 'negative', icon: 'warning' })
+              return editarClienteDialog.value.openDialog(contrato.cliente.id)
+            } else if (new Date(contrato.vigente_hasta) >= add(contrato.fecha_vencimiento, { years: 1})) {
               $q.notify({ message: 'Debes renovar el contrato antes de imprimir el recibo.', color: 'negative', icon: 'warning' })
               return renovarContratoDialog.value.openDialog(contrato.id, { reciboId: id})
             } else {
@@ -837,6 +1034,7 @@
         if (callback) callback()
       })
       .catch(async (error) => {
+        console.log(error)
         error.response.data = JSON.parse(await error.response.data.text());
         qNotify(error, "error", {
           callback: () => _handleDownloadPdf(id, callback),
@@ -903,12 +1101,26 @@
       })
   }
 
-  const handleDescargarReportePorCierre = (cierreId, porUsuario = false) => {
+  const checkClienteIncompleto = (cliente) => {
+    let clienteIncompleto = false;
+
+    ['nombre', 'apellido', 'direccion_habitacion', 'direccion_trabajo', 'telefono_principal', 'telefono_secundario', 'doc_identidad', 'doc_numero'].forEach(key => {
+      if (!cliente[key]) clienteIncompleto = true;
+    });
+
+    return clienteIncompleto;
+  }
+
+  const handleDescargarReportePorCierre = (cierreId, tipoReporte = null) => {
 
     let endpoint = `caja/reportes/ingresos?cierre_id=${cierreId}&print=1`
-    if (porUsuario) {
+    if (tipoReporte == 'por_usuario') {
       endpoint += '&por_usuario=1'
+    } else if (tipoReporte == 'fiscal') {
+      endpoint += '&fiscal=1'
     }
+
+    console.log('Endpoint:', endpoint)
 
     api.get(endpoint, { responseType: "blob" })
     .then((response) => {
@@ -919,7 +1131,7 @@
       console.log(error);
       error.response.data = JSON.parse(await error.response.data.text());
       qNotify(error, "error", {
-        callback: () => handleDescargarReportePorCierre(cierreId, porUsuario),
+        callback: () => handleDescargarReportePorCierre(cierreId, 'por_usuario'),
       });
     });
   };
@@ -980,6 +1192,7 @@
   /* TRANSACCIONES */
   const transaccionesColumnas = [
     { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
+    { name: 'fiscal', label: 'Fiscal', align: 'left', field: 'es_fiscal', style: 'width: 50px' },
     { name: 'acciones', label: '', align: 'left' },
     { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => format(new Date(val), 'dd/MM/yyyy HH:mm') },
     { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true, style: 'width: 200px; white-space: break-spaces; line-height: 1.15' },
@@ -1170,6 +1383,17 @@
     let balance = totalFinal - totalPagado;
 
     return balance;
+  })
+
+  onBeforeMount(() => {
+    if (authStore.user.role_perms.find((role) => role == 'cajas.verFiscal')) {
+
+      ['fiscal', 'acciones'].forEach(column => {
+        let columnIndex = transaccionesColumnas.findIndex(c => c.name == column)
+        if (columnIndex != -1) transaccionesColumnas.splice(columnIndex, 1)
+      })
+
+    }
   })
 
 

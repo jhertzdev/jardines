@@ -81,7 +81,9 @@ function getReporteIngresos() {
         ingresos.value = response.data
       }
     })
-    .catch(e => console.log(e))
+    .catch(e => {
+      qNotify(e, 'error')
+    })
 }
 
 const handleDescargarReporteIngresos = () => {

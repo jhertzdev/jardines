@@ -100,10 +100,14 @@
                         <td style="font-size:.7rem; letter-spacing: -0.2px;">
                           <template v-if="row.descripcion_nota">
                             <div>
-                              <q-badge :class="`badge-status-${slugify(row.estatus_nota)}`" class="q-mr-xs q-mt-xs text-black" style="border: 1px solid #ccc; white-space: wrap; max-width: 320px;">
-                                {{ row.fecha_ultima_nota ? format(new Date(row.fecha_ultima_nota), 'dd/MM/yyyy') : '' }}:
-                                {{ row.descripcion_nota }}
+
+                              <q-badge :class="`badge-status-${slugify(row.estatus_nota)}`" class="q-mr-xs q-mt-xs text-black column" style="border: 1px solid #ccc; white-space: wrap; max-width: 320px; align-items: start;">
+                                <span class="text-grey-6 q-mb-xs" style="font-size: .65rem">{{ new Date(row.fecha_ultima_nota) ? format(new Date(row.fecha_ultima_nota), 'dd/MM/yyyy HH:mm') : '-' }}</span>
+                                <div style="max-width: 100%; white-space: break-spaces; line-height: 1.15;">
+                                  {{ row.descripcion_nota }}
+                                </div>
                               </q-badge>
+
                               <q-separator class="q-my-xs"></q-separator>
                             </div>
                           </template>

@@ -1,14 +1,13 @@
 <template>
   <q-select v-model="props.modelValue" :dense="props.dense" :outlined="props.outlined" :options="options" :label="props.label || ''"
     :hint="props.hint || ''" :lazy-rules="props.required" :rules="[val => !props.required || (val && val.length > 0) || props.rule ]"
-    :clearable="clearable" :multiple="props.multiple" :use-chips="!!props.multiple" emit-value map-options @update:model-value="updateValue" />
+    :clearable="clearable" :style="!props.rule && 'margin-bottom: -20px;'" emit-value map-options @update:model-value="updateValue" />
 </template>
 
 <script setup>
 
 import { api } from 'src/boot/axios';
 import { ref, onMounted } from 'vue'
-import { useAppStore } from 'src/stores/app.store';
 
 const props = defineProps({
   dense: {
@@ -24,10 +23,6 @@ const props = defineProps({
     default: false,
   },
   required: {
-    type: Boolean,
-    default: false,
-  },
-  multiple: {
     type: Boolean,
     default: false,
   },
@@ -56,21 +51,18 @@ const updateValue = (value) => {
 
 const options = ref([]);
 
-const appStore = useAppStore()
-
 async function getOptions() {
 
-  let endpoint = 'caja/metodos';
+  let endpoint = 'usuarios';
 
   try {
     const response = await api.get(endpoint)
-
     if (response.data) {
       options.value = []
       response.data.forEach(row => {
         options.value.push({
-          label: appStore.metodosDePago.find(item => item.id == row.id)?.metodo,
-          value: parseInt(row.id),
+          label: `${row.username} - ${row.nombre_completo} (${row.num_identidad})`,
+          value: row.id,
         })
       })
       return true
@@ -81,7 +73,6 @@ async function getOptions() {
 }
 
 onMounted(() => {
-  appStore.getMetodosDePago()
   getOptions()
 })
 

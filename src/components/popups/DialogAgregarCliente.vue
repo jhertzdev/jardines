@@ -1,8 +1,8 @@
 <template>
   <!-- Crear cliente -->
   <q-dialog allow-focus-outside v-model="dialog" class="j-dialog j-dialog-xl">
-    <q-card class="q-pa-md">
-      <q-form @submit="handleSubmit" class="no-bottoms" :class="isLoadingSubmit && 'form-disabled'">
+    <q-card class="q-pa-md scroll">
+      <q-form @submit="handleSubmit" class="no-bottoms" :class="isLoadingSubmit && 'form-disabled'" ref="editarClienteForm" @validation-error="onValidationError">
         <q-card-section>
           <div class="text-h6">{{ data.id ? 'Editar' : 'Agregar' }} {{ props.difunto ? 'difunto' : (props.relacionado ? 'relacionado' : 'cliente') }}</div>
         </q-card-section>
@@ -53,34 +53,186 @@
                         :rules="[val => val && val.length > 0 || '']" :disable="!data.doc_identidad"
                         :class="!data.doc_identidad && 'bg-grey-3'" />
                     </div>
+                    <div class="col-12">
+                        <div class="row">
+                          <div class="col-sm-6 col-12">
+                            <q-checkbox v-model="data.estado_gerencia" true-value="1" false-value="0" label="Estado de gerencia"
+                              :disable="!authStore.can('clientes.gerencia')">
+                              <q-tooltip max-width="200px" class="text-center bg-black">
+                                Al marcar esta opción, solo un usuario con permisos para editar clientes bloqueados podrá editarlo.
+                              </q-tooltip>
+                            </q-checkbox>
+                          </div>
+                          <div class="col-sm-6 col-12 text-right">
+                            <q-checkbox v-model="data.difunto" true-value="1" false-value="0" label="¿Fallecido?"
+                              :disable="!!(props.difunto || data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
+                              <q-tooltip max-width="200px" class="text-center bg-black"
+                                v-if="!!(data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
+                                Para desmarcar esta opción, debes eliminar la información de fecha y causa de muerte, y número de
+                                certificado.
+                              </q-tooltip>
+                            </q-checkbox>
+                          </div>
+
+                        </div>
+
+                      </div>
                     <template v-if="props.difunto">
                       <div class="col-sm-6 col-12">
-                        <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento" />
+                        <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
                       </div>
                       <div class="col-sm-6 col-12">
-                        <q-input type="datetime-local" dense outlined v-model="data.fecha_muerte" label="Fecha de muerte" />
+                        <q-input type="datetime-local" dense outlined v-model="data.fecha_muerte" label="Fecha de muerte *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
                       </div>
                       <div class="col-12">
-                        <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado" />
+                        <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
                       </div>
                       <div class="col-12">
-                        <q-input dense outlined v-model="data.causa_muerte" label="Causa de muerte" />
+                        <q-input dense outlined v-model="data.causa_muerte" label="Causa de muerte *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
+                      </div>
+                      <div class="col-12">
+                        <q-separator class="q-my-sm"></q-separator>
                       </div>
                     </template>
                     <template v-if="!props.difunto">
-                      <div class="col-12">
-                        <q-input dense outlined v-model="data.email" label="Email" />
-                      </div>
+                      <template v-if="parseInt(data.difunto)">
+                        <div class="col-sm-6 col-12">
+                          <q-input type="datetime-local" dense outlined stack-label label="Fecha de muerte *" v-model="data.fecha_muerte" lazy-rules :rules="[val => val && val.length > 0 || '']" />
+                        </div>
+                        <div class="col-sm-6 col-12">
+                          <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
+                        </div>
+                        <div class="col-12">
+                          <q-input dense outlined v-model="data.causa_muerte" label="Causa de muerte *" lazy-rules :rules="[val => val && val.length > 0 || '']" />
+                        </div>
+                        <div class="col-12">
+                          <q-separator class="q-my-sm"></q-separator>
+                        </div>
+                      </template>
                       <div class="col-sm-6 col-12">
-                        <q-input dense outlined v-model="data.telefono_principal" label="Teléfono principal" />
-                      </div>
-                      <div class="col-sm-6 col-12">
-                        <q-input dense outlined v-model="data.telefono_secundario" label="Teléfono secundario" />
-                      </div>
-                      <div class="col-12">
-                        <q-input dense outlined v-model="data.direccion_habitacion" label="Dirección de habitación" />
+                        <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento" />
                       </div>
                     </template>
+
+
+
+
+                    <div :class="props.difunto ? 'col-12' : 'col-sm-6 col-12'">
+                      <q-input dense outlined v-model="data.email"
+                      :label="`Email ${!esDifunto ? '*' : ''}`"
+                      :rules="[val => (esDifunto) || (val && val.length > 0 || '')]" />
+                    </div>
+                    <div class="col-sm-6 col-12">
+                      <q-input dense outlined v-model="data.telefono_principal"
+                      :label="`Teléfono principal ${!esDifunto ? '*' : ''}`"
+                      :rules="[val => (esDifunto) || (val && val.length > 0 || '')]" />
+                    </div>
+                    <div class="col-sm-6 col-12">
+                      <q-input dense outlined v-model="data.telefono_secundario"
+                      :label="`Teléfono secundario ${!esDifunto ? '*' : ''}`"
+                      :rules="[val => (esDifunto) || (val && val.length > 0 || '')]" />
+                    </div>
+                    <div class="col-12">
+                      <q-input dense outlined v-model="data.direccion_habitacion"
+                      :label="`Dirección de habitación ${!esDifunto ? '*' : ''}`"
+                      :rules="[val => (esDifunto) || (val && val.length > 0 || '')]" />
+                    </div>
+                    <div class="col-sm-6 col-12">
+                      <q-select dense :options="['Soltero/a ', 'Casado/a', 'Divorciado/a', 'Viudo/a']" outlined
+                        v-model="data.estado_civil"
+                        :label="`Estado civil ${!esDifunto ? '*' : ''}`"
+                        :rules="[val => (esDifunto) || (val && val.length > 0 || '')]"
+                        clearable />
+                    </div>
+                    <div class="col-sm-6 col-12">
+                      <q-select dense :options="['Masculino', 'Femenino']" outlined v-model="data.genero"
+                        :label="`Género ${!esDifunto ? '*' : ''}`"
+                        :rules="[val => (esDifunto) || (val && val.length > 0 || '')]"
+                        clearable />
+                    </div>
+
+                  </div>
+
+                <q-separator class="q-mt-lg q-mb-md"/>
+
+                <p class="text-primary text-h6">
+                  <q-icon name="work" size="sm"></q-icon> Información laboral </p>
+                <div class="row q-col-gutter-sm">
+                  <div class="col-12">
+                    <q-input dense outlined v-model="data.direccion_trabajo"
+                    :label="`Dirección de trabajo ${!esDifunto ? '*' : ''}`"
+                    :rules="[val => esDifunto || (val && val.length > 0 || '')]" />
+                  </div>
+                  <div class="col-sm-6 col-12">
+                    <q-input dense outlined v-model="data.telefono_trabajo"
+                    :label="`Teléfono de trabajo ${!esDifunto ? '*' : ''}`"
+                    :rules="[val => esDifunto || (val && val.length > 0 || '')]" />
+                  </div>
+                  <div class="col-sm-6 col-12">
+                    <q-input dense outlined v-model="data.puesto_empresa"
+                    :label="`Posición / Cargo ${!esDifunto ? '*' : ''}`"
+                    :rules="[val => esDifunto || (val && val.length > 0 || '')]" />
+                  </div>
+                  <div class="col-sm-6 col-12">
+                    <q-input dense outlined v-model="data.nombre_empresa"
+                    :label="`Nombre de la empresa ${!esDifunto ? '*' : ''}`"
+                    :rules="[val => esDifunto || (val && val.length > 0 || '')]" />
+                  </div>
+                  <div class="col-sm-6 col-12">
+                    <q-input dense outlined v-model="data.rif_empresa"
+                    :label="`RIF (empresa) ${!esDifunto ? '*' : ''}`"
+                    :rules="[val => esDifunto || (val && val.length > 0) || '']" />
+                  </div>
+                </div>
+              </q-card>
+            </div>
+
+            <div class="col-md-6">
+              <q-card flat bordered class="q-pa-sm q-mb-md" style="max-width: 100%">
+                <p class="text-primary text-h6 flex justify-between items-center">
+                  <div>
+                    <q-icon name="share" size="sm"></q-icon> Redes sociales
+                  </div>
+                  <q-btn dense size="sm" class="btn-agregar-item" icon="add" outline color="primary" @click="handleAgregarRedSocial()">
+                    <q-tooltip class="bg-black" anchor="top middle" self="bottom middle" max-width="240px">
+                      Agregar una nueva red social.
+                    </q-tooltip>
+                  </q-btn>
+                </p>
+
+                <div class="row q-col-gutter-sm q-mb-sm" v-for="(redes, index) in data.redes_sociales" :key="'redes' + index">
+                  <div class="col-4">
+                    <q-select dense :options="['Facebook', 'Instagram', 'Twitter', 'LinkedIn', 'YouTube', 'WhatsApp', 'Telegram', 'Otra']" outlined
+                      v-model="data.redes_sociales[index].plataforma" label="Red social" ref="socialNetworksSelectRefs" clearable />
+                  </div>
+                  <div class="col-7">
+                    <q-input dense outlined v-model="data.redes_sociales[index].enlace" label="Enlace" />
+                  </div>
+                  <div class="col-1 flex flex-center">
+                    <q-btn dense size="sm" class="btn-eliminar-item" icon="delete" outline color="negative" @click="data.redes_sociales.splice(index, 1)" />
+                  </div>
+                </div>
+
+                <div class="text-center bg-green-1 flex flex-center q-mb-md" style="border: 1px dashed var(--q-primary);  border-radius: 5px; min-height: 140px;" v-if="!data.redes_sociales?.length">
+                  <q-btn type="button" color="primary" label="Agregar red social" icon="add" @click="handleAgregarRedSocial()">
+                  </q-btn>
+                </div>
+
+                <q-separator class="q-mt-lg q-mb-md"></q-separator>
+
+                <p class="text-primary text-h6">
+                  <q-icon name="note" size="sm"></q-icon> Notas</p>
+                  <div class="row q-col-gutter-sm">
+
+                    <div class="col-12 col-sm-6">
+                      <q-select dense :options="['Activo', 'Inactivo', 'Fallecido', 'Suspendido', 'Retirado']" outlined
+                      v-model="data.estado_cliente" label="Estado de cliente" clearable />
+                    </div>
+                    <div class="col-12 col-sm-6">
+                      <q-select dense :options="['Activo', 'En mora']" outlined
+                        v-model="data.estado_cuenta" label="Estado de cuenta" clearable />
+                    </div>
+
                     <div class="col-4">
                       <q-select dense :options="[
                         '#33572f',
@@ -109,8 +261,9 @@
                       <q-input dense type="textarea" class="no-resize" outlined v-model="data.notas" rows="2" label="Observaciones" clearable autogrow />
                     </div>
                     <div class="col-12">
-
-
+                      <q-separator class="q-my-lg" />
+                    </div>
+                    <div class="col-12">
                       <template v-if="data?.notas_cobro?.length">
                         <div style="border: 1px solid rgba(0,0,0,.24); border-radius: 4px; padding: 3px;">
                           <div style="max-height: 250px; overflow-y: auto; ">
@@ -130,121 +283,26 @@
                       </template>
 
                       <template v-else>
-                        <div class="text-center q-py-xl bg-green-1" style="border: 1px dashed var(--q-primary); border-radius: 5px">
-                          <q-btn type="button" color="primary" label="Agregar nota" icon="add" @click="agregarNotasCobroDialog.openDialog(data.id)" />
+                        <div class="text-center bg-green-1 flex flex-center" style="border: 1px dashed var(--q-primary); border-radius: 5px; min-height: 140px;">
+                          <q-btn type="button" color="primary" label="Agregar nota" icon="add" @click="agregarNotasCobroDialog.openDialog(data.id)" :disable="!data.id">
+                            <q-tooltip anchor="top middle" self="bottom middle" max-width="240px" v-if="!data.id">
+                              Guarda primero al cliente para agregar una nota.
+                            </q-tooltip>
+                          </q-btn>
                         </div>
                       </template>
 
 
 
                     </div>
-                    <div class="col-12">
-                      <q-checkbox v-model="data.estado_gerencia" true-value="1" false-value="0" label="Estado de gerencia"
-                        :disable="!authStore.can('clientes.gerencia')" class="q-mt-sm">
-                        <q-tooltip max-width="200px" class="text-center bg-black">
-                          Al marcar esta opción, solo un usuario con permisos para editar clientes bloqueados podrá editarlo.
-                        </q-tooltip>
-                      </q-checkbox>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                      <q-select dense :options="['Activo', 'Inactivo', 'Fallecido', 'Suspendido', 'Retirado']" outlined
-                      v-model="data.estado_cliente" label="Estado de cliente" clearable />
-                    </div>
-                    <div class="col-12 col-sm-6">
-                      <q-select dense :options="['Activo', 'En mora']" outlined
-                        v-model="data.estado_cuenta" label="Estado de cuenta" clearable />
-                    </div>
-                  </div>
-              </q-card>
-            </div>
 
-            <div class="col-md-6">
-              <q-card flat bordered class="q-pa-sm q-mb-md" style="max-width: 100%">
-                <p class="text-primary text-h6">
-                  <q-icon name="person_add" size="sm"></q-icon> Información adicional </p>
-                  <div class="row q-col-gutter-sm">
-                  <template v-if="props.difunto">
-                    <div class="col-12">
-                      <q-input dense outlined v-model="data.email" label="Email" />
-                    </div>
-                    <div class="col-sm-6 col-12">
-                      <q-input dense outlined v-model="data.telefono_principal" label="Teléfono principal" />
-                    </div>
-                    <div class="col-sm-6 col-12">
-                      <q-input dense outlined v-model="data.telefono_secundario" label="Teléfono secundario" />
-                    </div>
-                    <div class="col-12">
-                      <q-input dense outlined v-model="data.direccion_habitacion" label="Dirección de habitación" />
-                    </div>
-                  </template>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.pais" label="País" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.estado" label="Estado" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.ciudad" label="Ciudad" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input type="date" dense outlined v-model="data.fecha_nacimiento" label="Fecha de nacimiento" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-select dense :options="['Soltero/a ', 'Casado/a', 'Divorciado/a', 'Viudo/a']" outlined
-                      v-model="data.estado_civil" label="Estado civil" clearable />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-select dense :options="['Masculino', 'Femenino']" outlined v-model="data.genero" label="Género" clearable />
-                  </div>
-                  <template v-if="!props.difunto">
-                    <div class="col-12 text-right">
-                      <q-checkbox v-model="data.difunto" true-value="1" false-value="0" label="¿Fallecido?"
-                        :disable="!!(data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
-                        <q-tooltip max-width="200px" class="text-center bg-black"
-                          v-if="!!(data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
-                          Para desmarcar esta opción, debes eliminar la información de fecha y causa de muerte, y número de
-                          certificado.
-                        </q-tooltip>
-                      </q-checkbox>
-                    </div>
-                    <template v-if="parseInt(data.difunto)">
-                      <div class="col-sm-6 col-12">
-                        <q-input type="datetime-local" dense outlined stack-label label="Fecha de muerte" v-model="data.fecha_muerte"/>
-                      </div>
-                      <div class="col-sm-6 col-12">
-                        <q-input dense outlined v-model="data.certificado_defuncion" label="Número de certificado" />
-                      </div>
-                      <div class="col-12">
-                        <q-input dense outlined v-model="data.causa_muerte" label="Causa de muerte" />
-                      </div>
-                    </template>
-                  </template>
+
+
+
+
                 </div>
               </q-card>
 
-              <q-separator class="q-my-lg"/>
-
-              <q-card flat bordered class="q-pa-sm" style="max-width: 100%">
-                <p class="text-primary text-h6">
-                  <q-icon name="work" size="sm"></q-icon> Información laboral </p>
-                <div class="row q-col-gutter-sm">
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.nombre_empresa" label="Nombre de la empresa" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.telefono_trabajo" label="Teléfono de trabajo" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.rif_empresa" label="RIF (empresa)" />
-                  </div>
-                  <div class="col-sm-6 col-12">
-                    <q-input dense outlined v-model="data.puesto_empresa" label="Posición / Cargo" />
-                  </div>
-                  <div class="col-12">
-                    <q-input dense outlined v-model="data.direccion_trabajo" label="Dirección de trabajo" />
-                  </div>
-                </div>
-              </q-card>
             </div>
           </div>
 
@@ -415,8 +473,8 @@
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, reactive, computed } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref, reactive, computed, nextTick } from 'vue';
+import { useQuasar, scroll } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
 import { useAuthStore } from 'src/stores/auth.store';
 import QSelectCliente from 'src/components/selects/QSelectCliente.vue';
@@ -429,8 +487,13 @@ import { format } from 'date-fns';
 const $q = useQuasar()
 const dialog = ref(false)
 const dialogAgregarRelacion = ref(false)
-const step = ref(1)
 const authStore = useAuthStore()
+
+const { getScrollTarget, setVerticalScrollPosition } = scroll
+const onValidationError = (ref) => {
+  const el = ref.$el
+  setVerticalScrollPosition(getScrollTarget(el), el.offsetTop, 200)
+}
 
 const loadNotasCliente = () => {
   console.log('Loading notas clientes!')
@@ -471,6 +534,10 @@ const agregarNotasCobroDialog = ref(null)
 
 const titularFallecidoContratosActivos = computed(() => {
   return tieneContratosActivos.value && !!parseInt(props.difunto || data.difunto)
+})
+
+const esDifunto = computed(() => {
+  return !!parseInt(props.difunto || data.difunto)
 })
 
 let stringOpcionesParentesco = [
@@ -598,6 +665,9 @@ const handleSubmit = () => {
     }
   });
 
+  // Redes sociales
+  postData.redes_sociales = data.redes_sociales.filter(redes => redes.plataforma && redes.enlace)
+
   if (props.difunto) postData.difunto
 
   if (props.relacionado) postData.relacionado
@@ -630,10 +700,7 @@ const handleSubmit = () => {
           dialog.value = false
           $q.notify({ message: 'Agregado exitosamente.', color: 'positive' })
 
-          console.log('Created!!', response.data, customParams.value.onCreate || 'nada');
-
           if (customParams.value.onCreate) {
-            console.log('Created!!', response.data);
             customParams.value.onCreate(response.data)
           }
 
@@ -734,12 +801,10 @@ const data = reactive({
   estado_cliente: null,
   notas: null,
   notas_cobro: [],
+  redes_sociales: [],
   etiqueta_color: null,
   etiqueta_texto: null,
   // Contacto
-  pais: null,
-  estado: null,
-  ciudad: null,
   email: null,
   telefono_principal: null,
   telefono_secundario: null,
@@ -785,6 +850,22 @@ const ignorarContratosActivos = ref(false)
 
 const buttonTargetId = ref(null)
 
+const socialNetworksSelectRefs = ref([])
+
+const handleAgregarRedSocial = () => {
+  data.redes_sociales.push({
+    plataforma: null,
+    enlace: null
+  })
+
+  nextTick(() => {
+    if (socialNetworksSelectRefs.value.length == 1) {
+      socialNetworksSelectRefs.value[0].showPopup()
+    }
+  })
+
+}
+
 const openDialog = (id, event = null, params = {}) => {
 
   console.log('openDialog', id, event, params);
@@ -792,7 +873,7 @@ const openDialog = (id, event = null, params = {}) => {
   buttonTargetId.value = event?.target?.closest('.q-btn, .q-item--clickable')?.id || null;
 
   Object.keys(data).forEach((i) => {
-    data[i] = (i === 'relaciones' || i === 'notas_cobro') ? [] :
+    data[i] = (i === 'relaciones' || i === 'notas_cobro' || i === 'redes_sociales') ? [] :
       (i === 'difunto' ? (props.difunto ? '1' : '0') :
         (i === 'estado_gerencia' ? '0' : null)
       )
