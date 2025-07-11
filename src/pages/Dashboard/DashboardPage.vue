@@ -280,7 +280,7 @@ const cargarParcelasVigentesPorFecha = () => {
     vencimientoHastaFecha = fechaVencimiento.value ? fechaVencimiento.value.replaceAll('/', '-') : '';
   }
 
-  let endpoint = `parcelas?sortBy=vigente_hasta&order=DESC&page=1&rowsPerPage=200&with[]=mantenimiento&vencimiento_desde=${vencimientoDesdeFecha}&vencimiento_hasta=${vencimientoHastaFecha}&proximo_mantenimiento=1&ultima_nota=1`
+  let endpoint = `parcelas?sortBy=vigente_hasta&order=DESC&page=1&rowsPerPage=200&with[]=mantenimiento&vencimiento_desde=${vencimientoDesdeFecha}&vencimiento_hasta=${vencimientoHastaFecha}&proximo_mantenimiento=1&ultima_nota=1&f[estatus]=Vendido`
   console.log(endpoint)
 
   api.get(endpoint)
