@@ -43,8 +43,12 @@
           </div>
 
           <div class="col-12 col-md-5">
-            <q-input outlined v-model="data.precio_ref" label="Precio de referencia" placeholder="Escribe el precio de referencia" lazy-rules
-              :rules="[val => val && val.length > 0 || '']" />
+            <q-input outlined v-model="data.precio_ref" type="number" label="Precio" placeholder="Escribe el precio de referencia" />
+          </div>
+
+
+          <div class="col-12 col-md-6 q-mt-md">
+            <q-checkbox v-model="data.requiere_impuestos" true-value="R" :false-value="null" label="Requerir factura" />
           </div>
 
           <div class="col-12 col-md-6 q-mt-md">
@@ -79,13 +83,19 @@
   </q-dialog>
 </template>
 
+<style >
+.q-checkbox__label.q-anchor--skip {
+  font-size: 12px;
+}
+</style>
+
 <script setup>
 
 import { api } from 'src/boot/axios';
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { qNotify } from 'src/boot/jardines';
+import { qNotify, $dinero } from 'src/boot/jardines';
 // Components
 import QSelectMoneda from 'src/components/selects/QSelectMoneda.vue'
 import QSelectEmpresa from 'src/components/selects/QSelectEmpresa.vue';
@@ -104,6 +114,8 @@ const data = reactive({
   tipo_ubicacion: null,
   descripcion: null,
   precio_ref: null,
+  requiere_impuestos: null,
+  incluye_iva: null,
   disponible: null,
   gestiona_stock: null,
   requiere_ubicaciones: null,
@@ -148,10 +160,26 @@ const handleSubmit = () => {
 const openDialog = (id) => {
 
   Object.keys(data).forEach((i) => {
-    data[i] = (i === 'disponible') ? '1' :
-      (i === 'gestiona_stock' ? '0' : (
-        i === 'pagable_cuotas' ? '0' : null
-      ))
+
+    switch (i) {
+      case 'disponible':
+        data[i] = '1';
+        break;
+      case 'gestiona_stock':
+        data[i] = '0';
+        break;
+      case 'pagable_cuotas':
+        data[i] = '0';
+        break;
+      case 'incluye_iva':
+        data[i] = '0';
+        break;
+      case 'requiere_impuestos':
+        data[i] = null;
+      default:
+        break;
+    }
+
   })
 
   if (id) {
@@ -165,6 +193,8 @@ const openDialog = (id) => {
               data[i] = response.data[i]
             }
           })
+
+          data.precio = parseFloat(appStore.getPrecioProducto(data).toFixed(2))
 
         }
       })

@@ -3,7 +3,7 @@
     <q-item-section>
       <q-item-label caption class="flex justify-between items-center">
         <div>
-          <template v-if="authStore.can('configuracion')">
+          <template v-if="authStore.can('alertas.editarBorrar')">
             <q-btn flat dense icon="edit" size="sm" color="primary" @click="emit('editar', props.id)" label="Editar"/>
             <q-btn flat dense icon="delete" size="sm" color="red-9" @click="() => handleEliminarNotificacion(props.id)" />
           </template>

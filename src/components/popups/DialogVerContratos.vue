@@ -197,6 +197,15 @@
                   <q-icon name="warning" class="q-ml-xs text-negative" v-if="props.row.parcelas?.some(ubicacion => !verificarFechaParcela(ubicacion, props.row.fecha_emision))">
                     <q-tooltip max-width="200px" class="bg-black">La fecha de emisión no coincide con la fecha de vencimiento de alguna ubicación.</q-tooltip>
                   </q-icon>
+
+                  <q-icon name="warning" class="q-ml-xs text-negative" v-if="props.row.fecha_mora">
+                    <q-tooltip max-width="200px" class="bg-black">
+                       El cliente tiene una mora pendiente de <span class="text-bold">
+                        {{ $dinero((parseFloat(props.row.total_mora || 0) - parseFloat(props.row.pagado_mora || 0))) }}
+                       </span>
+                    </q-tooltip>
+                  </q-icon>
+
                 </template>
                 <template v-else>
                   <span class="text-italic text-grey-6">{{ props.row.fecha_vencimiento && new Date(props.row.fecha_vencimiento) != 'Invalid Date' ? format(props.row.fecha_vencimiento, 'dd/MM/yyyy') : '-' }}</span>
@@ -253,9 +262,6 @@
         </div>
         <div class="col">
           <q-card-section class="q-pa-none">
-
-
-
             <q-markup-table flat separator="none" dense>
               <tbody class="text-left">
                 <tr>
@@ -306,6 +312,16 @@
                   <td class="text-bold text-right" colspan="4" style="vertical-align: top"> <q-checkbox v-model="calcularDeudaContrato.mora" /> TOTAL MORA:</td>
                   <td style="vertical-align: top">
                     <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
+                  </td>
+                </tr>
+                <tr v-if="calcularDeudaContrato.fecha_pagado_mora">
+                  <td colspan="4"></td>
+                  <td>
+                    <div class="q-mb-md text-center">
+                      <q-badge color="primary" outline>
+                        Última fecha solvente: {{ format(calcularDeudaContrato.fecha_pagado_mora, 'dd/MM/yyyy') }}
+                      </q-badge>
+                    </div>
                   </td>
                 </tr>
                 <tr>
@@ -404,7 +420,7 @@
 import { api } from 'src/boot/axios';
 import { ref, watch, computed } from 'vue';
 import { useQuasar, scroll } from 'quasar';
-import { qNotify } from 'src/boot/jardines';
+import { qNotify, $dinero } from 'src/boot/jardines';
 import es from 'date-fns/locale/es';
 import { format, differenceInMonths, differenceInCalendarDays, lastDayOfMonth, getDate } from 'date-fns';
 import QRCode from 'qrcode';
@@ -693,8 +709,8 @@ const recalcularDeudaContrato = () => {
     cantidadFechas -= 1
   }
 
-  calcularDeudaContrato.value.mora = cantidadFechas >= 4 ? true : false
-  calcularDeudaContrato.value.total_mora = 100
+  calcularDeudaContrato.value.mora = !!calcularDeudaContrato.value.fecha_mora
+  calcularDeudaContrato.value.total_mora = parseFloat(calcularDeudaContrato.value.total_mora || 0) - parseFloat(calcularDeudaContrato.value.pagado_mora || 0)
 
   let precioTotal = (calcularDeudaContratoSelectedParcelas.value?.length || 0) * calcularDeudaPrecioMantenimiento.value
 
@@ -760,7 +776,7 @@ const deudaData = computed(() => {
     data.mora = calcularDeudaContrato.value.total_mora
   }
 
-  data.total = data.fechas.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (data.mora || 0)
+  data.total = data.fechas.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + parseFloat(data.mora || 0)
 
   return data
 })

@@ -28,10 +28,10 @@
             <q-input dense class="bg-green-1" type="number" min="1" v-model="calculoData.cuotas" label="Cuotas" outlined autofocus placeholder="1" stack-label />
           </div>
           <div class="col-auto">
-            <q-input dense type="number" min="1" step="0.01" v-model="precios.precio_ref" label="Precio ($)" outlined readonly />
+            <q-input dense min="1" step="0.01" :model-value="$dinero(parseFloat(precios.precio_ref) || 0)" label="Precio ($)" outlined readonly />
           </div>
           <div class="col-auto">
-            <q-input dense type="number" min="1" step="0.01" v-model="precios.precio_total" label="Precio (Bs.)" outlined readonly />
+            <q-input dense min="1" step="0.01" :model-value="$dinero(parseFloat(precios.precio_total) || 0)" label="Precio (Bs.)" outlined readonly />
           </div>
         </div>
         <div class="row q-mt-sm">
@@ -53,6 +53,7 @@ import { ref, computed, onMounted, watch} from 'vue';
 import { api } from 'src/boot/axios';
 import { useQuasar } from 'quasar';
 import { useAppStore } from 'src/stores/app.store';
+import { $dinero } from 'src/boot/jardines';
 
 const $q = useQuasar()
 const dialog = ref(false)
@@ -87,7 +88,7 @@ const precios = computed(() => {
       cuotasString = calculoData.value?.cuotas > 1 ? ` × ${calculoData.value.cuotas} meses:` : ' × 1 mes:';
     }
 
-    calculoData.value.descripcion = `Tasa BCV de hoy: *${tasa.value.toFixed(2)}*\n\n${selectedProduct.value.nombre_producto}${cuotasString}\n*${precioRef}$ (${precioTotal} Bs.)*`;
+    calculoData.value.descripcion = `Tasa BCV de hoy: *${tasa.value.toFixed(2)}*\n\n${selectedProduct.value.nombre_producto}${cuotasString}\n*${$dinero(parseFloat(precioRef) || 0)}$ (${$dinero(parseFloat(precioTotal) || 0)} Bs.)*`;
   }
 
   return {

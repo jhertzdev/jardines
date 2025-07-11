@@ -414,7 +414,7 @@
             <template v-for="ubicacion in agregarEditarLineaRecibo.ubicaciones">
               <div class="row q-col-gutter-sm q-mb-sm">
                 <div class="col-auto">
-                  <QSelectUbicacion dense v-model="ubicacion.ubicacion_id" label="Ubicación" outlined disable />
+                  <QSelectUbicacion dense v-model="ubicacion.ubicacion_id" label="Ubicación" outlined clearable />
                 </div>
                 <div class="col">
                   <q-input dense type="date" v-model="ubicacion.pagado_hasta" label="Pagado hasta" outlined clearable></q-input>

@@ -16,6 +16,11 @@
         </q-btn>
       </q-td>
     </template>
+    <template v-slot:body-cell-precio="props">
+      <q-td :props="props" style="width: 0px;" class="q-gutter-xs">
+        {{ $dinero(props.row.precio_ref) }}
+      </q-td>
+    </template>
     <template v-slot:body-cell-metodos_permitidos="props">
       <q-td :props="props" style="width: 0px;" class="q-gutter-xs">
         <template v-if="Array.isArray(props.value)">
@@ -40,7 +45,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { api } from "src/boot/axios";
 import { useRouter } from "vue-router";
-import { qNotify } from 'src/boot/jardines';
+import { qNotify, $dinero } from 'src/boot/jardines';
 import { useQuasar } from "quasar";
 
 // Dialogs
@@ -59,9 +64,8 @@ const servicios = ref([])
 const serviciosColumnas = [
   { name: 'nombre_producto', label: 'Nombre del servicio', align: 'left', field: 'nombre_producto', sortable: true },
   { name: 'tipo_producto', label: 'Tipo de servicio', align: 'left', field: 'tipo_producto', sortable: true },
-  { name: 'empresa_id', label: 'Empresa', align: 'left', field: 'empresa_id', sortable: true },
-  { name: 'precio_ref', label: 'Precio', align: 'left', field: 'precio_ref', sortable: true, format: (val) => parseFloat(val).toFixed(2) },
-  { name: 'disponible', label: '¿Disponible?', align: 'left', field: 'disponible' },
+  { name: 'empresa_id', label: 'Empresa', align: 'left', field: 'nombre_empresa', sortable: true },
+  { name: 'precio', label: 'Precio', align: 'left', sortable: true },
   { name: 'actions', label: 'Acciones', field: 'actions' },
 ]
 

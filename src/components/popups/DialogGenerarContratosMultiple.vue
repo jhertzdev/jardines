@@ -604,8 +604,6 @@ const handleSubmitGenerarContratos = () => {
 
   let postData = JSON.parse(JSON.stringify(Object.values(contratosData.value)))
 
-  console.log('post', postData)
-
   let numContrato = postData[0] && postData[0].num_contrato
 
   postData.forEach( (contrato, key) => {
@@ -617,6 +615,7 @@ const handleSubmitGenerarContratos = () => {
       contrato.sin_parcelas = contrato.sin_parcelas || false
 
       contrato.recibo = {
+        es_fiscal: contrato.recibo?.es_fiscal,
         empresa_id: contrato.vendedor_id,
         tipo_factura: contrato.tipo_factura,
         cliente_id: clienteId.value,

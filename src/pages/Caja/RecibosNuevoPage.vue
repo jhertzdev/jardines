@@ -178,7 +178,7 @@
               <QSelectMoneda dense outlined v-model="reciboData.moneda_id" required
                 rule="Este campo es requerido." label="Moneda" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <q-input type="number" dense outlined v-model="reciboData.num_transaccion"
                 :class="reciboData.autogenerar_numero && 'bg-grey-3'" :disable="reciboData.autogenerar_numero"
                 lazy-rules :rules="[val => val && val.length > 0 || '']" label="Número de recibo" />
@@ -192,7 +192,7 @@
                   </q-checkbox>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <template v-if="['venta_propiedad', 'mantenimiento_propiedad'].includes(reciboData.tipo_factura)">
                 <q-input dense outlined v-model="reciboData.contrato_num"
                   :class="reciboData.tipo_factura == 'venta_propiedad' && 'bg-grey-3'" lazy-rules
@@ -207,9 +207,12 @@
                   @selected="handleSelectContrato" @clear="handleSelectContrato(null)" :filters="{ vendedor_id: reciboData.empresa_id, comprador_id: reciboData.cliente_id, tipo_actividad: appStore.cajaSeleccionada.tipo_actividad }" :rule="[val => val && val.length > 0 || '']" />
               </template>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <q-input type="date" dense outlined v-model="reciboData.fecha_emision" label="Fecha de emisión"
                 @change="reciboData.fecha_vencimiento = reciboData.fecha_emision" />
+            </div>
+            <div class="col-md-3 text-right">
+              <q-checkbox v-model="reciboData.es_fiscal" true-value="1" false-value="0" label="Factura fiscal" />
             </div>
           </div>
         </q-card-section>
@@ -219,7 +222,7 @@
             <template v-slot:header-cell-impuesto="props">
               <q-th :props="props">
                 <span>{{ props.col.label }}</span>
-                <q-checkbox size="sm" class="q-ml-xs" dense v-model="reciboData['aplicar_impuestos']" />
+                <!--<q-checkbox size="sm" class="q-ml-xs" dense v-model="reciboData['aplicar_impuestos']" />-->
               </q-th>
             </template>
             <template v-slot:header-cell-descuento="props">
@@ -439,7 +442,9 @@
               </template>
             </q-table>
 
-            <q-checkbox size="sm" class="q-mt-lg q-mb-sm" dense v-model="reciboData['aplicar_descuentos']" label="Aplicar descuentos" @update:model-value="reciboData.descuento_total = null" />
+            <!--
+              <q-checkbox size="sm" class="q-mt-lg q-mb-sm" dense v-model="reciboData['aplicar_descuentos']" label="Aplicar descuentos" @update:model-value="reciboData.descuento_total = null" />
+            -->
 
             <div class="flex items-center" v-if="reciboData.aplicar_descuentos">
               <q-input type="number" dense size="sm" flat v-model="reciboData.descuento_total"
@@ -449,6 +454,17 @@
                 { label: 'Neto', value: 'neto' },
               ]" />
             </div>
+
+            <q-banner v-if="contratoSelected && contratoSelected.fecha_mora" class="bg-red-2 text-dark q-mt-md" style="font-size:1.2rem;">
+              <template v-slot:avatar>
+                <q-icon name="warning" color="negative" size="md" />
+              </template>
+              <div>
+                <span class="text-bold">¡El cliente tiene una mora pendiente!</span>
+                <br>
+                <span>Monto pendiente de mora: <span class="text-bold">{{ $dinero((parseFloat(contratoSelected.total_mora || 0) - parseFloat(contratoSelected.pagado_mora || 0))) }}</span></span>
+              </div>
+            </q-banner>
 
 
             <q-btn label="Generar recibo" icon="receipt" color="primary" class="q-my-md" @click="openDialogGenerarRecibo"/>
@@ -589,6 +605,7 @@
           </div>
           <div class="col-12 col-md-7 q-pa-lg text-center">
             <div class="text-h6 text-primary">Cantidad total a pagar</div>
+
             <div class="q-my-lg">
               <div class="text-h3">
                 <span class="text-body1 text-grey-9">{{ selectedMoneda?.simbolo }}</span> {{ $dinero(totalBalance * (selectedMoneda?.tasa || 1) ) }}
@@ -596,6 +613,15 @@
               <div class="text-h6">
                 <span class="text-caption text-grey-9">REF.</span> {{ $dinero(totalBalance) }}
               </div>
+
+              <q-banner class="bg-blue-3 q-mt-sm" v-if="!!parseFloat(reciboData.es_fiscal)">
+                <template v-slot:avatar>
+                  <q-icon class="q-mt-sm" size="sm" name="info" color="blue-1" />
+                </template>
+                <p style="font-size: 0.8rem; margin-bottom: 0; line-height: 1;">
+                  Agrega el IGTF del 3% sobre el monto pagado en divisas.
+                </p>
+              </q-banner>
             </div>
 
             <q-table dense flat bordered hide-bottom hide-header
@@ -622,6 +648,17 @@
                 </q-td>
               </template>
             </q-table>
+
+            <q-banner v-if="contratoSelected && contratoSelected.fecha_mora" class="bg-red-2 text-dark q-mt-md" style="font-size:1.2rem;">
+              <template v-slot:avatar>
+                <q-icon name="warning" color="negative" size="md" />
+              </template>
+              <div>
+                <span class="text-bold">¡El cliente tiene una mora pendiente!</span>
+                <br>
+                <span>Monto pendiente de mora: <span class="text-bold">{{ $dinero((parseFloat(contratoSelected.total_mora || 0) - parseFloat(contratoSelected.pagado_mora || 0))) }}</span></span>
+              </div>
+            </q-banner>
 
             <div class="q-gutter-md q-my-sm text-right">
               <q-btn label="Cerrar" flat color="primary" @click="showModalGenerarRecibo = false" />
@@ -888,6 +925,7 @@
     { name: 'metodo', label: 'Método de pago', align: 'left', field: 'metodo' },
     { name: 'cantidad', label: 'Cantidad', align: 'left', field: 'cantidad' },
   ]
+
 
   const parcelasSelected = ref([])
   const contratoSelected = ref(
@@ -1469,6 +1507,10 @@
       } else {
         row.ubicaciones = [];
       }
+
+      if (row.tipo.requiere_impuestos === 'R') {
+        reciboData.es_fiscal = '1'
+      }
     } else {
       row.descripcion = ''
       row.precio = 0
@@ -1566,7 +1608,7 @@
     // Calcular cuánto cubre el monto pagado en años, meses y días
     let monedaSeleccionada = ubicacion.moneda_seleccionada || selectedMoneda.value.simbolo
     let tasaSeleccionada = Number(monedas.value.find(moneda => moneda.simbolo == monedaSeleccionada).tasa)
-    let montoPagadoRef = (Number(ubicacion.monto_transferido) + 0.01) / tasaSeleccionada
+    let montoPagadoRef = (Number(ubicacion.monto_transferido)) / tasaSeleccionada + 0.1
 
     let difInYears = Math.floor(montoPagadoRef / precioAnual)
     montoPagadoRef -= difInYears * precioAnual
@@ -1709,6 +1751,7 @@
     tipo_ubicacion: null,
     fecha_emision: new Date().toISOString().substr(0, 10),
     fecha_vencimiento: new Date().toISOString().substr(0, 10),
+    es_fiscal: '0',
   })
 
   // Watch route and see if query params changed

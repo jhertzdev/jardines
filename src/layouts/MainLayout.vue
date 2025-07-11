@@ -16,7 +16,7 @@
             <q-icon name="notifications" />
           </template>
           <q-list bordered separator wrap>
-            <q-item style="width: 300px" class="bg-green-1" v-if="authStore.can('configuracion')">
+            <q-item style="width: 300px" class="bg-green-1" v-if="authStore.user.role_perms.find((role) => role == 'alertas.*' || role == 'alertas.crear')">
               <q-item-section>
                 <q-item-label caption class="text-center">
                   <q-btn flat dense icon="add" color="primary" label="Agregar alerta" @click="agregarEditarAlertaDialog.openDialog()" />

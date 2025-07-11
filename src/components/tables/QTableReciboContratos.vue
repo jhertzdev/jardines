@@ -153,7 +153,8 @@
             </template>
           </q-table>
 
-          <q-btn color="primary" class="q-mt-sm" size="sm" label="Agregar pago" icon="credit_card" @click="agregarPagoDialog.openDialog(null, {
+          <q-btn
+            color="primary" class="q-mt-sm" size="sm" label="Agregar pago" icon="credit_card" @click="agregarPagoDialog.openDialog(null, {
             ...reciboData,
             cliente_id: reciboData.comprador_id,
             caja_id: cajaSeleccionada.id,
@@ -586,6 +587,10 @@ const handleChangeTipoServicio = (row) => {
       row.ubicaciones = [];
     }
 
+    if (row.tipo.requiere_impuestos === 'R') {
+      reciboData.es_fiscal = '1'
+    }
+
     if (row.tipo.tipo_producto == 'Mantenimiento') {
       row.cuotas = 1;
     }
@@ -647,6 +652,7 @@ const handleRecalcularLinea = (row, val = 1) => {
     lineas: tableData.value,
     totals: totalsData.value,
     //recibo: reciboData,
+    es_fiscal: reciboData.es_fiscal,
     moneda: selectedMoneda.value,
     caja_id: cajaSeleccionada.value.id,
   })

@@ -545,12 +545,11 @@ const handleSubmitGenerarContratos = () => {
 
   let postData = JSON.parse(JSON.stringify(Object.values(contratosData.value)))
 
-  console.log('generarcontratos', postData)
-
   postData.forEach( (contrato, key) => {
     if (contrato.generar_recibo && contrato.recibo) {
 
       contrato.recibo = {
+        es_fiscal: contrato.recibo?.es_fiscal,
         empresa_id: contrato.vendedor_id,
         tipo_factura: contrato.tipo_factura,
         cliente_id: contrato.comprador_id,
@@ -582,6 +581,8 @@ const handleSubmitGenerarContratos = () => {
     }
 
   })
+
+  console.log('generarcontratos', postData)
 
   api.post('contratos/lotes', postData)
     .then(response => {

@@ -216,6 +216,9 @@ const handleSubmit = () => {
 
   api.post('mantenimiento/editarLote', postData)
     .then(response => {
+
+      console.log(response)
+
       if (response.data) {
         dialog.value = false
         data.value = {
