@@ -24,7 +24,7 @@
           <div class="col">
             <q-input dense type="number" min="1" v-model="calculoData.cantidad" :label="!!parseInt(selectedProduct?.requiere_ubicaciones) ? 'Ubicaciones' : 'Cantidad'" outlined />
           </div>
-          <div class="col" v-if="!!parseInt(selectedProduct?.pagable_cuotas)">
+          <div class="col" v-if="!!parseInt(selectedProduct?.pagable_cuotas) && parseInt(selectedProduct?.cantidad_cuotas) > 1">
             <q-input dense class="bg-green-1" type="number" min="1" v-model="calculoData.cuotas" label="Cuotas" outlined autofocus placeholder="1" stack-label />
           </div>
           <div class="col-auto">
@@ -73,13 +73,15 @@ const precios = computed(() => {
 
   let pagableCuotas = false;
 
-  if (parseInt(selectedProduct.value?.pagable_cuotas)) {
+  if (parseInt(selectedProduct.value?.pagable_cuotas) && parseInt(selectedProduct.value?.cantidad_cuotas) > 1) {
     pagableCuotas = true;
     precioLinea = precioLinea / 12 * (calculoData.value?.cuotas || 1)
   }
 
-  let precioRef = precioLinea.toFixed(2) || '';
-  let precioTotal = precioLinea ? (precioLinea * tasa.value).toFixed(2) : '';
+  const precioLineaRedondeado = precioLinea ? parseFloat(precioLinea.toFixed(2)) : 0;
+
+  let precioRef = precioLineaRedondeado.toFixed(2) || '';
+  let precioTotal = precioLineaRedondeado ? (precioLineaRedondeado * tasa.value).toFixed(2) : '';
 
   if (selectedProduct.value) {
     let cuotasString = ':';

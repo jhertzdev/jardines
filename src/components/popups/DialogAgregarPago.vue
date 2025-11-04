@@ -51,7 +51,10 @@
               :rows="metodosPago" :columns="metodosPagoColumnas"
               :pagination="{ rowsPerPage: -1 }" >
               <template v-slot:body-cell-cantidad="props">
-                <q-td :props="props" class="text-center" style="padding-bottom: .75rem">
+                <q-td :props="props" class="text-center" style="padding-bottom: .75rem" :style="!metodosPagoSelected.includes(props.row) && 'white-space: break-spaces;'">
+                  <div class="text-grey-6" v-if="!metodosPagoSelected.includes(props.row)">
+                    {{ props.row.descripcion }}
+                  </div>
                   <template v-if="metodosPagoSelected.includes(props.row)">
                     <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada"
                       @update:model-value="val => props.row['monto_transaccion'] = val / props.row.tasa * transaccionData.tasa_actual" required>
@@ -298,11 +301,18 @@
     api.get('caja/metodos')
       .then(response => {
         if (response.data) {
-          console.log('Metodos', response.data)
-          metodosPago.value = response.data
+          console.log('Metodos', response.data);
+          metodosPago.value = response.data.sort((a, b) => {
+            // Ordenar primero por moneda_id
+            if (a.moneda_id !== b.moneda_id) {
+              return a.moneda_id - b.moneda_id;
+            }
+            // Si moneda_id es igual, ordenar por metodo
+            return a.metodo.localeCompare(b.metodo);
+          });
         }
       })
-      .catch(e => console.log(e))
+      .catch(e => console.log(e));
 
     appStore.getMonedas()
   })
