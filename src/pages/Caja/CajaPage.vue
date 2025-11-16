@@ -76,6 +76,7 @@
               <q-btn dense class="q-px-sm" color="primary" label="Crear recibo" icon="receipt" to="caja/recibos/nuevo" v-if="!authStore.user.role_perms.find((role) => role == 'cajas.verFiscal')" />
               <q-btn dense class="q-px-sm" color="primary" label="Relación de ingresos" icon="assessment" to="caja/reportes/ingresos" />
               <q-btn dense class="q-px-sm" color="primary" label="Histórico" icon="timeline" @click="openDialogHistorialIngresos()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*' || role == 'cajas.verFiscal')" />
+              <q-btn dense class="q-px-sm" color="primary" label="Reporte" icon="article" @click="handleGenerarReporteGeneral()"  v-if="authStore.user.role_perms.find((role) => role == 'cajas.*' || role == 'cajas.verFiscal')" />
             </div>
           </div>
 
@@ -513,7 +514,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showDialogEditarObservacionCierre" class="j-dialog j-dialog-lg">
+    <q-dialog allow-focus-outside v-model="showDialogEditarObservacionCierre" class="j-dialog j-dialog-lg">
       <q-card v-if="dialogObservacionesCierreData.id">
         <q-card-section>
           <div class="text-h6">{{ dialogObservacionesCierreData.nombre_caja }} ({{ dialogObservacionesCierreData.created_at.substr(0, 10) }})</div>
@@ -538,7 +539,7 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showDialogEditarPago" class="j-dialog j-dialog-lg">
+    <q-dialog allow-focus-outside v-model="showDialogEditarPago" class="j-dialog j-dialog-lg">
       <q-card>
         <q-card-section>
           <div class="text-h6">Editar pago</div>
@@ -568,6 +569,430 @@
         <q-separator></q-separator>
         <q-card-actions align="right">
           <q-btn color="primary" type="submit" label="Guardar" icon="save" @click="handleEditarPago()" :loading="isLoadingEditarLineaRecibo" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog allow-focus-outside v-model="showDialogReporteGeneral" class="j-dialog j-dialog-full">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Reporte general de caja</div>
+        </q-card-section>
+
+        <q-separator></q-separator>
+
+        <q-card-section class="q-pa-md">
+          <!-- SECCIÓN DE FILTROS -->
+          <q-expansion-item
+            icon="filter_list"
+            label="Filtros avanzados"
+            header-class="bg-primary text-white"
+            class="q-mb-md"
+          >
+            <q-card class="bg-grey-1">
+              <q-card-section class="q-pa-md">
+                <div class="row q-col-gutter-md">
+                  <!-- Tipos de ubicación -->
+                  <div class="col-12 col-md-6">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Tipo de ubicación</div>
+                    <q-checkbox v-model="reporteFiltersActive.tipos" val="Parcelas" label="Parcelas (MTP)" />
+                    <q-checkbox v-model="reporteFiltersActive.tipos" val="Nichos" label="Nichos (MTN)" />
+                    <q-checkbox v-model="reporteFiltersActive.tipos" val="Columbarios" label="Columbarios (MTC)" />
+                  </div>
+
+                  <!-- Vigencia -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Vigencia</div>
+                    <div class="row q-col-gutter-md">
+                      <div class="col-6">
+                        <q-input dense outlined type="date" v-model="reporteFiltersActive.vigenciaDesde" label="Desde" clearable />
+                      </div>
+                      <div class="col-6">
+                        <q-input dense outlined type="date" v-model="reporteFiltersActive.vigenciaHasta" label="Hasta" clearable />
+                      </div>
+                    </div>
+                    
+                    
+                  </div>
+
+                  <!-- Último recibo -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Último recibo</div>
+                    <div class="row q-col-gutter-md">
+                      <div class="col-6">
+                        <q-input dense outlined type="date" v-model="reporteFiltersActive.ultimoReciboDesde" label="Desde" clearable />
+                      </div>
+                      <div class="col-6">
+                        <q-input dense outlined type="date" v-model="reporteFiltersActive.ultimoReciboHasta" label="Hasta" clearable />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Estado -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Estado</div>
+                    <q-select
+                      dense
+                      outlined
+                      v-model="reporteFiltersActive.estado"
+                      :options="['Activo', 'Inactivo']"
+                      emit-value
+                      map-options
+                      clearable
+                      label="Seleccionar estado"
+                    />
+                  </div>
+
+                  <!-- Meses de mora -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Meses de mora</div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-6">
+                        <q-select
+                          dense
+                          outlined
+                          v-model="reporteFiltersActive.moraOperador"
+                          :options="[
+                            { label: 'Igual', value: 'igual' },
+                            { label: 'Mayor que', value: 'mayor' },
+                            { label: 'Menor que', value: 'menor' }
+                          ]"
+                          emit-value
+                          map-options
+                        />
+                      </div>
+                      <div class="col-6">
+                        <q-input dense outlined type="number" v-model="reporteFiltersActive.moraCantidad" label="Número" clearable />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Cantidad de ubicaciones -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Cantidad de ubicaciones</div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-6">
+                        <q-select
+                          dense
+                          outlined
+                          v-model="reporteFiltersActive.ubicacionesOperador"
+                          :options="[
+                            { label: 'Igual', value: 'igual' },
+                            { label: 'Mayor que', value: 'mayor' },
+                            { label: 'Menor que', value: 'menor' }
+                          ]"
+                          emit-value
+                          map-options
+                        />
+                      </div>
+                      <div class="col-6">
+                        <q-input dense outlined type="number" v-model="reporteFiltersActive.ubicacionesCantidad" label="Número" clearable />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Total deuda -->
+                  <div class="col-12 col-md-3">
+                    <div class="text-subtitle2 text-weight-bold q-mb-sm">Total deuda</div>
+                    <div class="row q-col-gutter-sm">
+                      <div class="col-6">
+                        <q-select
+                          dense
+                          outlined
+                          v-model="reporteFiltersActive.deudaOperador"
+                          :options="[
+                            { label: 'Igual', value: 'igual' },
+                            { label: 'Mayor que', value: 'mayor' },
+                            { label: 'Menor que', value: 'menor' }
+                          ]"
+                          emit-value
+                          map-options
+                        />
+                      </div>
+                      <div class="col-6">
+                        <q-input dense outlined type="number" v-model="reporteFiltersActive.deudaCantidad" label="Monto" clearable />
+                      </div>
+                    </div>
+                  </div>
+
+                  
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <!-- Cuadro de resumen expandible -->
+          <q-expansion-item
+            icon="summarize"
+            label="Resumen de estadísticas"
+            header-class="bg-info text-white"
+            class="q-mb-md"
+          >
+            <q-card class="bg-blue-1">
+              <q-card-section class="q-pa-md">
+                <div class="row q-col-gutter-lg">
+                  <!-- Parcelas activas -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h3 text-primary text-weight-bold">{{ reporteSummary.parcelasActivas }}</div>
+                      <div class="text-subtitle2 text-grey-7">Parcelas activas</div>
+                    </div>
+                  </div>
+
+                  <!-- Nichos activos -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h3 text-primary text-weight-bold">{{ reporteSummary.nichosActivos }}</div>
+                      <div class="text-subtitle2 text-grey-7">Nichos activos</div>
+                    </div>
+                  </div>
+
+                  <!-- Columbarios activos -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h3 text-primary text-weight-bold">{{ reporteSummary.columbiariosActivos }}</div>
+                      <div class="text-subtitle2 text-grey-7">Columbarios activos</div>
+                    </div>
+                  </div>
+
+                  <!-- Clientes vigentes -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h6 text-positive text-weight-bold q-py-sm">{{ reporteSummary.clientesVigentes }} ({{ reporteSummary.porcentajeClientesVigentes.toFixed(2) }}%)</div>
+                      <div class="text-subtitle2 text-grey-7">Clientes vigentes</div>
+                    </div>
+                  </div>
+
+                  <!-- Clientes vigentes -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h6 text-red text-weight-bold q-py-sm">{{ reporteSummary.clientesEnMora }} ({{ reporteSummary.porcentajeClientesEnMora.toFixed(2) }}%)</div>
+                      <div class="text-subtitle2 text-grey-7">Clientes con deuda</div>
+                    </div>
+                  </div>
+
+                  <!-- Clientes suspendidos -->
+                  <div class="col-12 col-md-4 col-lg">
+                    <div class="text-center">
+                      <div class="text-h6 text-negative text-weight-bold q-py-sm">{{ reporteSummary.clientesSuspendidos }}</div>
+                      <div class="text-subtitle2 text-grey-7">Clientes suspendidos</div>
+                    </div>
+                  </div>
+
+                  <!-- Deuda total activos -->
+                  <div class="col-12 col-md-6 col-lg">
+                    <div class="text-center">
+                      <div class="text-h6 text-red-9 text-weight-bold q-py-sm">${{ $dinero(reporteSummary.deudaActivos) }}</div>
+                      <div class="text-subtitle2 text-grey-7">Deuda activos</div>
+                    </div>
+                  </div>
+
+                  <!-- Deuda total -->
+                  <div class="col-12 col-md-6 col-lg">
+                    <div class="text-center">
+                      <div class="text-h6 text-red-9 text-weight-bold q-py-sm">${{ $dinero(reporteSummary.deudaTotal) }}</div>
+                      <div class="text-subtitle2 text-grey-7">Deuda activos + inactivos</div>
+                    </div>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+
+          <!-- Info de filtros -->
+          <div class="text-caption text-grey-7 q-mb-md">
+            {{ reporteDataFiltered.length }} de {{ reporteData.length }} registros
+            <span v-if="reporteSort.column" class="q-ml-md">
+              | Ordenado por: <strong>{{ reporteSort.column }}</strong> ({{ reporteSort.type }})
+            </span>
+          </div>
+
+          <!-- Tabla virtual scroll -->
+          <q-virtual-scroll
+            dense
+            type="table"
+            ref="reporteTableRef"
+            style="max-height: 60vh"
+            :virtual-scroll-item-size="48"
+            :virtual-scroll-sticky-size-start="48"
+            :virtual-scroll-sticky-size-end="32"
+            :items="reporteDataFiltered || []"
+          >
+            <template v-slot:before>
+              <thead class="thead-sticky text-left">
+                <tr>
+                  <th style="width: 40px"></th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('nombre_completo')">
+                    Propietario
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'nombre_completo' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'nombre_completo' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('codigo_seccion')">
+                    Ubicación
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'codigo_seccion' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'codigo_seccion' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('num_contrato')">
+                    Contrato
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'num_contrato' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'num_contrato' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('estatus')">
+                    Estado
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'estatus' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'estatus' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('vigente_hasta')">
+                    Vigente hasta
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'vigente_hasta' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'vigente_hasta' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('meses')">
+                    Meses de mora
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'meses' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'meses' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('ubicaciones')">
+                    Ubicaciones
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'ubicaciones' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'ubicaciones' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('fecha_ultimo_recibo')">
+                    Último recibo
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'fecha_ultimo_recibo' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'fecha_ultimo_recibo' && reporteSort.type === 'DESC'" />
+                  </th>
+                  <th style="cursor: pointer; user-select: none" @click="handleSetReporteSort('total_pagar')">
+                    Total deuda
+                    <q-icon name="arrow_upward" size="xs" v-if="reporteSort.column === 'total_pagar' && reporteSort.type === 'ASC'" />
+                    <q-icon name="arrow_downward" size="xs" v-if="reporteSort.column === 'total_pagar' && reporteSort.type === 'DESC'" />
+                  </th>
+                </tr>
+              </thead>
+              <tr v-if="isLoadingReporteGeneral">
+                <td class="text-grey-5 text-center bg-grey-3" colspan="10">
+                  <q-spinner size="lg" color="primary"/>
+                </td>
+              </tr>
+              <tr v-else-if="!reporteDataFiltered || reporteDataFiltered.length === 0">
+                <td class="text-grey-5 text-center bg-grey-3" colspan="10">
+                  <p class="q-mb-none q-py-lg">-- No hay resultados --</p>
+                </td>
+              </tr>
+            </template>
+
+            <template v-slot:after>
+              <tfoot class="tfoot-sticky text-left">
+                <tr>
+                  <th style="width: 40px"></th>
+                  <th>Propietario</th>
+                  <th>Ubicación</th>
+                  <th>Contrato</th>
+                  <th>Estado</th>
+                  <th>Vigente hasta</th>
+                  <th>Meses de mora</th>
+                  <th>Ubicaciones</th>
+                  <th>Último recibo</th>
+                  <th>Total deuda</th>
+                </tr>
+              </tfoot>
+            </template>
+
+            <template v-slot="{ item: row, index }">
+              <tr :key="index">
+                <td style="padding-right: 0; padding-left: .5em; width: 40px">
+                  <q-checkbox v-model="reporteSelectedRows" :val="row"></q-checkbox>
+                </td>
+
+                <!-- Propietario -->
+                <td style="max-width: 200px; white-space: break-spaces; font-size: 0.9rem;">
+                  {{ row.nombre_completo }}
+                  <div class="text-caption text-grey-7">{{ row.num_identidad }}</div>
+                </td>
+
+                <!-- Ubicación -->
+                <td style="white-space: nowrap">
+                  <div>{{ row.codigo_seccion }}-{{ row.num_parcela }}</div>
+                </td>
+
+                <!-- Contrato -->
+                <td>
+                  {{ row.num_contrato }}
+                </td>
+
+                <!-- Estado -->
+                <td>
+                  <q-badge 
+                    :color="row.estatus === 'Activo' ? 'positive' : 'negative'" 
+                    :label="row.estatus"
+                    style="text-transform: uppercase; font-size: .7rem"
+                  />
+                </td>
+
+                <!-- Vigente hasta -->
+                <td>
+                  <template v-if="row.vigente_hasta">
+                    <div 
+                      :class="new Date(row.vigente_hasta) < new Date() ? 'text-red-9 text-weight-bold' : ''"
+                    >
+                      {{ format(new Date(row.vigente_hasta), 'dd/MM/yyyy') }}
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-grey-5">-</span>
+                  </template>
+                </td>
+
+                <!-- Meses de mora -->
+                <td class="text-center">
+                  <span :class="row.meses > 0 ? 'text-red-9 text-weight-bold' : 'text-green-9'">
+                    {{ row.meses }}
+                  </span>
+                </td>
+
+                <!-- Ubicaciones -->
+                <td class="text-center">
+                  {{ row.ubicaciones }}
+                </td>
+
+                <!-- Último recibo -->
+                <td>
+                  <template v-if="row.fecha_ultimo_recibo">
+                    {{ format(new Date(row.fecha_ultimo_recibo), 'dd/MM/yyyy') }}
+                  </template>
+                  <template v-else>
+                    <span class="text-grey-5">-</span>
+                  </template>
+                </td>
+
+                <!-- Total deuda -->
+                <td class="text-right">
+                  <template v-if="row.total_pagar">
+                    <span class="text-weight-bold text-red-9">{{ $dinero(row.total_pagar) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="text-grey-5">-</span>
+                  </template>
+                </td>
+              </tr>
+            </template>
+
+          </q-virtual-scroll>
+        </q-card-section>
+
+        <q-separator></q-separator>
+
+
+        <!-- Acciones -->
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn 
+            color="primary" 
+            label="Descargar PDF" 
+            icon="picture_as_pdf"
+            @click="handleDescargarReportePdf()"
+            :loading="isLoadingReportePdf"
+          />
+          <q-btn flat color="primary" label="Cerrar" @click="showDialogReporteGeneral = false" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -856,6 +1281,336 @@
       .finally(() => isLoadingSubmitEditarObservacionesCierre.value = false)
   }
 
+  const showDialogReporteGeneral = ref(false)
+
+  const reporteFilters = ref({
+    tiposContrato: [],
+    fechaInicio: null,
+    fechaFin: null,
+  })
+
+  const reporteData = ref([])
+  const reporteSelectedRows = ref([])
+  const reporteTableRef = ref(null)
+  const reporteDataFiltered = ref([])
+
+  const reporteFiltersActive = ref({
+    tipos: ['Parcelas', 'Nichos', 'Columbarios'], // Por defecto todos seleccionados
+    estado: null,
+    vigenciaDesde: null,
+    vigenciaHasta: null,
+    moraOperador: 'mayor', // 'igual', 'mayor', 'menor'
+    moraCantidad: null,
+    ubicacionesOperador: 'igual', // 'igual', 'mayor', 'menor'
+    ubicacionesCantidad: null,
+    recibosDesde: null,
+    recibosHasta: null,
+    deudaOperador: 'mayor', // 'igual', 'mayor', 'menor'
+    deudaCantidad: null,
+  })
+
+  const reporteSort = ref({
+    column: null,
+    type: 'ASC', // 'ASC', 'DESC'
+  })
+
+  const isLoadingReporteGeneral = ref(false)
+  const isLoadingReportePdf = ref(false)
+
+  // Función para determinar el tipo de ubicación por código de contrato
+  const getTipoUbicacion = (numContrato) => {
+    if (!numContrato) return null
+    if (numContrato.startsWith('MTP')) return 'Parcelas'
+    if (numContrato.startsWith('MTN')) return 'Nichos'
+    if (numContrato.startsWith('MTC')) return 'Columbarios'
+    return null
+  }
+
+  // Computed property para calcular resumen de estadísticas
+  const reporteSummary = computed(() => {
+    // Usar reporteData completo para cálculos de totales sin filtros
+    const allData = reporteData.value || []
+    
+    // Parcelas activas - suma del campo ubicaciones
+    const parcelasActivas = allData
+      .filter(row => 
+        getTipoUbicacion(row.num_contrato) === 'Parcelas' && 
+        row.estatus === 'Activo'
+      )
+      .reduce((sum, row) => sum + (row.ubicaciones || 0), 0)
+
+    // Nichos activos - suma del campo ubicaciones
+    const nichosActivos = allData
+      .filter(row => 
+        getTipoUbicacion(row.num_contrato) === 'Nichos' && 
+        row.estatus === 'Activo'
+      )
+      .reduce((sum, row) => sum + (row.ubicaciones || 0), 0)
+
+    // Columbarios activos - suma del campo ubicaciones
+    const columbiariosActivos = allData
+      .filter(row => 
+        getTipoUbicacion(row.num_contrato) === 'Columbarios' && 
+        row.estatus === 'Activo'
+      )
+      .reduce((sum, row) => sum + (row.ubicaciones || 0), 0)
+
+    // Clientes suspendidos - contar contratos inactivos
+    const clientesSuspendidos = allData
+      .filter(row => row.estatus === 'Inactivo')
+      .length
+
+    // Clientes vigentes - contar contratos donde meses de mora <= 0
+    const clientesVigentes = allData
+      .filter(row => row.meses <= 0)
+      .length
+
+    // Clientes vigentes - contar contratos donde meses de mora <= 0
+    const clientesEnMora = allData
+      .filter(row => row.meses > 0)
+      .length
+
+    const porcentajeClientesVigentes = clientesVigentes + clientesEnMora > 0
+      ? (clientesVigentes / (clientesVigentes + clientesEnMora)) * 100
+      : 0
+
+    const porcentajeClientesEnMora = clientesVigentes + clientesEnMora > 0
+      ? (clientesEnMora / (clientesVigentes + clientesEnMora)) * 100
+      : 0
+
+    // Deuda total de activos
+    const deudaActivos = allData
+      .filter(row => row.estatus === 'Activo')
+      .reduce((sum, row) => sum + (row.total_pagar || 0), 0)
+
+    // Deuda total (activos + inactivos)
+    const deudaTotal = allData.reduce((sum, row) => sum + (row.total_pagar || 0), 0)
+
+    return {
+      parcelasActivas,
+      nichosActivos,
+      columbiariosActivos,
+      clientesSuspendidos,
+      clientesVigentes,
+      clientesEnMora,
+      porcentajeClientesVigentes,
+      porcentajeClientesEnMora,
+      deudaActivos,
+      deudaTotal
+    }
+  })
+
+  // Función para filtrar y ordenar datos
+  const applyReporteFiltersAndSort = () => {
+    let filtered = reporteData.value.filter(row => {
+      // Filtro por tipo de ubicación
+      const tipoUbicacion = getTipoUbicacion(row.num_contrato)
+      if (!reporteFiltersActive.value.tipos.includes(tipoUbicacion)) {
+        return false
+      }
+
+      // Filtro por estado
+      if (reporteFiltersActive.value.estado && row.estatus !== reporteFiltersActive.value.estado) {
+        return false
+      }
+
+      // Filtro por vigencia (desde/hasta)
+      if (reporteFiltersActive.value.vigenciaDesde && new Date(row.vigente_hasta) < new Date(reporteFiltersActive.value.vigenciaDesde)) {
+        return false
+      }
+      if (reporteFiltersActive.value.vigenciaHasta && new Date(row.vigente_hasta) > new Date(reporteFiltersActive.value.vigenciaHasta)) {
+        return false
+      }
+
+      // Filtro por meses de mora
+      if (reporteFiltersActive.value.moraCantidad !== null) {
+        const cantidad = parseInt(reporteFiltersActive.value.moraCantidad)
+        if (reporteFiltersActive.value.moraOperador === 'igual' && row.meses !== cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.moraOperador === 'mayor' && row.meses <= cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.moraOperador === 'menor' && row.meses >= cantidad) {
+          return false
+        }
+      }
+
+      // Filtro por cantidad de ubicaciones
+      if (reporteFiltersActive.value.ubicacionesCantidad !== null) {
+        const cantidad = parseInt(reporteFiltersActive.value.ubicacionesCantidad)
+        if (reporteFiltersActive.value.ubicacionesOperador === 'igual' && row.ubicaciones !== cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.ubicacionesOperador === 'mayor' && row.ubicaciones <= cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.ubicacionesOperador === 'menor' && row.ubicaciones >= cantidad) {
+          return false
+        }
+      }
+
+      // Filtro por fecha de último recibo
+      // NULL se considera como menor a cualquier fecha existente
+      if (reporteFiltersActive.value.recibosDesde) {
+        // Si recibosDesde está establecido, excluir NULL (porque NULL < cualquier fecha)
+        if (!row.fecha_ultimo_recibo || new Date(row.fecha_ultimo_recibo) < new Date(reporteFiltersActive.value.recibosDesde)) {
+          return false
+        }
+      }
+      if (reporteFiltersActive.value.recibosHasta) {
+        // Si recibosHasta está establecido, incluir NULL (porque NULL < cualquier fecha)
+        if (row.fecha_ultimo_recibo && new Date(row.fecha_ultimo_recibo) > new Date(reporteFiltersActive.value.recibosHasta)) {
+          return false
+        }
+      }
+
+      // Filtro por total deuda
+      if (reporteFiltersActive.value.deudaCantidad !== null) {
+        const cantidad = parseFloat(reporteFiltersActive.value.deudaCantidad)
+        if (reporteFiltersActive.value.deudaOperador === 'igual' && row.total_pagar !== cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.deudaOperador === 'mayor' && row.total_pagar <= cantidad) {
+          return false
+        }
+        if (reporteFiltersActive.value.deudaOperador === 'menor' && row.total_pagar >= cantidad) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+    // Ordenamiento
+    if (reporteSort.value.column) {
+      filtered.sort((a, b) => {
+        let aValue = a[reporteSort.value.column]
+        let bValue = b[reporteSort.value.column]
+
+        // Manejo especial para fecha_ultimo_recibo: NULL se considera menor que cualquier fecha
+        if (reporteSort.value.column === 'fecha_ultimo_recibo') {
+          if (aValue == null && bValue == null) return 0
+          if (aValue == null) return reporteSort.value.type === 'ASC' ? -1 : 1
+          if (bValue == null) return reporteSort.value.type === 'ASC' ? 1 : -1
+        } else {
+          // Manejo normal de valores nulos/undefined
+          if (aValue == null && bValue == null) return 0
+          if (aValue == null) return 1
+          if (bValue == null) return -1
+        }
+
+        // Comparación según tipo
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toLowerCase()
+        }
+
+        if (aValue < bValue) {
+          return reporteSort.value.type === 'ASC' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return reporteSort.value.type === 'ASC' ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    reporteDataFiltered.value = filtered
+  }
+
+  // Watcher para aplicar filtros cuando cambian
+  watch(() => reporteFiltersActive.value, () => {
+    applyReporteFiltersAndSort()
+  }, { deep: true })
+
+  watch(() => reporteSort.value, () => {
+    applyReporteFiltersAndSort()
+  }, { deep: true })
+
+  watch(() => reporteData.value, () => {
+    applyReporteFiltersAndSort()
+  }, { deep: true })
+
+  const handleGenerarReporteGeneral = () => {
+    showDialogReporteGeneral.value = true
+    isLoadingReporteGeneral.value = true
+
+    let postData = {
+      caja_id: appStore.cajaSeleccionada?.id,
+    }
+
+    console.log('Generando reporte...')
+
+    api.get('caja/cajas/reporte', { params: postData })
+      .then(response => {
+        if (response.data) {
+          reporteData.value = response.data
+          reporteDataFiltered.value = response.data
+          reporteSelectedRows.value = []
+          // Resetear filtros y ordenamiento
+          reporteFiltersActive.value = {
+            tipos: ['Parcelas', 'Nichos', 'Columbarios'],
+            estado: null,
+            vigenciaDesde: null,
+            vigenciaHasta: null,
+            moraOperador: 'mayor',
+            moraCantidad: null,
+            ubicacionesOperador: 'igual',
+            ubicacionesCantidad: null,
+            recibosDesde: null,
+            recibosHasta: null,
+          }
+          reporteSort.value = { column: null, type: 'ASC' }
+          qNotify('Reporte generado correctamente', 'positive')
+        }
+      })
+      .catch(error => qNotify(error, 'error', { callback: handleGenerarReporteGeneral }))
+      .finally(() => isLoadingReporteGeneral.value = false)
+  }
+
+  const handleDescargarReportePdf = () => {
+    isLoadingReportePdf.value = true
+
+    const postData = {
+      caja_id: appStore.cajaSeleccionada?.id,
+    }
+
+    api
+      .get('caja/cajas/reporte/pdf', { params: postData, responseType: 'blob' })
+      .then((response) => {
+        window.open(URL.createObjectURL(response.data))
+        qNotify('PDF descargado correctamente', 'positive')
+      })
+      .catch(async (error) => {
+        try {
+          error.response.data = JSON.parse(await error.response.data.text())
+        } catch (e) {
+          // Si no es JSON, dejar el error como está
+        }
+        qNotify(error, 'error', {
+          callback: () => handleDescargarReportePdf(),
+        })
+      })
+      .finally(() => isLoadingReportePdf.value = false)
+  }
+
+  const handleSetReporteSort = (columnName) => {
+    if (reporteSort.value.column === columnName) {
+      // Cambiar tipo de orden: ASC -> DESC -> null
+      if (reporteSort.value.type === 'ASC') {
+        reporteSort.value.type = 'DESC'
+      } else if (reporteSort.value.type === 'DESC') {
+        reporteSort.value.column = null
+        reporteSort.value.type = 'ASC'
+      }
+    } else {
+      // Seleccionar nueva columna con ASC
+      reporteSort.value.column = columnName
+      reporteSort.value.type = 'ASC'
+    }
+  }
+
   const handleEliminarPago = (id, confirm = false) => {
     if (!confirm) {
       $q.dialog({
@@ -1062,6 +1817,19 @@
       .catch(error => qNotify(error, 'error'))
 
     showModalHistorialIngresos.value = true
+  }
+
+  const cajaReporte = ref([])
+
+  const openDialogReporteGeneral = () => {
+    api.get('caja/cajas/reporte')
+      .then(response => {
+        if (response.data) {
+          console.log('response.data', response.data);
+          cajaReporte.value = response.data
+        }
+      })
+      .catch(error => qNotify(error, 'error'))
   }
 
   const handleSubmitAbrirCaja = () => {

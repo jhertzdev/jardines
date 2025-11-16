@@ -126,6 +126,11 @@
   max-width: calc(100% - 30px);
 }
 
+.j-dialog.j-dialog-full .q-card {
+  width: 100%;
+  max-width: 100%;
+}
+
 .q-form.no-bottoms .q-field--with-bottom {
   padding-bottom: 0;
 }
