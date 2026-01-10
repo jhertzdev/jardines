@@ -76,7 +76,7 @@ watch(() => props.modelValue, async (val) => {
 
 })
 
-const emit = defineEmits(['update:modelValue', 'selected'])
+const emit = defineEmits(['update:modelValue', 'selected', 'mounted'])
 
 const fullData = ref([])
 
@@ -166,7 +166,12 @@ async function getOptions(params = null) {
 }
 
 onMounted(() => {
-  getOptions()
+  getOptions().then(() => {
+    let itemData = fullData.value.find(item => selectedId.value === item.id);
+    if (itemData) {
+      emit('mounted', itemData)
+    }
+  })
 })
 
 </script>

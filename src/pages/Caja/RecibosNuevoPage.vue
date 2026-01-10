@@ -160,7 +160,8 @@
           <div class="row q-col-gutter-md q-mb-md">
             <div class="col-md-4">
               <QSelectCliente dense outlined v-model="reciboData.cliente_id" clearable required
-                rule="Este campo es requerido." :filters="{ difunto: 0 }" label="Cliente relacionado" @clear="reciboData.contrato_id = null; handleSelectContrato(null)" />
+                rule="Este campo es requerido." :filters="{ difunto: 0 }" label="Cliente relacionado" @clear="reciboData.contrato_id = null; handleSelectContrato(null)"
+                @selected="val => handleSelectCliente(val)" />
               <div class="text-right text-caption text-grey-6">
                 <template v-if="parseInt(reciboData.cliente_id)">
                   <q-btn id="btnEditInvoiceClient" flat dense class="q-mr-sm" size="sm" label="Editar" icon="edit"
@@ -212,7 +213,7 @@
                 @change="reciboData.fecha_vencimiento = reciboData.fecha_emision" />
             </div>
             <div class="col-md-3 text-right">
-              <q-checkbox v-model="reciboData.es_fiscal" true-value="1" false-value="0" label="Factura fiscal" />
+              <q-checkbox v-model="reciboData.es_fiscal" true-value="1" false-value="0" label="Factura fiscal" @update:model-value="(val) => handleSelectFiscalType(val)" />
             </div>
           </div>
         </q-card-section>
@@ -233,7 +234,32 @@
             </template>
             <template v-slot:bottom-row>
               <q-td colspan="100%" class="text-center">
-                <q-btn label="Agregar servicio" class="q-my-md" icon="add" color="primary" @click="agregarServicio" />
+                <div class="q-gutter-sm">
+                  <q-btn label="Agregar servicio" class="q-my-md" icon="add" color="primary">
+                    <q-popup-proxy ref="agregarServicioPopupRef">
+                      <q-banner style="width: 600px">
+                        <div class="q-gutter-x-xs q-gutter-y-xs">
+                          <template v-for="(servicios, categoria) in filteredServiciosPorCategorias">
+                            <div class="text-bold text-primary q-mt-sm">{{ categoria }}</div>
+                            <q-btn v-for="servicio in servicios" :key="servicio.id" :label="servicio.nombre_producto" size="sm" color="primary" outline @click="agregarServicio(servicio)"></q-btn>
+                          </template>
+                        </div>
+                      </q-banner>
+                    </q-popup-proxy>
+                  </q-btn>
+                  <q-btn label="Agregar línea" class="q-my-md" icon="add" color="primary" @click="agregarServicio(null)" />
+                  <q-btn label="Agregar IGTF" class="q-my-md" icon="add" color="primary">
+                    <q-popup-proxy ref="igtfPopupRef" @hide="agregarLineaIgtf">
+                      <q-banner style="width: 300px">
+                        <q-input type="number" step="0.01" label="Escribe el monto a cancelar en divisas" v-model="igtfInput" stack-label autofocus @keyup.enter="igtfPopupRef.hide()">
+                          <template v-slot:append>
+                            $
+                          </template>
+                        </q-input>
+                      </q-banner>
+                    </q-popup-proxy>
+                  </q-btn>
+                </div>
               </q-td>
             </template>
 
@@ -244,14 +270,14 @@
             </template>
 
             <template v-slot:body-cell-descripcion="props">
-              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" :colspan="!!props.row.tipo ? 1 : 2">
-                <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" :readonly="!!props.row.tipo">
+              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}" :colspan="!props.row.tipo || ['impuesto'].includes(props.row.tipo) || props.row.tipo?.nombre_producto?.includes(' mora') ? 2 : 1">    
+                <q-input type="textarea" rows="1" autogrow dense v-model="props.row.descripcion" style="margin-bottom: 20px;" :readonly="!!props.row.tipo && !props.row.tipo?.nombre_producto?.includes(' mora')">
                   <template v-slot:append>
                     <q-btn flat color="primary" dense size="sm" icon="edit">
                       <q-popup-proxy ref="plantillaDescripcionPopup" @hide="props.row.descripcion = props.row.descripcion_plantilla; handleRellenarDescripcion(props.row)">
                         <q-banner>
 
-                          <q-select
+                          <!--<q-select
                             v-model="props.row['tipo']"
                             :options="filteredServicios"
                             option-value="id"
@@ -268,8 +294,9 @@
                             <template v-slot:selected>
                               {{ props.row['tipo']?.nombre_producto || '-- Línea personalizada --' }}
                             </template>
-                          </q-select>
+                          </q-select>-->
 
+                          {{props.row.descripcion_plantill}}
                           <q-input type="textarea" autogrow dense outlined v-model="props.row.descripcion_plantilla" label="Descripción" style="width: 300px" autofocus />
                           <div class="q-mt-xs q-gutter-xs">
                             <q-btn outline dense size="sm" color="primary" label="Fecha desde" class="q-pa-xs" @click="props.row.descripcion_plantilla += '__DESDE__'" />
@@ -353,13 +380,13 @@
               </q-td>
             </template>
             <template v-slot:body-cell-cantidad="props">
-              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row, 'td-cantidad-cuotas': props.row['tipo']?.pagable_cuotas == 1 }" v-if="!!props.row.tipo || props.row.tipo?.tipo_producto == 'Mantenimiento'">
+              <q-td :props="props" :class="{'highlighted': hoveredRow === props.row, 'td-cantidad-cuotas': props.row['tipo']?.pagable_cuotas == 1 }" v-if="!!props.row.tipo && !['impuesto'].includes(props.row.tipo) && !props.row.tipo?.nombre_producto?.includes(' mora')">
                 <q-input dense v-model="props.row[props.col.name]" type="number" step="1" min="1" style="margin-bottom: 20px;" :disable="!!parseInt(props.row.tipo?.requiere_ubicaciones)" @update:model-value="handleRecalcularLinea(props.row)" />
               </q-td>
             </template>
             <template v-slot:body-cell-precio="props">
               <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
-                <template v-if="props.row.tipo">
+                <template v-if="props.row.tipo && !props.row.tipo?.nombre_producto?.includes(' mora')">
                   {{ $dinero(props.row[props.col.name]) }}
                 </template>
                 <template v-else>
@@ -384,22 +411,11 @@
             </template>
             <template v-slot:body-cell-impuesto="props">
               <q-td :props="props" :class="{'highlighted': hoveredRow === props.row}">
-                <template v-if="reciboData.aplicar_impuestos">
-                  <span class="text-grey text-italic">{{ parseFloat(reciboData.impuesto_total || 0).toFixed(2)
-                    }}%</span>
-                </template>
-                <template v-else>
-                  <q-checkbox size="sm" dense v-model="props.row['impuesto_incluido']"
-                    v-if="!props.row['impuesto_incluido']"  style="margin-bottom: 20px;"/>
-                  <q-input dense v-model="props.row[props.col.name]" type="number" v-else style="margin-bottom: 20px;">
-                    <template v-slot:prepend>
-                      <q-checkbox size="sm" dense v-model="props.row['impuesto_incluido']" @update:model-value="props.row[props.col.name] = 0" />
-                    </template>
-                    <template v-slot:append>
-                      <span style="font-size:1rem;">%</span>
-                    </template>
-                  </q-input>
-                </template>
+
+                <span class="text-grey text-italic" style="margin-bottom: 20px;">
+                    {{ parseFloat(props.row[props.col.name] || 0).toFixed(2) }}%
+                </span>
+
               </q-td>
             </template>
             <template v-slot:body-cell-descuento="props">
@@ -455,7 +471,7 @@
               ]" />
             </div>
 
-            <q-banner v-if="contratoSelected && contratoSelected.fecha_mora" class="bg-red-2 text-dark q-mt-md" style="font-size:1.2rem;">
+            <q-banner v-if="contratoSelected && contratoSelected.fecha_mora && (parseFloat(contratoSelected.total_mora || 0) - parseFloat(contratoSelected.pagado_mora || 0)) > 0" class="bg-red-2 text-dark q-mt-md" style="font-size:1.2rem;">
               <template v-slot:avatar>
                 <q-icon name="warning" color="negative" size="md" />
               </template>
@@ -760,6 +776,34 @@
 
   import { add, addMonths, lastDayOfMonth, getDate, getMonth, format, differenceInYears, differenceInMonths, differenceInDays } from "date-fns";
 
+  const handleSelectFiscalType = (val) => {
+    reciboData.es_fiscal = val;
+
+    tableData.value?.forEach(row => {
+      handleRecalcularLinea(row);
+    });
+  }
+
+  const handleSelectCliente = (value) => {
+    const clienteData = value
+
+    if (clienteData && !!parseInt(clienteData.es_fiscal)) {
+
+      $q.dialog({
+        title: 'Cliente fiscal',
+        message: 'Se ha marcado automáticamente como factura fiscal. Si deseas emitir un recibo o comprobante de pago, desmarca la opción.',
+        cancel: false,
+        ok: {
+          label: 'Entendido',
+          color: 'primary',
+          flat: true,
+        },
+      })
+
+      handleSelectFiscalType("1");
+    }
+  }
+
   const handleSelectContrato = (value) => {
     console.log('handleSelectContrato', value);
     if (value) {
@@ -863,13 +907,14 @@
 
   }
 
+  const selectedEmpresa = computed(() => empresas.value.find(empresa => empresa.id == reciboData.empresa_id));
+
   const tiposFactura = computed(() => {
 
     if (reciboData.empresa_id) {
       // Recorrer la variable "empresas", y si la tipo_actividad de empresa en reciboData.empresa_id es venta_parcelas:
-      const empresa = empresas.value.find(empresa => empresa.id == reciboData.empresa_id);
-
-      if (empresa && empresa.tipo_actividad == 'venta_parcelas') {
+      
+      if (selectedEmpresa.value && selectedEmpresa.value.tipo_actividad == 'venta_parcelas') {
         return [
           {
             value: "venta_propiedad",
@@ -878,7 +923,7 @@
         ]
       }
 
-      if (empresa && empresa.tipo_actividad == 'mantenimiento_parcelas') {
+      if (selectedEmpresa.value && selectedEmpresa.value.tipo_actividad == 'mantenimiento_parcelas') {
         return [
           {
             value: "mantenimiento_propiedad",
@@ -1048,75 +1093,84 @@
     tableData.value.splice(index, 1)
   }
 
-  const tableColumns = [
-    {
-      name: 'acciones',
-      label: '',
-      align: 'left',
-      field: 'acciones',
-    },
-    {
-      name: 'descripcion',
-      required: true,
-      label: 'Descripción',
-      align: 'left',
-      field: 'descripcion',
-      headerStyle: 'width: 400px',
-    },
-    {
-      name: 'cantidad',
-      required: true,
-      label: 'Cantidad',
-      align: 'left',
-      field: 'cantidad',
-      headerStyle: 'width: 80px',
-      style: 'width: 80px',
-    },
-    {
-      name: 'precio',
-      required: true,
-      label: 'Precio',
-      align: 'left',
-      field: 'precio',
-      format: value => `${value.toFixed(2)}`,
-      headerStyle: 'width: 100px',
-      style: 'width: 100px',
-    },
-    {
-      name: 'total',
-      required: true,
-      label: 'Total',
-      align: 'right',
-      field: 'total',
-      format: value => `${value.toFixed(2)}`,
-      headerStyle: 'width: 100px',
-      style: 'width: 100px',
-    },
-    /*{
-      name: 'impuesto',
-      required: true,
-      label: 'Impuesto',
-      align: 'left',
-      field: 'impuesto',
-      format: value => `${value.toFixed(2)}`,
-      headerStyle: 'width: 125px',
-      style: 'width: 125px',
-    },*/
-    /*{
-      name: 'descuento',
-      required: true,
-      label: 'Descuento',
-      align: 'left',
-      field: 'descuento',
-      format: value => `${value.toFixed(2)}`,
-      headerStyle: 'width: 125px',
-      style: 'width: 125px',
-    },*/
-  ]
+  const tableColumns = computed(() => {
 
-  const tableData = ref([
-    { "tipo": "", "descripcion": "", "cantidad": 1, "precio": 0, "impuesto": 0, "descuento": 0, "impuesto_incluido": false, "descuento_incluido": false }
-  ])
+    const baseColumns = [
+      {
+        name: 'acciones',
+        label: '',
+        align: 'left',
+        field: 'acciones',
+      },
+      {
+        name: 'descripcion',
+        required: true,
+        label: 'Descripción',
+        align: 'left',
+        field: 'descripcion',
+        headerStyle: 'width: 400px',
+      },
+      {
+        name: 'cantidad',
+        required: true,
+        label: 'Cantidad',
+        align: 'left',
+        field: 'cantidad',
+        headerStyle: 'width: 80px',
+        style: 'width: 80px',
+      },
+      {
+        name: 'precio',
+        required: true,
+        label: 'Precio',
+        align: 'left',
+        field: 'precio',
+        format: value => `${value.toFixed(2)}`,
+        headerStyle: 'width: 100px',
+        style: 'width: 100px',
+      },
+      {
+        name: 'impuesto',
+        required: true,
+        label: 'Impuesto',
+        align: 'left',
+        field: 'impuesto',
+        format: value => `${value.toFixed(2)}`,
+        headerStyle: 'width: 50px',
+        style: 'width: 50px',
+      },
+      {
+        name: 'total',
+        required: true,
+        label: 'Subtotal',
+        align: 'right',
+        field: 'total',
+        format: value => `${value.toFixed(2)}`,
+        headerStyle: 'width: 100px',
+        style: 'width: 100px',
+      },
+      /*{
+        name: 'descuento',
+        required: true,
+        label: 'Descuento',
+        align: 'left',
+        field: 'descuento',
+        format: value => `${value.toFixed(2)}`,
+        headerStyle: 'width: 125px',
+        style: 'width: 125px',
+      },*/
+    ]
+
+    if (reciboData.es_fiscal == '1') {
+      return baseColumns;
+    } else {
+      return baseColumns.filter(col => col.name !== 'impuesto')
+    }
+    
+  })
+
+
+  const tableData = ref([])
 
   const totalsColumns = [
     {
@@ -1178,7 +1232,7 @@
     if (reciboData.aplicar_impuestos) {
       Impuestos = SubtotalConDescuentos * reciboData.impuesto_total / 100;
     } else {
-      Impuestos = tableData.value.reduce((acc, row) => acc + (row.total * row.impuesto / 100), 0);
+      Impuestos = tableData.value.reduce((acc, row) => acc + (row.total * (row.impuesto || 0) / 100), 0);
     }
 
     if (Impuestos) {
@@ -1196,6 +1250,8 @@
       total: Total,
       isTotal: true,
     });
+
+    console.log(totals, SubtotalConDescuentos, Impuestos)
 
     return totals;
   });
@@ -1259,15 +1315,25 @@
     }
   })
 
+  const filteredServiciosPorCategorias = computed(() => {
+    let categorias = {}
+
+    filteredServicios.value.forEach(servicio => {
+      let tipoProducto = servicio.tipo_producto || 'Otros'
+      if (!categorias[tipoProducto]) {
+        categorias[tipoProducto] = []
+      }
+      categorias[tipoProducto].push(servicio)
+    })
+
+    return categorias
+  })
+
   const tiposContrato = ref([])
   const monedas = ref([])
   const metodosPago = ref([])
 
   function initializePage() {
-
-    tableData.value = [
-      { "tipo": "", "descripcion": "", "cantidad": 1, "precio": 0, "impuesto": 0, "descuento": 0, "impuesto_incluido": false, "descuento_incluido": false }
-    ];
 
     metodosPagoSelected.value = []
 
@@ -1347,6 +1413,15 @@
           }
         })
         .catch(error => qNotify(error, 'error'))
+    }
+
+    if (route.query?.cliente_id) {
+      api.get('clientes/' + route.query.cliente_id)
+        .then(response => {
+          if (response.data) {
+            handleSelectCliente(response.data)
+          }
+        })
     }
 
     reciboData.contrato_id = route.query?.contrato_id || null;
@@ -1543,6 +1618,24 @@
       ubicaciones: row.ubicaciones,
     });
 
+    if (reciboData.es_fiscal == "1") {
+
+      let impuesto = row.tipo?.impuesto || 0
+
+      if (row.tipo?.incluye_iva == "1") {
+        row.precio = row.tipo.precio_ref / (1 + impuesto / 100)
+      }
+
+      if (!row.tipo) {
+        row.impuesto = selectedEmpresa.value?.porcentaje_iva || 0
+      } else {
+        row.impuesto = impuesto
+      }
+
+    } else {
+      delete row.impuesto
+    }
+
     if (!!parseInt(row.tipo?.requiere_ubicaciones)) {
       row.cantidad = row.ubicaciones.length
     }
@@ -1733,17 +1826,81 @@
     ubicacion.nuevo_pagado_hasta = nuevoPagadoHasta
   };
 
-  const agregarServicio = () => {
+  const agregarServicio = (servicio = null) => {
+
     tableData.value.push({
-      tipo: '',
+      tipo: servicio || '',
       descripcion: '',
       cantidad: 1,
       precio: 0,
-      impuesto: 0,
+      impuesto: selectedEmpresa.value?.porcentaje_iva || 0,
       descuento: 0,
       impuesto_incluido: false,
       descuento_incluido: false,
     })
+
+    if (servicio) {
+      handleChangeTipoServicio(tableData.value[tableData.value.length - 1])
+    }
+
+    agregarServicioPopupRef.value.hide()
+
+  }
+
+  const igtfInput = ref(null)
+  const igtfPopupRef = ref(null)
+  const agregarServicioPopupRef = ref(null)
+  const porcentajeIgtf = 0.03
+
+  const agregarLineaIgtf = () => {
+
+    // Encontrar una línea de impuesto, si no existe, crear
+    let lineaIgtf = tableData.value.findIndex(row => row.tipo === 'impuesto' && row.descripcion.includes('IGTF'))
+
+    let monto = parseFloat(igtfInput.value).toFixed(2)
+
+    // Si la línea existe, actualizar el precio
+    if (lineaIgtf !== -1) {
+      if (igtfInput.value > 0) {
+        tableData.value[lineaIgtf].precio = igtfInput.value * porcentajeIgtf
+        tableData.value[lineaIgtf].descripcion =
+`BI IGTF (${(porcentajeIgtf * 100).toFixed(2)}%)
+Monto en divisas: ${monto} REF.`
+        tableData.value[lineaIgtf].descripcion_plantilla =
+`BI IGTF (${(porcentajeIgtf * 100).toFixed(2)}%)
+Monto en divisas: ${monto} REF.`
+        handleRecalcularLinea(tableData.value[lineaIgtf])
+        return;
+      } else {
+        // Si el valor es 0, eliminar la línea
+        tableData.value.splice(lineaIgtf, 1)
+        return;
+      }
+    } else {
+      // Si no existe la línea, crearla
+      if (igtfInput.value > 0) {
+        tableData.value.push({
+          tipo: 'impuesto',
+          descripcion:
+`BI IGTF (${(porcentajeIgtf * 100).toFixed(2)}%)
+Monto en divisas: ${monto} REF.`,
+          descripcion_plantilla:
+`BI IGTF (${(porcentajeIgtf * 100).toFixed(2)}%)
+Monto en divisas: ${monto} REF.`,
+          cantidad: 1,
+          precio: igtfInput.value * porcentajeIgtf,
+          impuesto: 0,
+          descuento: 0,
+          impuesto_incluido: false,
+          descuento_incluido: false,
+        })
+
+        handleRecalcularLinea(tableData.value[tableData.value.length - 1])
+      } else {
+        return;
+      }
+    }
+
   }
 
   let siguienteNumeroRecibo;

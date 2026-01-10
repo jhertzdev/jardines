@@ -60,7 +60,7 @@
               <td style="max-width: 50px; text-align: center; padding-left: 8px;">
                 <a href="javascript:void(0)" @click="(e) => verContratosDialog.openDialog(row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato, row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.tipo_parcela)">
                   {{ row.contratos.find(c => c.estatus == 'Activo' && c.tipo_actividad == 'mantenimiento_parcelas')?.num_contrato }}
-                </a>
+                </a> 
               </td>
               <td style="max-width: 150px; white-space: break-spaces; line-height: 1.15;">
                 <a href="javascript:void(0)" @click="(e) => editarClienteDialog.openDialog(row.propietario_id)">

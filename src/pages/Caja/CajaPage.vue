@@ -253,19 +253,38 @@
                       {{ props.row.descripcion }}
                     </div>
                     <template v-if="metodosPagoSelected.includes(props.row)">
-                      <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada"
-                        @update:model-value="val => props.row['monto_transaccion'] = val / props.row.tasa * transaccionData.tasa_actual">
-                        <template v-slot:append>
-                          <span class="text-body1 text-primary">{{ props.row.simbolo }}</span>
-                        </template>
-                      </q-input>
-                      <q-input dense v-model="props.row['referencia']" label="Referencia" v-if="props.row['tipo_metodo'] != 'Efectivo'"
-                        debounce="500" @update:model-value="val => handleVerificarReferencia(props.row, val)" :error="props.row.referencias_usadas?.length > 0 && !props.row['referencia_usada']" hide-bottom-space>
-                        <template v-slot:error>
-                          La referencia ya ha sido usada.
-                        </template>
-                      </q-input>
-                      <q-checkbox dense class="q-mt-xs" v-if="props.row.referencias_usadas?.length > 0" :model-value="!!props.row['referencia_usada']" @update:model-value="props.row['referencia_usada'] = !props.row['referencia_usada']" label="Utilizar referencia igualmente" />
+
+                      <template v-if="monedaPrincipal.id === props.row.moneda_id && mostrarAvisoIgtf && !ignorarMostrarAvisoIgtf">
+                        <div>
+                          <p class="text-red-6 q-mb-none" style="white-space:break-spaces">
+                            <q-icon name="warning"></q-icon> Agrega el IGTF del 3% sobre el monto pagado en divisas.
+                          </p>
+                          <q-input dense v-model="calcularIgtfInput" type="number" step="0.01" label="" hint="Escribe un monto en divisas para calcular el IGTF">
+                            <template v-slot:append>
+                              <q-btn size="sm" dense class="q-px-sm" color="primary" icon="calculate" label="Calcular" @click="handleAgregarLineaIgtf(transaccionData.id)"></q-btn>
+                            </template>
+                          </q-input>
+                          <q-checkbox dense class="q-mt-xs" v-model="ignorarMostrarAvisoIgtf" label="Ignorar aviso de IGTF para esta transacción" />
+                        </div>
+                      </template>
+
+                      <template v-else>
+                        <q-input dense v-model="props.row[props.col.name]" type="number" step="0.01" label="Cantidad pagada"
+                          @update:model-value="val => props.row['monto_transaccion'] = val / props.row.tasa * transaccionData.tasa_actual">
+                          <template v-slot:append>
+                            <span class="text-body1 text-primary">{{ props.row.simbolo }}</span>
+                          </template>
+                        </q-input>
+                        <q-input dense v-model="props.row['referencia']" label="Referencia" v-if="props.row['tipo_metodo'] != 'Efectivo'"
+                          debounce="500" @update:model-value="val => handleVerificarReferencia(props.row, val)" :error="props.row.referencias_usadas?.length > 0 && !props.row['referencia_usada']" hide-bottom-space>
+                          <template v-slot:error>
+                            La referencia ya ha sido usada.
+                          </template>
+                        </q-input>
+                        <q-checkbox dense class="q-mt-xs" v-if="props.row.referencias_usadas?.length > 0" :model-value="!!props.row['referencia_usada']" @update:model-value="props.row['referencia_usada'] = !props.row['referencia_usada']" label="Utilizar referencia igualmente" />
+                      </template>
+
+                      
                     </template>
                   </q-td>
                 </template>
@@ -2073,6 +2092,8 @@
   const openDialogAgregarPago = (id) => {
 
     metodosPagoSelected.value = []
+    ignorarMostrarAvisoIgtf.value = false;
+    calcularIgtfInput.value = null;
 
     metodosPago.value.forEach(metodo => {
       delete metodo.cantidad;
@@ -2134,6 +2155,72 @@
   const metodosPago = ref([])
 
   const metodosPagoSelected = ref([])
+
+  const mostrarAvisoIgtf = ref(false);
+  const calcularIgtfInput = ref(null);
+  const ignorarMostrarAvisoIgtf = ref(false);
+
+  watch([metodosPagoSelected, transaccionData], () => {
+    // Si es una factura fiscal, alguno de los métodos de pago es hecho con moneda principal, y no hay líneas de IGTF
+    let esFacturaFiscal = transaccionData.value?.es_fiscal == "1";
+    let tienePagosEnMonedaPrincipal = metodosPagoSelected.value.some(metodo => metodo.moneda_id === monedaPrincipal.value.id);
+
+    // Si contiene la palabra IGTF
+    let tieneLineaIgtf = transaccionData.value?.lineas?.some(linea => linea.descripcion?.toUpperCase().includes('IGTF'));
+
+    if (esFacturaFiscal && tienePagosEnMonedaPrincipal && !tieneLineaIgtf) {
+      mostrarAvisoIgtf.value = true;
+    } else {
+      mostrarAvisoIgtf.value = false;
+    }
+  }, { deep: true })
+
+  const porcentajeIgtf = 0.03;
+
+  const handleAgregarLineaIgtf = (id, confirm = false) => {
+
+    if (!confirm) {
+      $q.dialog({
+        title: 'Agregar línea de IGTF',
+        message: `Se agregará una línea automática de IGTF (${(porcentajeIgtf * 100).toFixed(2)}%) a la transacción sobre el monto de ${parseFloat(calcularIgtfInput.value).toFixed(2)} REF. (Impuesto adicional a pagar: ${(parseFloat(calcularIgtfInput.value) * porcentajeIgtf).toFixed(2)} REF.) ¿Deseas continuar?`,
+        cancel: true,
+        persistent: true,
+        ok: {
+          label: 'Continuar',
+          color: 'primary',
+          flat: true,
+        },
+        cancel: {
+          label: 'Cancelar',
+          color: 'primary',
+          flat: true,
+          icon: 'cancel'
+        }
+      }).onOk(() => {
+        handleAgregarLineaIgtf(id, true)
+      })
+    } else {
+      
+      api.post('caja/transacciones/' + id + '/agregarLineaRecibo', {
+        descripcion: 
+`BI IGTF (${(porcentajeIgtf * 100).toFixed(2)}%)
+Monto en divisas: ${calcularIgtfInput.value} REF.`,
+        cantidad: 1,
+        precio_unitario: parseFloat(calcularIgtfInput.value) * porcentajeIgtf,
+        total_ref: parseFloat(calcularIgtfInput.value) * porcentajeIgtf,
+      })
+        .then(response => {
+          if (response.data) {
+            $q.notify({ message: 'Línea de IGTF agregada exitosamente.', color: 'positive' })
+            openDialogAgregarPago(id)
+          }
+        })
+        .catch(error => qNotify(error, 'error', { callback: () => handleAgregarLineaIgtf(id) }))
+    }
+
+  }
+
+  
 
   const metodosPagoColumnas = [
     { name: 'metodo', label: 'Método de pago', align: 'left', field: 'metodo' },

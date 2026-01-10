@@ -55,7 +55,7 @@
                     </div>
                     <div class="col-12">
                         <div class="row">
-                          <div class="col-sm-6 col-12">
+                          <div class="col-sm-auto col-12">
                             <q-checkbox v-model="data.estado_gerencia" true-value="1" false-value="0" label="Estado de gerencia"
                               :disable="!authStore.can('clientes.gerencia')">
                               <q-tooltip max-width="200px" class="text-center bg-black">
@@ -63,7 +63,16 @@
                               </q-tooltip>
                             </q-checkbox>
                           </div>
-                          <div class="col-sm-6 col-12 text-right">
+
+                          <div class="col-sm col-12">
+                            <q-checkbox v-model="data.es_fiscal" true-value="1" false-value="0" label="Es fiscal">
+                              <q-tooltip max-width="200px" class="text-center bg-black">
+                                Marca esta opción para los clientes que solicitan siempre factura fiscal
+                              </q-tooltip>
+                            </q-checkbox>
+                          </div>
+
+                          <div class="col-sm col-12">
                             <q-checkbox v-model="data.difunto" true-value="1" false-value="0" label="¿Fallecido?"
                               :disable="!!(props.difunto || data.fecha_muerte || data.certificado_defuncion || data.causa_muerte)">
                               <q-tooltip max-width="200px" class="text-center bg-black"
@@ -73,6 +82,7 @@
                               </q-tooltip>
                             </q-checkbox>
                           </div>
+                          
 
                         </div>
 
@@ -825,6 +835,7 @@ const data = reactive({
   genero: null,
   // Relaciones y parentesco
   relaciones: [],
+  es_fiscal: null
 })
 
 const relacionData = reactive({
@@ -875,7 +886,7 @@ const openDialog = (id, event = null, params = {}) => {
   Object.keys(data).forEach((i) => {
     data[i] = (i === 'relaciones' || i === 'notas_cobro' || i === 'redes_sociales') ? [] :
       (i === 'difunto' ? (props.difunto ? '1' : '0') :
-        (i === 'estado_gerencia' ? '0' : null)
+        (i === 'es_fiscal' ? '0' : null)
       )
   })
 

@@ -757,7 +757,7 @@ const handleSubmitEditarContratos = (e) => {
         emit('updated', response.data)
       }
     })
-    .catch((error) => qNotify(error, 'error', handleSubmitEditarContratos))
+    .catch((error) => qNotify(error, 'error', { callback: () => handleSubmitEditarContratos(e) } ))
     .finally(() => isLoadingSubmit.value = false)
 
 }
@@ -980,7 +980,7 @@ const handleDesligarProductos = (confirm = false) => {
           $q.notify({ message: 'Desligados exitosamente.', color: 'positive' })
         }
       })
-      .catch((error) => qNotify(error, 'error', handleDesligarProductos(false)))
+      .catch((error) => qNotify(error, 'error', { callback: () => handleDesligarProductos(true) }))
       .finally(() => isLoadingSubmit.value = false)
   }
 
@@ -1027,7 +1027,7 @@ const handleLiberarProductos = (confirm = false) => {
           $q.notify({ message: 'Liberados exitosamente.', color: 'positive' })
         }
       })
-      .catch((error) => qNotify(error, 'error', handleLiberarProductos(false)))
+      .catch((error) => qNotify(error, 'error', { callback: () => handleLiberarProductos(true) }))
       .finally(() => isLoadingSubmit.value = false)
     }
 }

@@ -38,12 +38,16 @@
             <q-input type="textarea" class="no-resize" outlined v-model="data.descripcion" rows="2" label="Descripción" placeholder="Escribe la descripción de este servicio (aparecerá en los recibos)" clearable/>
           </div>
 
-          <div class="col-12 col-md-7">
+          <div class="col-12 col-md-12 q-mb-md">
             <QSelectEmpresa outlined v-model="data.empresa_id" clearable label="Empresa"/>
           </div>
 
-          <div class="col-12 col-md-5">
+          <div class="col-12 col-md-6 q-mt-xs">
             <q-input outlined v-model="data.precio_ref" type="number" label="Precio" placeholder="Escribe el precio de referencia" />
+          </div>
+
+          <div class="col-12 col-md-6 q-mt-xs">
+            <q-input outlined v-model="data.impuesto" type="number" label="Impuesto" placeholder="Escribe el impuesto" />
           </div>
 
 
@@ -116,6 +120,7 @@ const data = reactive({
   precio_ref: null,
   requiere_impuestos: null,
   incluye_iva: null,
+  impuesto: null,
   disponible: null,
   gestiona_stock: null,
   requiere_ubicaciones: null,
@@ -173,6 +178,9 @@ const openDialog = (id) => {
         break;
       case 'incluye_iva':
         data[i] = '0';
+        break;
+      case 'impuesto':
+        data[i] = 0;
         break;
       case 'requiere_impuestos':
         data[i] = null;

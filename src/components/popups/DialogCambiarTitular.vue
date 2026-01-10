@@ -98,7 +98,7 @@ const handleSubmitCambiarTitular = () => {
         emit('updated', response.data)
       }
     })
-    .catch((error) => qNotify(error, 'error', handleSubmitCambiarTitular))
+    .catch((error) => qNotify(error, 'error', { callback: () => handleSubmitCambiarTitular() }))
     .finally(() => isLoadingSubmit.value = false)
 
 }

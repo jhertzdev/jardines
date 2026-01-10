@@ -198,7 +198,7 @@
                     <q-tooltip max-width="200px" class="bg-black">La fecha de emisión no coincide con la fecha de vencimiento de alguna ubicación.</q-tooltip>
                   </q-icon>
 
-                  <q-icon name="warning" class="q-ml-xs text-negative" v-if="props.row.fecha_mora">
+                  <q-icon name="warning" class="q-ml-xs text-negative" v-if="props.row.fecha_mora && (parseFloat(props.row.total_mora || 0) - parseFloat(props.row.pagado_mora || 0)) > 0">
                     <q-tooltip max-width="200px" class="bg-black">
                        El cliente tiene una mora pendiente de <span class="text-bold">
                         {{ $dinero((parseFloat(props.row.total_mora || 0) - parseFloat(props.row.pagado_mora || 0))) }}
@@ -309,9 +309,18 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="text-bold text-right" colspan="4" style="vertical-align: top"> <q-checkbox v-model="calcularDeudaContrato.mora" /> TOTAL MORA:</td>
-                  <td style="vertical-align: top">
-                    <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
+                  <td class="text-bold text-right" colspan="4" style="vertical-align: middle">
+                    <q-btn size="sm" class="q-px-sm" dense color="primary" icon="edit" outline @click="openDialogEditarMora()" />
+                    <q-checkbox v-model="calcularDeudaContrato.mora" />
+                    TOTAL MORA:
+                  </td>
+                  <td style="vertical-align: middle">
+                    <q-input square type="number" size="sm" step="0.01" dense stack-label outlined v-model="calcularDeudaContrato.total_mora_calculada" :disable="!calcularDeudaContrato.mora" :class="!calcularDeudaContrato.mora && 'bg-grey-3'"/>
+                  </td>
+                </tr>
+                <tr v-if="calcularDeudaContrato?.deuda_mora_forma_calculo == 'cuotas'">
+                  <td colspan="5">
+                    <CuotasMoraTable :cuotas="calcularDeudaContrato.cuotas || []" :totalPagado="calcularDeudaContrato.pagado_mora" />
                   </td>
                 </tr>
                 <tr v-if="calcularDeudaContrato.fecha_pagado_mora">
@@ -326,7 +335,7 @@
                 </tr>
                 <tr>
                   <td class="text-bold text-right" colspan="4">TOTAL DEUDA:</td>
-                  <td class="text-bold text-right" style="font-size: 1.5rem">${{ ( calcularDeudaContrato?.fechas?.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (calcularDeudaContrato.mora ? parseFloat(calcularDeudaContrato.total_mora) : 0) ).toFixed(2) }}</td>
+                  <td class="text-bold text-right" style="font-size: 1.5rem">${{ ( calcularDeudaContrato?.fechas?.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + (calcularDeudaContrato.mora ? parseFloat(calcularDeudaContrato.total_mora_calculada) : 0) ).toFixed(2) }}</td>
                 </tr>
               </tbody>
             </q-markup-table>
@@ -407,6 +416,124 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog allow-focus-outside v-model="showDialogEditarMora" class="j-dialog j-dialog-xl">
+    <q-card class="q-pa-md">
+      <q-card-section class="q-py-none">
+        <div class="text-h6">Editar mora</div>
+      </q-card-section>
+      <q-card-section>
+        <div class="row q-col-gutter-lg">
+
+          <div class="col-6">
+            <div class="row q-col-gutter-md">
+              <div class="col-12">
+                <div class="row q-col-gutter-md items-center">
+                  <div class="col-grow">
+                    <div class="q-pa-md bg-grey-2" style="border-radius: 4px;">
+                      <div class="text-caption text-grey-7">Forma de cálculo</div>
+                      <div class="text-h6">{{ editarMoraData.deuda_mora_forma_calculo === 'total' ? 'Total' : 'Cuotas' }}</div>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn label="Cambiar" icon="swap_horiz" color="primary" dense class="q-px-sm" @click="openDialogCambiarFormaCalculo()" />
+                  </div>
+                </div>
+              </div>
+              <template v-if="editarMoraData.deuda_mora_forma_calculo === 'cuotas'">
+                <div class="col" >
+                  <q-input 
+                    v-model="editarMoraData.deuda_mora_tiempo_gracia" 
+                    outlined 
+                    label="Tiempo de gracia (ej: 0M, 1Y, 2M)"
+                    hint="M = meses, Y = años"
+                  />
+                </div>
+                <div class="col-auto flex items-center q-mb-lg">
+                  <q-btn 
+                    label="Regenerar" 
+                    icon="refresh" 
+                    color="primary" 
+                    @click="handleRegenerarCuotas()"
+                    :loading="isLoadingRegenerarCuotas"
+                  />
+                </div>
+              </template>
+              <div class="col-12">
+                <q-input 
+                  type="number"
+                  :disable="editarMoraData.deuda_mora_forma_calculo == 'cuotas'"
+                  step="0.01"
+                  v-model.number="editarMoraData.total_mora" 
+                  outlined 
+                  label="Total mora"
+                  :hint="editarMoraData.deuda_mora_forma_calculo == 'cuotas' ? 'Se calcula automáticamente según las cuotas pendientes.' : ''"
+                />
+              </div>
+              <div class="col-12">
+                <q-input 
+                  disable
+                  type="number"
+                  step="0.01"
+                  v-model.number="editarMoraData.pagado_mora" 
+                  outlined 
+                  label="Pagado mora"
+                  hint='Toma en cuenta todos los recibos creados después de "Fecha mora"'
+                />
+              </div>
+              <div class="col-12">
+                <q-input 
+                  type="date"
+                  v-model="editarMoraData.fecha_mora" 
+                  outlined 
+                  label="Fecha mora"
+                />
+              </div>
+              <div class="col-12" v-if="editarMoraData.deuda_mora_forma_calculo === 'total'">
+                <q-input 
+                  type="date"
+                  v-model="editarMoraData.fecha_pagado_mora" 
+                  outlined 
+                  label="Fecha pagado mora"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-6">
+            <div class="text-h6 q-mb-md">Líneas de pago de mora</div>
+            <q-markup-table flat separator="none" dense v-if="lineasPagosMora.length">
+              <thead>
+                <tr>
+                  <th>Fecha pago</th>
+                  <th>Monto pagado</th>
+                </tr>
+              </thead>
+              <tbody class="text-center">
+                <tr :class="{
+                    'bg-green-1 text-green-9': !editarMoraData.fecha_mora || ( editarMoraData.fecha_mora && new Date(linea.created_at) >= new Date(editarMoraData.fecha_mora) ),
+                    'bg-grey-2 text-grey-4': editarMoraData.fecha_mora && new Date(linea.created_at) < new Date(editarMoraData.fecha_mora)
+                  }" v-for="linea in lineasPagosMora" :key="linea.id">
+                  <td>{{ linea.created_at ? format(new Date(linea.created_at), 'dd/MM/yyyy') : '-' }}</td>
+                  <td>{{ $dinero(parseFloat(linea.total_ref || 0)) }}</td>
+                </tr>
+              </tbody>
+            </q-markup-table>
+            <div class="text-center q-py-md" v-else>
+              <p class="q-mb-none">No hay líneas de pago de mora.</p>
+            </div>
+          </div> 
+
+
+        </div>
+        
+      </q-card-section>
+      <q-card-actions class="justify-end">
+        <q-btn flat label="Cancelar" v-close-popup />
+        <q-btn label="Guardar" color="primary" @click="handleGuardarMora()" :loading="isLoadingEditarMora" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
 </template>
 
 <style>
@@ -434,6 +561,7 @@ import DialogAgregarCliente from "src/components/popups/DialogAgregarCliente.vue
 import DialogEditarParcela from "src/components/popups/DialogEditarParcela.vue";
 import DialogActualizarFechas from "src/components/popups/DialogActualizarFechas.vue";
 import DialogEditarNotas from "src/components/popups/DialogEditarNotas.vue";
+import CuotasMoraTable from "src/components/CuotasMoraTable.vue";
 
 import { useAppStore } from "src/stores/app.store";
 
@@ -449,6 +577,34 @@ const agregarParcelaData = ref({
   pagado_hasta: '',
   selected: true,
 })
+
+const showDialogEditarMora = ref(false)
+const lineasPagosMora = ref([])
+const isLoadingEditarMora = ref(false)
+const isLoadingCambiarFormaCalculo = ref(false)
+const isLoadingRegenerarCuotas = ref(false)
+const editarMoraData = ref({
+  deuda_mora_forma_calculo: '',
+  deuda_mora_tiempo_gracia: '',
+  total_mora: 0,
+  pagado_mora: 0,
+  fecha_mora: '',
+  fecha_pagado_mora: ''
+})
+
+const openDialogEditarMora = () => {
+  showDialogEditarMora.value = true;
+
+  lineasPagosMora.value = [];
+
+  api.get(`/contratos/${calcularDeudaContratoId.value}/pagos-mora`)
+    .then(response => {
+      lineasPagosMora.value = response.data || [];
+    })
+    .catch(error => {
+      qNotify(error, 'error', { callback: () => openDialogEditarMora() })
+    });
+}
 
 const verificarFechaParcela = (parcela, fechaCorte) => {
   let pagadoHasta = new Date(parcela.pagado_hasta || fechaCorte)
@@ -710,8 +866,8 @@ const recalcularDeudaContrato = () => {
   }
 
   calcularDeudaContrato.value.mora = !!calcularDeudaContrato.value.fecha_mora
-  calcularDeudaContrato.value.total_mora = parseFloat(calcularDeudaContrato.value.total_mora || 0) - parseFloat(calcularDeudaContrato.value.pagado_mora || 0)
-
+  calcularDeudaContrato.value.total_mora_calculada = Math.max(0, parseFloat(calcularDeudaContrato.value.total_mora || 0) - parseFloat(calcularDeudaContrato.value.pagado_mora || 0)) 
+  
   let precioTotal = (calcularDeudaContratoSelectedParcelas.value?.length || 0) * calcularDeudaPrecioMantenimiento.value
 
   calcularDeudaContrato.value.fechas.forEach(fecha => {
@@ -735,7 +891,22 @@ const openDialogCalcularDeuda = (contratoId) => {
       if (response.data) {
         calcularDeudaContrato.value = response.data
 
+        // Cargar datos de mora en el diálogo de edición
+        editarMoraData.value = {
+          deuda_mora_forma_calculo: response.data.deuda_mora_forma_calculo || '',
+          deuda_mora_tiempo_gracia: response.data.deuda_mora_tiempo_gracia || '',
+          total_mora: response.data.total_mora || 0,
+          pagado_mora: response.data.pagado_mora || 0,
+          fecha_mora: response.data.fecha_mora ? response.data.fecha_mora.split(' ')[0] : '',
+          fecha_pagado_mora: response.data.fecha_pagado_mora ? response.data.fecha_pagado_mora.split(' ')[0] : ''
+        }
+
         calcularDeudaContrato.value.parcelas.forEach(parcela => parcela.selected = true)
+
+        api.get('contratos/' + contratoId + '/cuotas')
+          .then(response2 => {
+            calcularDeudaContrato.value.cuotas = response2.data;
+          })
 
         api.get('servicios')
           .then(response => {
@@ -772,8 +943,14 @@ const deudaData = computed(() => {
     }) || [],
   };
 
-  if (calcularDeudaContrato.value.mora) {
-    data.mora = calcularDeudaContrato.value.total_mora
+  if (calcularDeudaContrato.value.mora && calcularDeudaContrato.value.total_mora_calculada) {
+    if (calcularDeudaContrato.value.total_mora_calculada >= 0.01) {
+      data.mora = calcularDeudaContrato.value.total_mora_calculada
+    } else {
+      data.mora = null
+    }
+  } else {
+    data.mora = null
   }
 
   data.total = data.fechas.reduce((acum, fecha) => acum + parseFloat(fecha.precio), 0) + parseFloat(data.mora || 0)
@@ -933,6 +1110,83 @@ const handleDownloadPdf = (contrato) => {
       });
     });
 };
+
+const handleGuardarMora = () => {
+  isLoadingEditarMora.value = true
+  
+  const updateData = {
+    deuda_mora_forma_calculo: editarMoraData.value.deuda_mora_forma_calculo,
+    deuda_mora_tiempo_gracia: editarMoraData.value.deuda_mora_tiempo_gracia,
+    total_mora: parseFloat(editarMoraData.value.total_mora) || 0,
+    pagado_mora: parseFloat(editarMoraData.value.pagado_mora) || 0,
+    fecha_mora: editarMoraData.value.fecha_mora || null,
+    fecha_pagado_mora: editarMoraData.value.fecha_pagado_mora || null,
+  }
+
+  console.log('Updating mora with data:', updateData, 'contratos/' + calcularDeudaContratoId.value + '/mora')
+
+  api.put('contratos/' + calcularDeudaContratoId.value + '/mora', updateData)
+    .then(response => {
+      qNotify('Mora actualizada exitosamente.', 'positive')
+      console.log(response)
+      showDialogEditarMora.value = false
+      openDialogCalcularDeuda(calcularDeudaContratoId.value)
+    })
+    .catch(error => qNotify(error, 'error', { callback: () => handleGuardarMora() }))
+    .finally(() => isLoadingEditarMora.value = false)
+}
+
+const openDialogCambiarFormaCalculo = () => {
+  const formaActual = calcularDeudaContrato.value.deuda_mora_forma_calculo === 'total' ? 'Total' : 'Cuotas'
+  const formaDestino = calcularDeudaContrato.value.deuda_mora_forma_calculo === 'total' ? 'Cuotas' : 'Total'
+  
+  $q.dialog({
+    title: 'Cambiar forma de cálculo',
+    message: `¿Deseas cambiar de <strong>${formaActual}</strong> a <strong>${formaDestino}</strong>?<br><span style="font-size: 0.85rem; color: #999;">Esta acción recalculará todas las cuotas de mora.</span>`,
+    html: true,
+    cancel: true,
+    persistent: true,
+    ok: {
+      label: 'Cambiar',
+      color: 'primary',
+      icon: 'swap_horiz'
+    },
+    cancel: {
+      label: 'Cancelar',
+      flat: true,
+    }
+  }).onOk(() => {
+    handleCambiarFormaCalculo()
+  })
+}
+
+const handleCambiarFormaCalculo = () => {
+  isLoadingCambiarFormaCalculo.value = true
+  
+  const endpoint = calcularDeudaContrato.value.deuda_mora_forma_calculo === 'total' 
+    ? `contratos/${calcularDeudaContratoId.value}/generar-cuotas-mora`
+    : `contratos/${calcularDeudaContratoId.value}/generar-total-mora`
+
+  api.post(endpoint)
+    .then(response => {
+      qNotify('Forma de cálculo cambiada exitosamente.', 'positive')
+      openDialogCalcularDeuda(calcularDeudaContratoId.value)
+    })
+    .catch(error => qNotify(error, 'error', { callback: () => handleCambiarFormaCalculo() }))
+    .finally(() => isLoadingCambiarFormaCalculo.value = false)
+}
+
+const handleRegenerarCuotas = () => {
+  isLoadingRegenerarCuotas.value = true
+  
+  api.post(`contratos/${calcularDeudaContratoId.value}/generar-cuotas-mora`, { deuda_mora_tiempo_gracia: editarMoraData.value.deuda_mora_tiempo_gracia })
+    .then(response => {
+      qNotify('Cuotas regeneradas exitosamente.', 'positive')
+      openDialogCalcularDeuda(calcularDeudaContratoId.value)
+    })
+    .catch(error => qNotify(error, 'error', { callback: () => handleRegenerarCuotas() }))
+    .finally(() => isLoadingRegenerarCuotas.value = false)
+}
 
 defineExpose({ openDialog, handleDownloadPdf })
 const emit = defineEmits(['updated'])
