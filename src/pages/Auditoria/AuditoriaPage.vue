@@ -109,7 +109,7 @@
 import { ref, reactive, watch, onMounted } from "vue";
 import { api } from "src/boot/axios";
 import { useQuasar } from "quasar";
-import { qNotify } from 'src/boot/jardines';
+import { qNotify, formatUtc } from 'src/boot/jardines';
 import QSelectUsuario from "src/components/selects/QSelectUsuario.vue";
 import { useRoute, useRouter } from "vue-router";
 import { format } from 'date-fns'
@@ -121,7 +121,7 @@ const registrosColumnas = [
   { name: 'accion', label: 'Acción', align: 'left', field: 'accion', sortable: true, style: 'width: 100px;' },
   { name: 'detalles', label: 'Detalles', align: 'left', field: 'detalles', sortable: true, style: 'white-space: break-spaces;' },
   { name: 'username', label: 'Responsable', align: 'left', field: 'username', sortable: true, style: 'width: 100px;' },
-  { name: 'created_at', label: 'Fecha', align: 'left', field: 'created_at', sortable: true, format: value => format(value, 'dd/MM/yyyy HH:mm'), style: 'width: 100px;' },
+  { name: 'created_at', label: 'Fecha', align: 'left', field: 'created_at', sortable: true, format: value => formatUtc(new Date(value), 'dd/MM/yyyy HH:mm'), style: 'width: 100px;' },
 ]
 
 const showDialogImprimirReporte = ref(false)

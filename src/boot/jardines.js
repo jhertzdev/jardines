@@ -3,6 +3,7 @@ import { api } from 'boot/axios'
 import GridLayout from 'vue3-drr-grid-layout'
 import 'vue3-drr-grid-layout/dist/style.css'
 import { Notify, Dialog } from 'quasar';
+import { format, addMinutes } from 'date-fns';
 
 const slugify = str =>
   str
@@ -11,6 +12,18 @@ const slugify = str =>
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+const formatUtc = (date, formatString = 'dd/MM/yyyy HH:mm') => {
+  if (!date || isNaN(date.getTime())) return '---';
+
+  // getTimezoneOffset() nos dice cuántos minutos hay de diferencia con UTC.
+  // Para Venezuela (UTC-4) devuelve 240.
+  // Lo restamos para "mover" la hora de UTC a la local.
+  const offset = date.getTimezoneOffset();
+  const localDate = addMinutes(date, -offset);
+
+  return format(localDate, formatString);
+};
 
 const qNotify = (content, type = 'positive', params = {}) => {
 
@@ -195,4 +208,4 @@ export default boot(({ app, router }) => {
 
 })
 
-export { slugify, qNotify, $usd, $bs, $dinero, $toFixed, obtenerValoresFaltantes, obtenerParcelaExhumableId }
+export { slugify, qNotify, $usd, $bs, $dinero, $toFixed, obtenerValoresFaltantes, obtenerParcelaExhumableId, formatUtc }

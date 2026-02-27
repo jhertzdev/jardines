@@ -1057,7 +1057,7 @@
   import { ref, computed, onMounted, onBeforeMount, watch, toRef } from "vue";
   import { api } from "src/boot/axios";
   import { useRouter } from "vue-router";
-  import { $dinero, qNotify } from 'src/boot/jardines';
+  import { $dinero, qNotify, formatUtc } from 'src/boot/jardines';
   import { useAppStore } from "src/stores/app.store";
   import { useAuthStore } from "src/stores/auth.store";
   import { format, add } from "date-fns";
@@ -1984,7 +1984,7 @@
     { name: 'estatus', label: 'Estatus', align: 'left', field: 'estatus', sortable: true },
     { name: 'fiscal', label: 'Fiscal', align: 'left', field: 'es_fiscal', style: 'width: 50px' },
     { name: 'acciones', label: '', align: 'left' },
-    { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => format(new Date(val), 'dd/MM/yyyy HH:mm') },
+    { name: 'created_at', label: 'Fecha creado', align: 'left', field: 'created_at', sortable: true, format: (val) => formatUtc(new Date(val), 'dd/MM/yyyy hh:mm a') },
     { name: 'nombre_cliente', label: 'Cliente', align: 'left', field: 'nombre_cliente', sortable: true, style: 'width: 200px; white-space: break-spaces; line-height: 1.15' },
     { name: 'ident_cliente', label: 'Cédula', align: 'left', field: 'ident_cliente', sortable: true },
     { name: 'num_contrato', label: 'Contrato', align: 'left', sortable: true },
