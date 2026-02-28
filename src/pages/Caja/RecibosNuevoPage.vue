@@ -1809,7 +1809,7 @@
 
     let ultimoDiaDelMesVigente = getDate(lastDayOfMonth(pagadoHasta))
     let ultimoDiaDelMesActual = getDate(lastDayOfMonth(nuevoPagadoHasta))
-    let diaPagadoHasta = getDate(pagadoHasta)
+    let diaPagadoHasta = getDate(nuevoPagadoHasta)
     let diaFechaCorte = getDate(fechaCorte)
 
     // Si no se puede alcanzar el día de la corte en el mes actual,
