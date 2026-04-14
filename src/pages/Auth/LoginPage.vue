@@ -4,7 +4,7 @@
 
 
       <q-card-section class="section-header" style="border: 1px solid var(--q-primary)">
-        <img src="img/logo-jardines.png" />
+        <img src="img/logo-cementerio.png" />
       </q-card-section>
 
       <q-card-section>
@@ -30,7 +30,8 @@
             </template>
           </q-input>
           <q-separator inset />
-          <q-btn class="q-mt-lg" type="submit" square color="primary" unelevated label="Iniciar sesión" :loading="isLoading" :disabled="!isAvailableConnection" />
+          <q-btn class="q-mt-lg" type="submit" square color="primary" unelevated label="Iniciar sesión"
+            :loading="isLoading" :disabled="!isAvailableConnection" />
         </q-form>
 
       </q-card-section>
