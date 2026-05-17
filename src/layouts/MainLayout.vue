@@ -12,25 +12,25 @@
 
         <q-btn-dropdown flat dense no-caps class="dropdown-menu-notifications q-mr-sm" auto-close>
           <template v-slot:label>
-            <q-badge floating color="red" rounded :label="parseInt(appStore.notifications.length)" v-if="appStore.notifications.length" />
+            <q-badge floating color="red" rounded :label="parseInt(appStore.notifications.length)"
+              v-if="appStore.notifications.length" />
             <q-icon name="notifications" />
           </template>
           <q-list bordered separator wrap>
-            <q-item style="width: 300px" class="bg-green-1" v-if="authStore.user.role_perms.find((role) => role == 'alertas.*' || role == 'alertas.crear')">
+            <q-item style="width: 300px" class="bg-green-1"
+              v-if="authStore.user.role_perms.find((role) => role == 'alertas.*' || role == 'alertas.crear')">
               <q-item-section>
                 <q-item-label caption class="text-center">
-                  <q-btn flat dense icon="add" color="primary" label="Agregar alerta" @click="agregarEditarAlertaDialog.openDialog()" />
+                  <q-btn flat dense icon="add" color="primary" label="Agregar alerta"
+                    @click="agregarEditarAlertaDialog.openDialog()" />
                 </q-item-label>
               </q-item-section>
             </q-item>
-            <NotificacionItem v-for="(notification, index) in appStore.notifications" :key="index"
-              :id="notification.id"
-              :message="notification.message"
-              :importance="notification.importance"
+            <NotificacionItem v-for="(notification, index) in appStore.notifications" :key="index" :id="notification.id"
+              :message="notification.message" :importance="notification.importance"
               :created_at="notification.created_at"
               @vercontrato="(data) => verContratosDialog.openDialog(data.num_contrato, data.tipo_parcela)"
-              @editar="(id) => agregarEditarAlertaDialog.openDialog(id)"
-            />
+              @editar="(id) => agregarEditarAlertaDialog.openDialog(id)" />
             <q-item v-if="appStore.notifications.length === 0" style="width: 300px">
               <q-item-section>
                 <q-item-label caption class="text-center">No hay notificaciones que mostrar.</q-item-label>
@@ -79,10 +79,11 @@
       <SearchBar ref="searchBar" />
       <q-page class="q-pa-lg">
         <q-breadcrumbs class="q-mb-lg">
-          <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer" v-if="router.options.history.state.back !== '/auth/login'"/>
-          <q-breadcrumbs-el :label="route.meta.viewName" :icon="route.meta.viewIcon" v-if="route.meta.viewName"/>
+          <q-breadcrumbs-el icon="arrow_back_ios" @click="router.go(-1)" label="Volver atrás" class="cursor-pointer"
+            v-if="router.options.history.state.back !== '/auth/login'" />
+          <q-breadcrumbs-el :label="route.meta.viewName" :icon="route.meta.viewIcon" v-if="route.meta.viewName" />
         </q-breadcrumbs>
-        <router-view @toggleDrawer="val => leftDrawerOpen = val"/>
+        <router-view @toggleDrawer="val => leftDrawerOpen = val" />
       </q-page>
       <DialogVerContratos ref="verContratosDialog" />
       <DialogCalculadora ref="calculadoraDialog" />
@@ -154,7 +155,8 @@
   border-collapse: collapse;
 }
 
-.j-table th, .j-table td {
+.j-table th,
+.j-table td {
   padding: 6px 0;
 }
 
@@ -195,7 +197,7 @@
   border-bottom: 0;
 }
 
-.dialog-info-cliente .section-info .row:not(.no-borders) > div {
+.dialog-info-cliente .section-info .row:not(.no-borders)>div {
   outline: 1px solid #ccc;
   outline-offset: -2px;
   padding: 5px;
@@ -270,23 +272,23 @@
   align-items: start;
 }
 
-.section-busqueda-open .q-dialog .q-dialog__inner--minimized > div {
+.section-busqueda-open .q-dialog .q-dialog__inner--minimized>div {
   max-height: calc(100vh - 230px);
 }
 
 
 .section-busqueda-open .results-wrapper::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .section-busqueda-open .results-wrapper::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+  background: #f1f1f1;
+  border-radius: 10px;
 }
 
 .section-busqueda-open .results-wrapper::-webkit-scrollbar-thumb {
-    border-radius: 10px;
-    background: #888;
+  border-radius: 10px;
+  background: #888;
 }
 
 .section-busqueda-open .results-wrapper {
@@ -325,7 +327,7 @@
   margin-bottom: 1px;
 }
 
-.badge-contrato > span:first-child {
+.badge-contrato>span:first-child {
   border-radius: 5px 0 0 5px;
   background: var(--q-primary);
   border: 1px solid var(--q-primary);
@@ -337,7 +339,7 @@
   text-wrap: nowrap;
 }
 
-.badge-contrato > span:last-child {
+.badge-contrato>span:last-child {
   border: 1px solid var(--q-primary);
   border-radius: 0 5px 5px 0;
   padding-left: 2px;
@@ -347,7 +349,6 @@
 .dropdown-menu-notifications .q-btn-dropdown__arrow-container {
   display: none;
 }
-
 </style>
 
 <style lang="scss">
@@ -449,6 +450,12 @@ const linksList = [
     title: 'Usuarios',
     icon: 'groups',
     to: '/app/usuarios',
+    perms: 'trabajadores',
+  },
+  {
+    title: 'Trabajadores',
+    icon: 'engineering',
+    to: '/app/trabajadores',
     perms: 'usuarios',
   },
   {
@@ -562,9 +569,14 @@ const handleNetworkError = () => {
 
 }
 
+const handleCloseSearchBar = () => {
+  if (searchBar.value) searchBar.value.close()
+}
+
 onMounted(() => {
   window.addEventListener('TokenExpired', handleTokenExpired);
   window.addEventListener('NetworkError', handleNetworkError);
+  window.addEventListener('closeSearchBar', handleCloseSearchBar);
 
   appStore.getNotificaciones()
   showSectionBusqueda.value = false;
@@ -577,6 +589,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('TokenExpired', handleTokenExpired);
   window.removeEventListener('NetworkError', handleNetworkError);
+  window.removeEventListener('closeSearchBar', handleCloseSearchBar);
 })
 
 </script>

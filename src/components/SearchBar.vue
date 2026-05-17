@@ -530,8 +530,15 @@
 
   }
 
+  const close = () => {
+    if (showBusqueda.value) {
+      toggleOpen()
+    }
+  }
+
   defineExpose({
     toggleOpen,
+    close
   })
 
 

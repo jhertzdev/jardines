@@ -18,6 +18,12 @@
                 <template v-slot:top-left>
                   <div class="q-gutter-sm">
                     <q-checkbox v-model="dataFilters.trimestral" label="Mantenimiento trimestral" color="primary" dense />
+                    <q-checkbox v-model="dataFilters.notas_sistema" @update:model-value="value => {
+                      if (value) {
+                        dataFilters.trimestral = false;
+                        dataFilters.vigente_hasta = '';
+                      }
+                    }"  label="Revisar notas" color="primary" dense />
                   </div>
                 </template>
                 <template v-slot:top-right>
@@ -108,6 +114,16 @@
                 <template v-slot:body-cell-fecha_ultimo_recibo="props">
                   <q-td :props="props">
                     {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy') : '-' }}
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-fecha_ultima_nota_ubicacion="props">
+                  <q-td :props="props">
+                    {{ props.row[props.col.name] && (new Date(props.row[props.col.name]) != 'Invalid Date') ? format(props.row[props.col.name], 'dd/MM/yyyy hh:mm') : '-' }}
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-notas_sistema="props">
+                  <q-td :props="props" style="max-width: 250px; white-space: wrap;">
+                    {{ props.row[props.col.name] || '-' }}
                   </q-td>
                 </template>
                 <template v-slot:body-cell="props">
@@ -209,7 +225,7 @@
 <script setup>
 
 import { api } from 'src/boot/axios';
-import { ref, reactive, onMounted, nextTick, watch } from 'vue';
+import { ref, reactive, onMounted, nextTick, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { qNotify } from 'src/boot/jardines';
@@ -228,6 +244,7 @@ const primeroDelMes = startOfMonth(new Date())
 
 const dataFilters = ref({
   trimestral: false,
+  notas_sistema: false,
   vigente_hasta: new Date().toISOString().substr(0, 7),
 })
 
@@ -245,14 +262,23 @@ const props = defineProps({
 
 const listas = ref([])
 
-const parcelasColumnas = [
+const parcelasColumnas = computed(() => {
+  const columnas = [
   { name: 'ubicacion', label: 'Ubicación', align: 'left', sortable: true, headerStyle: "width: 105px" },
   { name: 'propietario', label: 'Propietario', align: 'left', field: 'cliente_nombre', sortable: false },
   { name: 'difuntos', label: 'Difuntos', align: 'left', sortable: false },
   { name: 'vigente_hasta', label: 'Vigente hasta', align: 'left', field: 'vigente_hasta', sortable: true },
   { name: 'fecha_ultimo_mantenimiento', label: 'Fecha mantenim.', align: 'left', field: 'fecha_ultimo_mantenimiento', sortable: true },
   { name: 'fecha_ultimo_recibo', label: 'Últ. recibo', align: 'left', field: 'fecha_ultimo_recibo', sortable: true },
-]
+  ]
+
+  if (dataFilters.value.notas_sistema) {
+    columnas.push({ name: 'fecha_ultima_nota_ubicacion', label: 'Fecha última nota', align: 'left', field: 'fecha_ultima_nota_ubicacion', sortable: true })
+    columnas.push({ name: 'notas_sistema', label: 'Nota del sistema', align: 'left', field: 'notas_sistema', sortable: true })
+  }
+
+  return columnas
+})
 
 const parcelasSelected = ref([])
 
@@ -298,6 +324,7 @@ const parcelasTableRequest = (props) => {
   endpoint += '&with[]=data&with[]=mantenimiento';
 
   if (dataFilters.value.trimestral) endpoint += '&trimestral=1';
+  if (dataFilters.value.notas_sistema) endpoint += '&notas_sistema=1';
   if (dataFilters.value.vigente_hasta) endpoint += `&vigente=${dataFilters.value.vigente_hasta}`;
 
   console.log('endpoint', endpoint);

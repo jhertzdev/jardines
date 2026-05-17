@@ -16,6 +16,7 @@
             <q-tab name="contratos" icon="attach_money" label="Contratos" />
             <q-tab name="recibos" icon="receipt" label="Recibos" />
             <q-tab name="mantenimiento" icon="handyman" label="Mantenimiento" />
+            <q-tab name="notas" icon="notes" label="Notas" />
           </q-tabs>
         </template>
 
@@ -363,6 +364,9 @@
               </q-markup-table>
             </q-tab-panel>
             <q-tab-panel name="mantenimiento">
+              <div class="text-right">
+                <q-btn class="q-mb-md" label="Agregar nota" icon="add" color="primary" @click="openDialogAgregarNota" />
+              </div>
               <q-markup-table>
                 <thead>
                   <tr>
@@ -384,6 +388,35 @@
                         </li>
                       </ul>
                     </td>
+                  </tr>
+                </tbody>
+              </q-markup-table>
+            </q-tab-panel>
+            <q-tab-panel name="notas">
+              <div class="text-right">
+                <q-btn class="q-mb-md" label="Agregar nota" icon="add" color="primary" @click="openDialogAgregarNota" />
+              </div>
+              <q-markup-table>
+                <thead>
+                  <tr>
+                    <th class="text-left">Fecha</th>
+                    <th class="text-left" style="width: 100%">Nota</th>
+                    <th class="text-left">Usuario</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="n in parcelaData.notas_sistema" :key="n.id">
+                    <td class="text-left">{{ n.fecha_nota ? format(n.fecha_nota, 'dd/MM/yyyy HH:mm') : '-' }}</td>
+                    <td class="text-left" style="white-space: wrap;">{{ n.nota }}</td>
+                    <td class="text-left">{{ n.usuario }}</td>
+                    <td>
+                      <q-btn flat dense color="negative" icon="delete" @click="deleteNota(n)" />
+                      <q-btn flat dense color="primary" icon="edit" @click="openDialogAgregarNota(n)" />
+                    </td>
+                  </tr>
+                  <tr v-if="!parcelaData.notas_sistema?.length">
+                    <td colspan="2" class="text-center">No hay notas.</td>
                   </tr>
                 </tbody>
               </q-markup-table>
@@ -555,6 +588,22 @@
 
   </q-dialog>
 
+  <q-dialog allow-focus-outside v-model="agregarNotaDialog" class="j-dialog">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Agregar nota</div>
+      </q-card-section>
+      <q-card-section class="q-gutter-md">
+        <q-input outlined dense v-model="agregarNotaData.fecha_nota" label="Fecha de la nota" type="datetime-local" />
+        <q-input outlined dense v-model="agregarNotaData.nota" label="Nota" type="textarea" rows="5" />
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn flat label="Cancelar" v-close-popup />
+        <q-btn color="primary" label="Agregar" icon="add" @click="handleSubmitAgregarNota" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
   <DialogSeleccionarServicio ref="seleccionarServicioDialog"/>
   <DialogCambiarTitular ref="cambiarTitularDialog" />
 </template>
@@ -663,6 +712,7 @@ const agregarDifuntoDialog = ref(null);
 const agregarOcupanteDialog = ref(null);
 const liberarParcelaDialog = ref(null);
 const generarContratosDialog = ref(null);
+const agregarNotaDialog = ref(false);
 
 const openDialogGenerarContratos = () => {
   generarContratosDialog.value.openDialog();
@@ -932,6 +982,7 @@ function getData() {
 
   parcelaData.value.recibos = []
   parcelaData.value.mantenimientos = []
+  parcelaData.value.notas_sistema = []
 
   if (!dataId.value) return;
 
@@ -965,6 +1016,12 @@ function getData() {
         }
       })
 
+      api.get("parcelas/" + dataId.value + "/notas").then((response) => {
+        if (response.data) {
+          parcelaData.value.notas_sistema = response.data
+        }
+      })
+
     })
     .finally(() => (isLoadingDetalles.value = false));
 
@@ -989,6 +1046,93 @@ const handleDownloadPdf = (contratoId) => {
       });
     });
 };
+
+const agregarNotaData = ref({
+  id: null,
+  fecha_nota: null,
+  nota: null,
+  ubicacion_id: null,
+})
+
+const openDialogAgregarNota = (nota = null) => {
+  agregarNotaData.value.id = nota?.id || null;
+  agregarNotaData.value.nota = nota?.nota || '';
+  agregarNotaData.value.fecha_nota = nota?.fecha_nota || format(new Date(), 'yyyy-MM-dd HH:mm')
+  agregarNotaData.value.ubicacion_id = dataId.value;
+  agregarNotaDialog.value = true;
+}
+
+const handleSubmitAgregarNota = () => {
+  isLoadingDetalles.value = true;
+
+  const endpoint = agregarNotaData.value.id ? "parcelas/editarNota/" + agregarNotaData.value.id : "parcelas/" + dataId.value + "/agregarNota"
+
+  api
+    .post(endpoint, agregarNotaData.value)
+    .then((response) => {
+      if (response.data) {
+        getData();
+        $q.notify({
+          message: "Nota " + (agregarNotaData.value.id ? "actualizada" : "agregada") + " exitosamente.",
+          color: "positive",
+        });
+        agregarNotaDialog.value = false;
+
+        emit('updated', response.data)
+      }
+    })
+    .catch((error) =>
+      qNotify(error, "error", { callback: handleSubmitAgregarNota })
+    )
+    .finally(() => (isLoadingDetalles.value = false));
+}
+
+const deleteNota = (nota, confirm = false) => {
+  
+  if (!confirm) {
+    $q.dialog({
+      title: 'Eliminar nota',
+      message: '¿Estás seguro de que quieres eliminar esta nota?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Eliminar',
+        color: 'primary',
+        flat: true,
+        icon: 'delete'
+      },
+      cancel: {
+        label: 'Cancelar',
+        color: 'primary',
+        flat: true,
+        icon: 'cancel'
+      }
+    }).onOk(() => {
+      deleteNota(nota, true)
+    })
+  } else {
+    isLoadingDetalles.value = true;
+
+    api
+      .delete("parcelas/eliminarNota/" + nota.id)
+      .then((response) => {
+        if (response.data) {
+          getData();
+          $q.notify({
+            message: "Nota eliminada exitosamente.",
+            color: "positive",
+          });
+          agregarNotaDialog.value = false;
+
+          emit('updated', response.data)
+        }
+      })
+      .catch((error) =>
+        qNotify(error, "error", { callback: () => deleteNota(nota, true) })
+      )
+      .finally(() => (isLoadingDetalles.value = false));
+  }
+}
 
 onMounted(() => getData());
 const emit = defineEmits(['updated'])

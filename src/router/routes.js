@@ -37,6 +37,11 @@ const routes = [
         meta: { viewName: 'Usuarios', viewIcon: 'groups' }
       },
       {
+        path: 'trabajadores',
+        component: () => import('src/pages/Trabajadores/TrabajadoresPage.vue'),
+        meta: { viewName: 'Trabajadores', viewIcon: 'engineering' }
+      },
+      {
         path: 'clientes',
         component: () => import('src/pages/Clientes/ClientesPage.vue'),
         meta: { viewName: 'Clientes', viewIcon: 'people' }
@@ -59,7 +64,7 @@ const routes = [
       {
         path: 'columbarios',
         component: () => import('src/pages/Parcelas/ParcelasPage.vue'),
-        meta: { viewName: 'Columbarios', viewIcon: 'inventory', tipoUbicacion: "Columbario"}
+        meta: { viewName: 'Columbarios', viewIcon: 'inventory', tipoUbicacion: "Columbario" }
       },
       {
         path: 'contratos',
@@ -119,7 +124,7 @@ const routes = [
       {
         path: '',
         component: () => import('pages/Caja/CajaPage.vue'),
-        meta: { viewName: 'Caja', viewIcon: 'point_of_sale'}
+        meta: { viewName: 'Caja', viewIcon: 'point_of_sale' }
       },
       {
         path: 'bancos',
