@@ -46,8 +46,21 @@
 
         <template v-slot:body-cell-estatus="props">
           <q-td :props="props">
-            <q-badge :color="props.row.estatus === 'activo' ? 'positive' : 'negative'"
+            <q-badge v-if="props.row.tipo !== 'aspirante'" :color="props.row.estatus === 'activo' ? 'positive' : 'negative'"
               :label="props.row.estatus ? props.row.estatus.toUpperCase() : ''" />
+            <span v-else>-</span>
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-created_at="props">
+          <q-td :props="props">
+            {{ ensureDateString(props.row.created_at) }}
+          </q-td>
+        </template>
+
+        <template v-slot:body-cell-fecha_solicitud="props">
+          <q-td :props="props">
+            {{ ensureDateString(props.row.fecha_solicitud) }}
           </q-td>
         </template>
 
@@ -124,6 +137,9 @@
                 :options="estatusOptions" label="Estatus *" dense emit-value map-options
                 :rules="[val => !!val || 'Requerido']" hide-bottom-space />
             </div>
+
+            <q-input outlined v-model="formData.fecha_solicitud" label="Fecha de Solicitud" dense type="date"
+              stack-label />
 
             <!-- Campos condicionales para Trabajador -->
             <q-slide-transition>
@@ -246,6 +262,12 @@
                     <q-item-label>{{ ensureDateString(selectedWorker.fecha_ingreso) || 'N/A' }}</q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Fecha de solicitud</q-item-label>
+                    <q-item-label>{{ ensureDateString(selectedWorker.fecha_solicitud) || 'N/A' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
                 <q-item v-if="selectedWorker.tipo === 'trabajador' && selectedWorker.estatus !== 'activo'">
                   <q-item-section>
                     <q-item-label caption>Fecha de egreso</q-item-label>
@@ -294,7 +316,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { api } from "src/boot/axios"
 import { useQuasar } from "quasar"
 import { qNotify } from 'src/boot/jardines'
@@ -336,12 +358,14 @@ const customFilter = (rows, terms, cols, scope) => {
 const trabajadoresTablePagination = ref({
   page: 1,
   rowsPerPage: 20,
-  sortBy: 'nombre_completo',
-  descending: false,
+  sortBy: 'created_at',
+  descending: true,
 })
 
 const columns = [
   { name: 'nombre_completo', label: 'Nombre completo', align: 'left', sortable: true, field: row => `${row.nombre} ${row.apellido}` },
+  { name: 'created_at', label: 'Fecha creado', align: 'left', field: row => row.created_at?.date || row.created_at || '', sortable: true },
+  { name: 'fecha_solicitud', label: 'Fecha de solicitud', align: 'left', field: 'fecha_solicitud', sortable: true },
   { name: 'tipo', label: 'Tipo', align: 'center', field: 'tipo', sortable: true },
   { name: 'telefono', label: 'Teléfono', align: 'left', field: 'telefono' },
   { name: 'correo', label: 'Correo', align: 'left', field: 'correo' },
@@ -452,7 +476,8 @@ const initialForm = {
   datos_bancarios: '',
   observaciones: '',
   color_etiqueta: '#1976D2',
-  etiqueta_texto: ''
+  etiqueta_texto: '',
+  fecha_solicitud: ''
 }
 
 const formData = reactive({ ...initialForm })
@@ -460,16 +485,17 @@ const formData = reactive({ ...initialForm })
 const openDialogAgregarTrabajador = () => {
   window.dispatchEvent(new CustomEvent('closeSearchBar'))
   Object.assign(formData, initialForm)
+  formData.fecha_solicitud = new Date().toISOString().slice(0, 10)
   dialogFormData.isEdit = false
   dialogFormData.visible = true
 }
 
 const openDialogEditarTrabajador = (row) => {
-  // Ensure dates are strings for the HTML input type="date"
   const cleanedRow = { ...row }
   cleanedRow.fecha_nacimiento = ensureDateString(row.fecha_nacimiento, 'YMD')
   cleanedRow.fecha_ingreso = ensureDateString(row.fecha_ingreso, 'YMD')
   cleanedRow.fecha_egreso = ensureDateString(row.fecha_egreso, 'YMD')
+  cleanedRow.fecha_solicitud = ensureDateString(row.fecha_solicitud, 'YMD')
 
   Object.assign(formData, cleanedRow)
   dialogFormData.isEdit = true
@@ -487,6 +513,7 @@ const handleSaveTrabajador = async () => {
     payload.fecha_nacimiento = ensureDateString(payload.fecha_nacimiento, 'YMD')
     payload.fecha_ingreso = ensureDateString(payload.fecha_ingreso, 'YMD')
     payload.fecha_egreso = ensureDateString(payload.fecha_egreso, 'YMD')
+    payload.fecha_solicitud = ensureDateString(payload.fecha_solicitud, 'YMD')
 
     let response;
     if (isUpdate) {
@@ -568,7 +595,8 @@ const printFicha = () => {
     motivo_inactividad: 'Motivo de inactividad',
     datos_bancarios: 'Datos bancarios',
     observaciones: 'Observaciones',
-    etiqueta_texto: 'Etiqueta'
+    etiqueta_texto: 'Etiqueta',
+    fecha_solicitud: 'Fecha de solicitud'
   }
 
   // Construir las filas de la tabla
@@ -646,6 +674,44 @@ const loadTrabajadores = async () => {
     isLoading.value = false
   }
 }
+
+let cedulaSearchTimeout = null
+
+watch(() => formData.cedula, (newCedula) => {
+  if (!newCedula || newCedula.trim() === '' || dialogFormData.isEdit) return
+
+  if (cedulaSearchTimeout) clearTimeout(cedulaSearchTimeout)
+
+  cedulaSearchTimeout = setTimeout(async () => {
+    try {
+      const response = await api.get(`clientes?s=${encodeURIComponent(newCedula.trim())}`)
+      if (response.data && response.data.data) {
+        const matchedClient = response.data.data.find(
+          c => c.doc_numero && c.doc_numero.trim().toLowerCase() === newCedula.trim().toLowerCase()
+        )
+        if (matchedClient) {
+          if (!formData.nombre || formData.nombre === initialForm.nombre) formData.nombre = matchedClient.nombre || ''
+          if (!formData.apellido || formData.apellido === initialForm.apellido) formData.apellido = matchedClient.apellido || ''
+          if (!formData.direccion || formData.direccion === initialForm.direccion) formData.direccion = matchedClient.direccion_habitacion || ''
+          if (!formData.telefono || formData.telefono === initialForm.telefono) formData.telefono = matchedClient.telefono_principal || ''
+          if (!formData.correo || formData.correo === initialForm.correo) formData.correo = matchedClient.email || ''
+          if (matchedClient.fecha_nacimiento) {
+            formData.fecha_nacimiento = ensureDateString(matchedClient.fecha_nacimiento, 'YMD')
+          }
+
+          $q.notify({
+            color: 'info',
+            message: 'Información de cliente encontrada y pre-rellenada',
+            icon: 'person_search',
+            timeout: 3000
+          })
+        }
+      }
+    } catch (error) {
+      // Silently fail - no pre-fill
+    }
+  }, 800)
+})
 
 onMounted(loadTrabajadores)
 </script>

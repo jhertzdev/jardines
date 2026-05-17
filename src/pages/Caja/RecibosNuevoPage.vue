@@ -356,11 +356,15 @@
                       <q-checkbox size="sm" dense v-model="props.row['separar_pagos']" @update:model-value="handleRecalcularLinea(props.row)" />
                       <span style="font-size:.6rem; color:#444; margin-left: 2px">Separar pagos</span>
 
-                      <q-checkbox size="sm" dense v-model="props.row['pago_por_cuotas']" @update:model-value="props.row.pago_fraccionado = false; handleRecalcularLinea(props.row)" />
-                      <span style="font-size:.6rem; color:#444; margin-left: 2px">Por meses</span>
+                      <template v-if="props.row.tipo?.cantidad_cuotas > 1">
+                        <q-checkbox size="sm" dense v-model="props.row['pago_por_cuotas']" @update:model-value="props.row.pago_fraccionado = false; handleRecalcularLinea(props.row)" />
+                        <span style="font-size:.6rem; color:#444; margin-left: 2px">Por meses</span>
+                      </template>
 
-                      <q-checkbox size="sm" dense v-model="props.row['pago_fraccionado']" @update:model-value="props.row.pago_por_cuotas = false; handleRecalcularLinea(props.row)" />
-                      <span style="font-size:.6rem; color:#444; margin-left: 2px">Fraccionado</span>
+                      <template v-if="props.row.tipo?.cantidad_cuotas > 1">
+                        <q-checkbox size="sm" dense v-model="props.row['pago_fraccionado']" @update:model-value="props.row.pago_por_cuotas = false; handleRecalcularLinea(props.row)" />
+                        <span style="font-size:.6rem; color:#444; margin-left: 2px">Fraccionado</span>
+                      </template>
 
                   </div>
 
@@ -1643,8 +1647,8 @@
     if (row.tipo?.pagable_cuotas == 1) {
 
       let cantidadCuotas = parseInt(val);
-      let precioPorCuota = (row.pago_por_cuotas || row.pago_fraccionado) ? row.tipo.precio_ref / row.tipo.cantidad_cuotas : row.tipo.precio_ref;
-      let precioFraccionado = Math.ceil(row.tipo.precio_ref / row.tipo.cantidad_cuotas) / 30;
+      let precioPorCuota = (row.pago_por_cuotas || row.pago_fraccionado) ? row.precio / row.tipo.cantidad_cuotas : row.precio;
+      let precioFraccionado = Math.ceil(row.precio / row.tipo.cantidad_cuotas) / 30;
 
       row.ubicaciones.forEach(ubicacion => {
 
