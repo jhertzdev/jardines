@@ -1,6 +1,7 @@
-import { app, BrowserWindow, nativeTheme } from 'electron'
+import { app, BrowserWindow, nativeTheme, ipcMain } from 'electron'
 import path from 'path'
 import os from 'os'
+import { spawn } from 'child_process'
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform()
@@ -62,6 +63,30 @@ function createWindow () {
     mainWindow = null
   })
 }
+
+const updateScriptPath = app.isPackaged
+  ? path.join(path.dirname(app.getPath('exe')), 'update.ps1')
+  : path.join(__dirname, 'update.ps1')
+
+ipcMain.handle('get-app-version', () => {
+  return APP_VERSION
+})
+
+ipcMain.handle('run-updater', () => {
+  spawn('cmd.exe', [
+    '/c', 'start', '""', 'powershell.exe',
+    '-ExecutionPolicy', 'Bypass',
+    '-NoProfile',
+    '-File', updateScriptPath
+  ], {
+    detached: true,
+    stdio: 'ignore'
+  }).unref()
+
+  setTimeout(() => {
+    app.exit()
+  }, 1000)
+})
 
 app.whenReady().then(createWindow)
 

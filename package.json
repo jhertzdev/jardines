@@ -1,13 +1,14 @@
 {
   "name": "com.jhertzdev.jardines",
-  "version": "0.0.1",
+  "version": "2.0.1",
   "description": "Aplicación de gestión de Parque Cementerio",
   "productName": "Jardines Santa Ana",
   "author": "Juan Hernández <jhertzdev@gmail.com>",
   "private": true,
   "scripts": {
     "test": "echo \"No test specified\" && exit 0",
-    "electron_build": "electron-packager . jardines-electron --platform=win32 --arch=x64"
+    "electron_build": "electron-packager . jardines-electron --platform=win32 --arch=x64",
+    "quasar-build": "quasar build -m electron && node generar-version.js"
   },
   "dependencies": {
     "@electron/remote": "^2.1.2",

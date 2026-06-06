@@ -450,13 +450,13 @@ const linksList = [
     title: 'Usuarios',
     icon: 'groups',
     to: '/app/usuarios',
-    perms: 'trabajadores',
+    perms: 'usuarios',
   },
   {
     title: 'Trabajadores',
     icon: 'engineering',
     to: '/app/trabajadores',
-    perms: 'usuarios',
+    perms: 'trabajadores',
   },
   {
     title: 'Caja',

@@ -17,6 +17,16 @@
             <span>No se pudo establecer conexión con el servidor.</span>
           </q-banner>
 
+          <q-banner dense rounded class="bg-positive text-white text-left" v-if="updateAvailable">
+            <template v-slot:avatar>
+              <q-icon name="system_update" color="white" />
+            </template>
+            <span>Actualización disponible: {{ updateOutput }}</span>
+            <template v-slot:action>
+              <q-btn flat dense label="Actualizar" text-color="white" @click="handleUpdate" :loading="isUpdating" />
+            </template>
+          </q-banner>
+
           <q-input square outlined v-model="loginData.email" label="Nombre de usuario" lazy-rules
             :rules="[val => val && val.length > 0 || 'Escribe un nombre de usuario']">
             <template v-slot:prepend>
@@ -34,6 +44,7 @@
             :loading="isLoading" :disabled="!isAvailableConnection" />
         </q-form>
 
+        <div class="text-caption text-grey-6 q-mt-md" v-if="appVersion">v{{ appVersion }}</div>
       </q-card-section>
 
     </q-card>
@@ -123,7 +134,70 @@ const initializeConnection = () => {
   }, 5000);
 }
 
-onMounted(() => {
+const appVersion = ref(null)
+const updateAvailable = ref(false)
+const updateOutput = ref('')
+const isUpdating = ref(false)
+
+const getAppVersion = async () => {
+  if (window.electronAPI) {
+    try {
+      appVersion.value = await window.electronAPI.getAppVersion()
+    } catch (e) {
+      console.log('Error getting app version:', e)
+    }
+  }
+}
+
+const parseVersion = (filename) => {
+  const match = filename.match(/v?(\d+\.\d+\.\d+)/)
+  return match ? match[1] : null
+}
+
+const compareVersions = (a, b) => {
+  const aParts = a.split('.').map(Number)
+  const bParts = b.split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if (aParts[i] > bParts[i]) return 1
+    if (aParts[i] < bParts[i]) return -1
+  }
+  return 0
+}
+
+const checkForUpdates = () => {
+  if (!appVersion.value) return
+  axios.get(api.defaults.baseURL + '/configuracion/version', { timeout: 10000 })
+    .then(response => {
+      if (response.data && response.data.filename) {
+        const latestVersion = parseVersion(response.data.filename)
+        if (latestVersion && compareVersions(latestVersion, appVersion.value) > 0) {
+          updateAvailable.value = true
+          updateOutput.value = response.data.filename
+        }
+      }
+    })
+    .catch(e => {
+      console.log('Error checking updates:', e)
+      // Retry after a delay
+      setTimeout(checkForUpdates, 10000)
+    })
+}
+
+const handleUpdate = async () => {
+  isUpdating.value = true
+  if (window.electronAPI) {
+    try {
+      await window.electronAPI.runUpdater()
+    } catch (e) {
+      console.log('Error running updater:', e)
+    }
+  }
+  isUpdating.value = false
+}
+
+onMounted(async () => {
+  await getAppVersion()
+  checkForUpdates()
   checkConnection()
   initializeConnection()
 })

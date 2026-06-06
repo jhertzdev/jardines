@@ -10,6 +10,7 @@
         <q-tab name="productos" icon="yard" label="Productos" />
         <q-tab name="configuracion" icon="settings" label="Configuración" />
         <q-tab name="exportar" icon="archive" label="Exportar" />
+        <q-tab name="versiones" icon="phone_android" label="Versiones de App" />
       </q-tabs>
     </template>
 
@@ -116,6 +117,31 @@
           </div>
 
 
+        </q-tab-panel>
+
+        <q-tab-panel name="versiones">
+          <div class="q-gutter-md">
+            <q-btn label="Subir versión" icon="upload" color="primary" @click="dialogSubirVersion = true" />
+          </div>
+          <q-separator class="q-my-lg" />
+
+          <div class="q-pb-lg text-center" v-if="isLoadingVersiones">
+            <q-spinner size="xl" color="primary" />
+          </div>
+
+          <q-table :rows="versiones" :columns="versionesColumnas" row-key="filename" v-else>
+            <template v-slot:body-cell-date="props">
+              <q-td :props="props">
+                {{ formatDate(props.row.date) }}
+              </q-td>
+            </template>
+            <template v-slot:body-cell-actions="props">
+              <q-td :props="props" style="width: 100px;" class="q-gutter-xs">
+                <q-btn outline icon="download" size="sm" color="primary" dense @click="handleDescargarVersion(props.row.download_url)" />
+                <q-btn outline icon="delete" size="sm" color="negative" dense @click="openDialogEliminarVersion(props.row.filename)" />
+              </q-td>
+            </template>
+          </q-table>
         </q-tab-panel>
 
       </q-tab-panels>
@@ -287,6 +313,51 @@
           <q-btn flat label="Cancelar" v-close-popup />
           <q-btn label="Eliminar" color="negative" @click="handleEliminarSeccion(selectedSeccion.id)"
             :loading="isLoadingEliminarSeccion" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Subir versión -->
+    <q-dialog allow-focus-outside v-model="dialogSubirVersion" class="j-dialog">
+      <q-card class="q-pa-md">
+        <q-form @submit="handleSubirVersion">
+          <q-card-section>
+            <div class="text-h6">Subir nueva versión</div>
+          </q-card-section>
+
+          <q-card-section class="q-gutter-md">
+            <q-file outlined v-model="versionData.archivo" label="Archivo .zip *" accept=".zip" lazy-rules
+              :rules="[val => !!val || 'Selecciona un archivo .zip']" clearable
+              @update:model-value="(file) => renameVersionFile(file)" />
+            <q-input outlined v-model="versionData.nombre" label="Número de versión *" placeholder="Ej. 1.0.0" lazy-rules
+              :rules="[val => val && /^\d+\.\d+\.\d+$/.test(val) || 'Formato inválido (ej: 1.0.0)']" clearable />
+          </q-card-section>
+
+          <q-card-actions class="justify-end">
+            <q-btn flat label="Cancelar" v-close-popup />
+            <q-btn type="submit" label="Subir" color="primary" :loading="isLoadingSubirVersion" />
+          </q-card-actions>
+        </q-form>
+      </q-card>
+    </q-dialog>
+
+    <!-- Eliminar versión -->
+    <q-dialog allow-focus-outside v-model="dialogEliminarVersion" class="j-dialog">
+      <q-card class="q-pa-md text-center">
+        <q-card-section>
+          <div class="text-h6">Eliminar versión</div>
+        </q-card-section>
+        <q-card-section class="q-py-none">
+          <q-avatar round size="100px" font-size="80px" color="negative" text-color="white" icon="close" />
+        </q-card-section>
+        <q-card-section>
+          ¿Estás seguro de que quieres eliminar "<span class="text-weight-bold">{{ selectedVersion }}</span>"? Esta
+          acción no se puede deshacer.
+        </q-card-section>
+        <q-card-actions class="justify-end">
+          <q-btn flat label="Cancelar" v-close-popup />
+          <q-btn label="Eliminar" color="negative" @click="handleEliminarVersion(selectedVersion)"
+            :loading="isLoadingEliminarVersion" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -724,6 +795,97 @@ watch(secciones, newSecciones => {
   })
 }, {deep: true})
 
+/**
+ * VERSIONES
+ */
+
+const versiones = ref([])
+const isLoadingVersiones = ref(true)
+const dialogSubirVersion = ref(false)
+const isLoadingSubirVersion = ref(false)
+const versionData = reactive({
+  nombre: null,
+  archivo: null,
+})
+
+const versionesColumnas = [
+  { name: 'filename', label: 'Archivo', align: 'left', field: 'filename', sortable: true },
+  { name: 'date', label: 'Fecha', align: 'left', field: 'date', sortable: true },
+  { name: 'actions', label: 'Acciones', field: 'actions' },
+]
+
+const loadVersiones = () => {
+  isLoadingVersiones.value = true
+  api.get('configuracion/versiones')
+    .then(response => {
+      if (response.data) versiones.value = response.data
+    })
+    .catch(e => console.log(e))
+    .finally(() => isLoadingVersiones.value = false)
+}
+
+const handleSubirVersion = () => {
+  isLoadingSubirVersion.value = true
+  const formData = new FormData()
+  formData.append('version', versionData.nombre)
+  formData.append('file', versionData.archivo)
+
+  api.post('configuracion/version', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+    .then(response => {
+      if (response.data) {
+        Object.keys(versionData).forEach(k => versionData[k] = null)
+        dialogSubirVersion.value = false
+        $q.notify({ message: 'Versión subida exitosamente.', color: 'positive' })
+        loadVersiones()
+      }
+    })
+    .catch(error => qNotify(error, 'error'))
+    .finally(() => isLoadingSubirVersion.value = false)
+}
+
+const handleDescargarVersion = (url) => {
+  window.open(url, '_blank')
+}
+
+const renameVersionFile = (file) => {
+  console.log(file, file.name, file.name.replace(/[^.\d]/g, '').replace(/^\.|\.$/g, ""))
+  if (file && file.name) {
+    const n = file.name.replace(/[^.\d]/g, '').replace(/^\.|\.$/g, "");
+    console.log('FileName')
+    if (/^\d+\.\d+\.\d+$/.test(n)) versionData.nombre = n
+  }
+}
+
+const formatDate = (dateStr) => {
+  const d = new Date(dateStr.replace(' ', 'T') + 'Z')
+  return d.toLocaleString()
+}
+
+const selectedVersion = ref(null)
+const dialogEliminarVersion = ref(false)
+const isLoadingEliminarVersion = ref(false)
+
+const openDialogEliminarVersion = (filename) => {
+  selectedVersion.value = filename
+  dialogEliminarVersion.value = true
+}
+
+const handleEliminarVersion = (filename) => {
+  isLoadingEliminarVersion.value = true
+  api.delete('configuracion/version/' + filename)
+    .then(response => {
+      if (response.data) {
+        dialogEliminarVersion.value = false
+        $q.notify({ message: 'Eliminado exitosamente.', color: 'positive' })
+        versiones.value = versiones.value.filter(v => v.filename !== filename)
+      }
+    })
+    .catch(error => qNotify(error, 'error'))
+    .finally(() => isLoadingEliminarVersion.value = false)
+}
+
 onMounted(() => {
   api.get('empresas')
     .then(response => {
@@ -757,6 +919,8 @@ onMounted(() => {
     })
     .catch(e => console.log(e))
     .finally(() => isLoadingSecciones.value = false)
+
+  loadVersiones()
 
 })
 
